@@ -30,13 +30,25 @@ const ROOT = path.resolve(
   '..',
 );
 
-const SOURCE = path.join(
+// Prefer the 2000×2000 square master Agent D fetched from ommiforge.com
+// — sharp downsamples better from a high-res source than from the 512×512
+// crop. Falls back to the older `favicon-source.png` if the master is
+// missing (e.g. on a fresh checkout where brand/ hasn't been populated).
+const BRAND_MASTER = path.join(
+  ROOT,
+  'public',
+  'assets',
+  'brand',
+  'favicon-square-2000.png',
+);
+const LEGACY_SOURCE = path.join(
   ROOT,
   'public',
   'assets',
   'images',
   'favicon-source.png',
 );
+const SOURCE = existsSync(BRAND_MASTER) ? BRAND_MASTER : LEGACY_SOURCE;
 
 const APP_DIR = path.join(ROOT, 'src', 'app');
 const PUBLIC_DIR = path.join(ROOT, 'public');
