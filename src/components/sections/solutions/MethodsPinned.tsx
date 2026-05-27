@@ -37,6 +37,14 @@ export default function MethodsPinned() {
 }
 
 function Inner() {
+  // Intentionally uses the legacy `useScroll()` hook (React state via
+  // `useSyncExternalStore`) rather than the ref-backed
+  // `useScrollSubscribe`. The four method panels are React-rendered
+  // crossfades — `activeIndex` controls `aria-hidden`, opacity, and
+  // translate classes on each `<article>`, plus the step rail. All of
+  // that NEEDS reconciliation. Moving this off React state would mean
+  // hand-rolling DOM mutation on a dozen sibling nodes, which is not
+  // worth it given the panels only flip 4 times across the whole pin.
   const { progress } = useScroll();
   const activeIndex = Math.min(
     FORGING_METHODS.length - 1,

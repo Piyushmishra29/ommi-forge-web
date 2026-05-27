@@ -6,11 +6,23 @@ import { ContactShadows, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { BRAND_HEX } from "@/lib/brand";
 
+/**
+ * The hero accepts EITHER a raw number OR a React ref carrying a
+ * number. The ref form is preferred for scroll-driven usage because it
+ * lets the parent mutate the value every frame without re-rendering the
+ * R3F subtree — `useFrame` reads `ref.current` on each tick.
+ */
+export type HammerStrikeProgress = number | { readonly current: number };
+
 export type HammerStrikeHeroProps = {
   /** 0..1 scrubbed by the parent (e.g. GSAP ScrollTrigger). */
-  progress: number;
+  progress: HammerStrikeProgress;
   className?: string;
 };
+
+function readProgress(p: HammerStrikeProgress): number {
+  return typeof p === 'number' ? p : (p.current ?? 0);
+}
 
 /**
  * Industrial belt drop-hammer scene driven entirely by an external
@@ -36,7 +48,7 @@ function Scene({
   progress,
   reduced,
 }: {
-  progress: number;
+  progress: HammerStrikeProgress;
   reduced: boolean;
 }) {
   const tupRef = useRef<THREE.Group>(null);
@@ -54,9 +66,6 @@ function Scene({
   const sparkOpacity = useRef(0);
   const wasStruck = useRef(false);
 
-  const clamped = Math.min(1, Math.max(0, progress));
-  const struck = clamped > 0.95;
-
   // Tup parking position (top of stroke) vs strike position (just kissing
   // the work-piece on top of the anvil).
   const TUP_TOP = 38;
@@ -64,6 +73,12 @@ function Scene({
 
   useFrame(({ camera }, rawDelta) => {
     const delta = Math.min(rawDelta, 1 / 30);
+    // Resolve the progress source EVERY frame so a parent that passes
+    // a ref (mutated by the PinnedSection scroll subscriber) keeps
+    // driving us without re-rendering the React subtree.
+    const rawProgress = readProgress(progress);
+    const clamped = Math.min(1, Math.max(0, rawProgress));
+    const struck = clamped > 0.95;
 
     if (tupRef.current) {
       const targetY = TUP_TOP - (TUP_TOP - TUP_HIT) * clamped;
@@ -597,7 +612,10 @@ function Scene({
   );
 }
 
-export function HammerStrikeHero({ progress, className }: HammerStrikeHeroProps) {
+export function HammerStrikeHero({
+  progress,
+  className,
+}: HammerStrikeHeroProps) {
   const stageBackground = `radial-gradient(120% 80% at 50% 35%, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 55%, #c8c4c1 100%)`;
   const [reduced, setReduced] = useState(false);
 

@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
-import PinnedSection, { useScroll } from '@/components/motion/PinnedSection';
+import PinnedSection, {
+  useScrollSubscribe,
+} from '@/components/motion/PinnedSection';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { MILESTONES } from '@/data/home';
 
@@ -15,23 +17,22 @@ import { MILESTONES } from '@/data/home';
  * translated leftward proportional to scroll progress so each
  * milestone slides into view.
  *
- * Perf: PinnedSection updates `progress` via React state on every
- * ScrollTrigger tick. The consumer can't avoid that, but it CAN skip
- * inline-style reconciliation on the heavy `<div>` by writing the
- * transform through `gsap.quickSetter` (cached once). The track ref
- * never re-renders structurally; only the cheap effect body fires.
+ * Perf: PinnedSection now publishes progress through a ref-backed
+ * store, so this component subscribes via `useScrollSubscribe` and
+ * writes the transform straight through `gsap.quickSetter`. No React
+ * state is involved on the scroll path; the component renders once and
+ * the `<div>` track is mutated imperatively per frame.
  *
  * Reduced-motion: renders the same milestones stacked vertically,
  * no pin, no horizontal motion.
  */
 function TimelineTrack() {
-  const { progress } = useScroll();
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   // Cache the `x` setter once per element. `gsap.quickSetter` returns
   // a memoised function bound to the target — far cheaper per-call than
   // creating an inline `style={{ transform: ... }}` object that React
-  // has to diff every ScrollTrigger tick.
+  // would otherwise have to diff every ScrollTrigger tick.
   const quickSetterRef = useRef<ReturnType<typeof gsap.quickSetter> | null>(null);
 
   useEffect(() => {
@@ -42,13 +43,15 @@ function TimelineTrack() {
     };
   }, []);
 
-  useEffect(() => {
+  const onScroll = useCallback((progress: number) => {
     // Distance to translate: track width − viewport width, expressed in vw.
     // With 6 milestones at ~80vw each = ~480vw total → translate by 380vw.
     const setter = quickSetterRef.current;
     if (!setter) return;
     setter(-380 * progress);
-  }, [progress]);
+  }, []);
+
+  useScrollSubscribe(onScroll);
 
   return (
     <div className="relative flex h-full w-full flex-col justify-center overflow-hidden bg-paper">

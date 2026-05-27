@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
-import PinnedSection, { useScroll } from '@/components/motion/PinnedSection';
+import PinnedSection, {
+  useScrollSubscribe,
+  useScrollProgressRef,
+} from '@/components/motion/PinnedSection';
 import { HammerStrikeHero } from '@/components/three/lazy';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { HAMMER_INTRO_WORDS } from '@/data/home';
@@ -20,8 +23,16 @@ import { HAMMER_INTRO_WORDS } from '@/data/home';
  *
  * The observer disconnects after first intersection: once mounted, the
  * Canvas stays mounted for the lifetime of the section.
+ *
+ * `progress` is a stable ref — we forward it untouched into the R3F
+ * scene, which reads `.current` inside its own `useFrame`. That keeps
+ * scroll updates entirely outside React's render path.
  */
-function GatedHammerHero({ progress }: { progress: number }) {
+function GatedHammerHero({
+  progress,
+}: {
+  progress: { readonly current: number };
+}) {
   const [inView, setInView] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -70,27 +81,40 @@ function GatedHammerHero({ progress }: { progress: number }) {
  *  - Right column: the R3F hammer-strike scene driven by the same
  *    progress value.
  *  - At progress > 0.95 we trigger a saffron flash by toggling a CSS
- *    variable on the section. `useEffect` watches the latched flag.
+ *    variable on the section. A latch ref keeps the flash from
+ *    re-firing during scroll oscillation.
+ *
+ * Perf note (2026-05): this component used to read `progress` from a
+ * `useState`-backed context, which re-rendered every descendant 60×
+ * per second. It now uses `useScrollSubscribe` to mutate refs / DOM
+ * directly and forwards a progress ref into the R3F scene, so the
+ * scroll-driven path never touches React.
  *
  * Reduced-motion: a single static "Forge" word + a 1-frame hammer
  * scene (progress fixed at 1). No pin, no flash.
  */
 function HammerInner() {
-  const { progress } = useScroll();
+  const progressRef = useScrollProgressRef();
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const struckRef = useRef(false);
   const flashTlRef = useRef<gsap.core.Timeline | null>(null);
 
+  // Refs into each cross-fading word so we can write opacity / transform
+  // straight to the DOM from the scroll subscription — no React render.
+  const wordRefs = useRef<Array<HTMLSpanElement | null>>([null, null, null]);
+
   // Smooth window opacities — three layered words.
-  const op = (start: number, mid: number, end: number) => {
+  const op = (
+    progress: number,
+    start: number,
+    mid: number,
+    end: number,
+  ): number => {
     if (progress <= start) return start === 0 ? 1 : 0;
     if (progress >= end) return 0;
     if (progress < mid) return (progress - start) / (mid - start);
     return 1 - (progress - mid) / (end - mid);
   };
-  const heatOp = op(0, 0.0, 0.33);
-  const strikeOp = op(0.2, 0.45, 0.66);
-  const forgeOp = op(0.55, 0.85, 1.0);
 
   // Build the impact-flash timeline ONCE on mount. We pause it and
   // `restart()` on each trigger so the saffron always lands back on
@@ -120,21 +144,34 @@ function HammerInner() {
     };
   }, []);
 
-  // Saffron impact flash trigger — debounced via `struckRef` so a
-  // single user oscillation near 0.95 can't re-fire mid-tween.
-  useEffect(() => {
-    const tl = flashTlRef.current;
-    if (!tl) return;
+  // Single subscription — runs every scroll tick, writes directly into
+  // the word elements and (debounced) restarts the flash timeline.
+  // Stable callback identity so we don't re-subscribe on every render.
+  const onScroll = useCallback((p: number) => {
+    const heat = op(p, 0, 0.0, 0.33);
+    const strike = op(p, 0.2, 0.45, 0.66);
+    const forge = op(p, 0.55, 0.85, 1.0);
+    const ops = [heat, strike, forge];
+    for (let i = 0; i < wordRefs.current.length; i += 1) {
+      const node = wordRefs.current[i];
+      const opacity = ops[i] ?? 0;
+      if (!node) continue;
+      node.style.opacity = String(opacity);
+      node.style.transform = `translateY(${(1 - opacity) * 20}px)`;
+    }
 
-    if (progress > 0.95 && !struckRef.current) {
-      struckRef.current = true;
-      tl.restart();
-      return;
+    const tl = flashTlRef.current;
+    if (tl) {
+      if (p > 0.95 && !struckRef.current) {
+        struckRef.current = true;
+        tl.restart();
+      } else if (p < 0.5) {
+        struckRef.current = false;
+      }
     }
-    if (progress < 0.5) {
-      struckRef.current = false;
-    }
-  }, [progress]);
+  }, []);
+
+  useScrollSubscribe(onScroll);
 
   return (
     <div
@@ -148,25 +185,26 @@ function HammerInner() {
           aria-label="Heat. Strike. Forge."
           className="relative mt-6 h-[40vh] w-full md:h-[60vh]"
         >
-          {HAMMER_INTRO_WORDS.map((word, i) => {
-            const opacity = i === 0 ? heatOp : i === 1 ? strikeOp : forgeOp;
-            return (
-              <span
-                key={word}
-                aria-hidden
-                className="absolute inset-0 flex items-center font-display font-light leading-none text-graphite"
-                style={{
-                  opacity,
-                  fontSize: 'clamp(80px, 14vw, 200px)',
-                  letterSpacing: '-0.02em',
-                  transform: `translateY(${(1 - opacity) * 20}px)`,
-                  transition: 'transform 250ms ease-out',
-                }}
-              >
-                {word}.
-              </span>
-            );
-          })}
+          {HAMMER_INTRO_WORDS.map((word, i) => (
+            <span
+              key={word}
+              aria-hidden
+              ref={(node) => {
+                wordRefs.current[i] = node;
+              }}
+              className="absolute inset-0 flex items-center font-display font-light leading-none text-graphite"
+              style={{
+                // Initial opacity — first word visible, others hidden.
+                opacity: i === 0 ? 1 : 0,
+                fontSize: 'clamp(80px, 14vw, 200px)',
+                letterSpacing: '-0.02em',
+                transform: 'translateY(0px)',
+                transition: 'transform 250ms ease-out',
+              }}
+            >
+              {word}.
+            </span>
+          ))}
         </div>
       </div>
 
@@ -176,7 +214,7 @@ function HammerInner() {
           footprint either way, so layout (and the pin trigger) is
           stable regardless of mount state. */}
       <div className="relative h-[50vh] w-full md:h-full">
-        <GatedHammerHero progress={progress} />
+        <GatedHammerHero progress={progressRef} />
       </div>
     </div>
   );

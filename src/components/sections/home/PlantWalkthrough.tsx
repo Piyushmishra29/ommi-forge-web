@@ -1,8 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import PinnedSection, { useScroll } from '@/components/motion/PinnedSection';
+import PinnedSection, {
+  useScrollSubscribe,
+} from '@/components/motion/PinnedSection';
 import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
@@ -13,14 +15,14 @@ import Eyebrow from '@/components/ui/Eyebrow';
 const PLANT_CLIP_SRC = '/assets/video/plant-pan-1080.mp4';
 
 /**
- * Inner scrubbed drone-footage stage. Subscribes to `useScroll()` and
- * drives `video.currentTime` from the progress value. The <video> is
- * gated behind an IntersectionObserver — until the section is within
- * 400 px of the viewport we render a graphite placeholder so the home
- * page doesn't ship ~1 MB of MP4 on initial mount.
+ * Inner scrubbed drone-footage stage. Subscribes to scroll progress via
+ * `useScrollSubscribe` (no React re-renders) and drives
+ * `video.currentTime` directly from the callback. The <video> is gated
+ * behind an IntersectionObserver — until the section is within 400 px
+ * of the viewport we render a graphite placeholder so the home page
+ * doesn't ship ~1 MB of MP4 on initial mount.
  */
 function ScrubStage() {
-  const { progress } = useScroll();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastSetRef = useRef(0);
@@ -61,34 +63,28 @@ function ScrubStage() {
     observerRef.current = observer;
   }, []);
 
-  useEffect(() => {
+  // Scroll subscription — direct DOM mutation, no React state, no
+  // re-render. Callback identity is stable so subscribe-effects don't
+  // churn.
+  const onScroll = useCallback((progress: number) => {
     const v = videoRef.current;
     if (!v) return;
-
-    // Wait for the metadata before trying to scrub.
-    const tryScrub = () => {
-      if (!Number.isFinite(v.duration) || v.duration <= 0) return;
-      // Linear map progress (0..1) → currentTime across the full clip.
-      // Works for any clip duration — the new 5 s plant-pan clip and
-      // the old 57 s hero clip alike.
-      const t = Math.min(progress * v.duration, v.duration - 0.05);
-      // Avoid hammering the video element with sub-pixel updates.
-      if (Math.abs(t - lastSetRef.current) < 0.03) return;
-      lastSetRef.current = t;
-      try {
-        v.currentTime = t;
-      } catch {
-        /* Safari occasionally throws if metadata isn't ready yet. */
-      }
-    };
-
-    if (v.readyState >= 1) {
-      tryScrub();
-    } else {
-      v.addEventListener('loadedmetadata', tryScrub, { once: true });
-      return () => v.removeEventListener('loadedmetadata', tryScrub);
+    if (!Number.isFinite(v.duration) || v.duration <= 0) return;
+    // Linear map progress (0..1) → currentTime across the full clip.
+    // Works for any clip duration — the 5 s plant-pan clip and the old
+    // 57 s hero clip alike.
+    const t = Math.min(progress * v.duration, v.duration - 0.05);
+    // Avoid hammering the video element with sub-pixel updates.
+    if (Math.abs(t - lastSetRef.current) < 0.03) return;
+    lastSetRef.current = t;
+    try {
+      v.currentTime = t;
+    } catch {
+      /* Safari occasionally throws if metadata isn't ready yet. */
     }
-  }, [progress, inView]);
+  }, []);
+
+  useScrollSubscribe(onScroll);
 
   return (
     <div
