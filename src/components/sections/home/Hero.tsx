@@ -119,6 +119,7 @@ export default function Hero() {
     if (!v || !el) return;
 
     let st: ScrollTrigger | null = null;
+    let lastSet = -1;
 
     const setup = () => {
       if (!Number.isFinite(v.duration) || v.duration <= 0) return;
@@ -126,13 +127,21 @@ export default function Hero() {
       st = ScrollTrigger.create({
         trigger: el,
         start: 'top top',
-        end: '+=300%', // hero pins for 3× viewport — 3.8 s clip → ~1.3 s of video per viewport scrolled, so the user can read each frame
+        end: '+=300%', // 3× viewport pin — ~1.3 s of video per viewport scrolled
         pin: true,
         pinSpacing: true,
-        scrub: 0.6, // small smoothing so the seek feels weighted
+        // scrub: true (not a number) — Lenis already provides smooth
+        // scroll, so layering GSAP smoothing on top compounds latency
+        // and CPU. true = follow scroll position 1:1.
+        scrub: true,
         onUpdate: (self) => {
           if (!Number.isFinite(v.duration)) return;
           const t = Math.min(self.progress * v.duration, v.duration - 0.04);
+          // Throttle: only seek when delta > 1 frame at 30fps. Each
+          // currentTime write costs a decode; skipping sub-frame deltas
+          // halves the work without visibly affecting smoothness.
+          if (Math.abs(t - lastSet) < 0.033) return;
+          lastSet = t;
           try {
             v.currentTime = t;
           } catch {
