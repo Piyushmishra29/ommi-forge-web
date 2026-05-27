@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import ProductsHero from '@/components/sections/products/ProductsHero';
 import ProductsGallery from '@/components/sections/products/ProductsGallery';
+import ProductsClosingCta from '@/components/sections/products/ProductsClosingCta';
 
 export const metadata: Metadata = {
   title: 'Products — Forged catalogue',
@@ -13,6 +14,7 @@ export default function ProductsPage() {
     <>
       <ProductsHero />
       <ProductsGallery />
+      <ProductsClosingCta />
     </>
   );
 }

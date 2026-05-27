@@ -1,16 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AnimatePresence,
   motion,
   type Variants,
 } from 'framer-motion';
-import { PRODUCTS, type ProductItem } from '@/data/products';
+import {
+  APPLICATION_LABEL,
+  PRODUCTS,
+  productApplications,
+  productCategory,
+  type ProductApplication,
+  type ProductItem,
+} from '@/data/products';
 // Single source of truth for lazy-loaded three components — keeps
 // three.js in one shared async chunk instead of duplicating it per route.
 import { StlPreview, StlViewer } from '@/components/three/lazy';
 import { withExt } from '@/lib/image-formats';
+import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
  * Explicit pixel dimensions per aspect — keep these in lockstep with
@@ -36,9 +44,188 @@ const overlayVariants: Variants = {
   exit: { opacity: 0 },
 };
 
+/* -------------------------------------------------------------------------- */
+/*  Section header                                                            */
+/* -------------------------------------------------------------------------- */
+
+interface SectionHeaderProps {
+  eyebrow: string;
+  title: string;
+  intro?: string;
+  align?: 'left' | 'center';
+}
+
+function SectionHeader({ eyebrow, title, intro, align = 'left' }: SectionHeaderProps) {
+  return (
+    <header
+      className={
+        align === 'center'
+          ? 'mx-auto max-w-3xl text-center'
+          : 'max-w-3xl'
+      }
+    >
+      <Eyebrow>
+        <span className="text-mesh">{eyebrow}</span>
+      </Eyebrow>
+      <h2 className="mt-6 font-display text-3xl font-light leading-[1.05] text-graphite md:text-5xl">
+        {title}
+      </h2>
+      {intro ? (
+        <p className="mt-5 font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]">
+          {intro}
+        </p>
+      ) : null}
+    </header>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Tile primitives                                                           */
+/* -------------------------------------------------------------------------- */
+
+interface TileProps {
+  item: ProductItem;
+  onOpen: (slug: string) => void;
+  /** Featured tiles use a heavier label + 33vh desktop height. */
+  featured?: boolean;
+}
+
+function ProductTile({ item, onOpen, featured = false }: TileProps) {
+  return (
+    <motion.button
+      type="button"
+      layoutId={`card-${item.slug}`}
+      data-magnetic
+      onClick={() => onOpen(item.slug)}
+      className="group relative block w-full overflow-hidden bg-render-bg text-left focus:outline-none"
+    >
+      <div
+        className={
+          featured
+            ? 'aspect-[4/5] md:aspect-auto md:h-[33vh]'
+            : aspectClass[item.aspect]
+        }
+      >
+        {item.kind === 'stl' ? (
+          <StlPreview
+            src={item.stl}
+            ariaLabel={`${item.name} 3D preview`}
+            className="h-full w-full"
+          />
+        ) : (
+          <picture>
+            <source srcSet={withExt(item.src, 'avif')} type="image/avif" />
+            <source srcSet={withExt(item.src, 'webp')} type="image/webp" />
+            <img
+              src={item.src}
+              alt={item.name}
+              width={aspectSize[item.aspect].w}
+              height={aspectSize[item.aspect].h}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          </picture>
+        )}
+      </div>
+
+      {/* Hover label — richer treatment for featured tiles. */}
+      {featured ? (
+        <>
+          {/* Top-left meta strip — always visible on featured so the
+              section reads with rhythm even at rest. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-5 md:p-6">
+            <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
+              Featured
+            </p>
+            <span
+              aria-hidden
+              className="h-px w-10 translate-y-2 bg-saffron transition-all duration-500 group-hover:w-16"
+            />
+          </div>
+          {/* Bottom slab with full label, slides up on hover. */}
+          <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite/90 via-graphite/55 to-transparent p-6 opacity-95 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 md:p-8">
+              <div>
+                <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-saffron">
+                  {item.code}
+                </p>
+                <h3 className="mt-2 font-display text-2xl font-light leading-tight text-paper md:text-3xl">
+                  {item.name}
+                </h3>
+              </div>
+              <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-paper">
+                View →
+              </span>
+            </div>
+        </>
+      ) : (
+        <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent p-5 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+          <div>
+            <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
+              {item.code}
+            </p>
+            <h3 className="mt-1 font-display text-xl font-light text-paper md:text-2xl">
+              {item.name}
+            </h3>
+          </div>
+          <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-paper">
+            View →
+          </span>
+        </div>
+      )}
+
+      {/* Always-on caption strip — touch / no-hover. Skipped for
+          featured because their bottom slab is already visible. */}
+      {!featured ? (
+        <div className="bg-paper p-4 md:hidden">
+          <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
+            {item.code}
+          </p>
+          <h3 className="mt-1 font-display text-lg font-light text-graphite">
+            {item.name}
+          </h3>
+        </div>
+      ) : null}
+    </motion.button>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Gallery (owns modal state + renders three sections)                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * ProductsGallery
+ *
+ * Three editorial bands stacked vertically:
+ *  1. Featured (3-up, 33vh desktop tiles).
+ *  2. Catalogue (CSS-columns masonry of the rest, gap-4 for a tighter
+ *     read than the previous gap-6).
+ *  3. By application (Auto / Industrial / Agricultural) — a small
+ *     compact list of chips so visitors can navigate the catalogue by
+ *     industry, not just by part name.
+ *
+ * The modal overlay is shared across all three sections — `layoutId`
+ * lives on each card, regardless of which band it sits in, so the
+ * tap-to-zoom interaction works uniformly.
+ */
 export default function ProductsGallery() {
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const active = PRODUCTS.find((p) => p.slug === activeSlug) ?? null;
+
+  // Pre-bucket items once per render. Memoising means the by-application
+  // groups don't re-allocate on every modal open/close.
+  const { featured, catalogue, byApplication } = useMemo(() => {
+    const featured = PRODUCTS.filter((p) => productCategory(p) === 'featured');
+    const catalogue = PRODUCTS.filter((p) => productCategory(p) !== 'featured');
+    const order: ProductApplication[] = ['auto', 'industrial', 'agricultural'];
+    const byApplication = order.map((app) => ({
+      key: app,
+      label: APPLICATION_LABEL[app],
+      items: PRODUCTS.filter((p) => productApplications(p).includes(app)),
+    }));
+    return { featured, catalogue, byApplication };
+  }, []);
 
   // Close on Escape + lock body scroll while open.
   useEffect(() => {
@@ -59,78 +246,104 @@ export default function ProductsGallery() {
   }, [active]);
 
   return (
-    <section className="bg-paper pb-32 md:pb-40">
-      <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
-        <div className="columns-1 gap-6 md:columns-2 lg:columns-3 [&>*]:mb-6 [&>*]:break-inside-avoid">
-          {PRODUCTS.map((p) => (
-            <motion.button
-              key={p.slug}
-              type="button"
-              layoutId={`card-${p.slug}`}
-              data-magnetic
-              onClick={() => setActiveSlug(p.slug)}
-              className="group relative block w-full overflow-hidden bg-render-bg text-left focus:outline-none"
-            >
-              <div className={aspectClass[p.aspect]}>
-                {p.kind === 'stl' ? (
-                  <StlPreview
-                    src={p.stl}
-                    ariaLabel={`${p.name} 3D preview`}
-                    className="h-full w-full"
-                  />
-                ) : (
-                  <picture>
-                    <source
-                      srcSet={withExt(p.src, 'avif')}
-                      type="image/avif"
-                    />
-                    <source
-                      srcSet={withExt(p.src, 'webp')}
-                      type="image/webp"
-                    />
-                    <img
-                      src={p.src}
-                      alt={p.name}
-                      width={aspectSize[p.aspect].w}
-                      height={aspectSize[p.aspect].h}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  </picture>
-                )}
-              </div>
-
-              {/* Hover label */}
-              <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent p-5 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
-                <div>
-                  <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
-                    {p.code}
-                  </p>
-                  <h3 className="mt-1 font-display text-xl font-light text-paper md:text-2xl">
-                    {p.name}
-                  </h3>
-                </div>
-                <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-paper">
-                  View →
-                </span>
-              </div>
-
-              {/* Always-on caption strip (for touch/no-hover) */}
-              <div className="bg-paper p-4 md:hidden">
-                <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
-                  {p.code}
-                </p>
-                <h3 className="mt-1 font-display text-lg font-light text-graphite">
-                  {p.name}
-                </h3>
-              </div>
-            </motion.button>
-          ))}
+    <>
+      {/* ----- Featured band ------------------------------------------------ */}
+      <section
+        id="gallery"
+        aria-labelledby="featured-heading"
+        className="bg-paper pt-4 pb-20 md:pt-8 md:pb-28"
+      >
+        <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+          <SectionHeader
+            eyebrow="Featured · Three hero parts"
+            title="The parts our customers ask for most."
+            intro="Walk a metallurgist through these and you'll cover the bulk of what leaves Malur — heavy-duty trunnions, drive sprockets and near-net cylinder heads."
+          />
         </div>
-      </div>
 
-      {/* Overlay */}
+        <div className="mt-12 md:mt-16">
+          <div className="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-1">
+            {featured.map((p) => (
+              <div key={p.slug} id={`product-${p.slug}`}>
+                <ProductTile item={p} onOpen={setActiveSlug} featured />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ----- Catalogue masonry ------------------------------------------- */}
+      <section
+        aria-labelledby="catalogue-heading"
+        className="bg-paper pb-24 md:pb-32"
+      >
+        <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+          <SectionHeader
+            eyebrow="Full catalogue"
+            title="Every named part we forge."
+            intro="Levers, links, valve bodies and process photography — tap any tile for the full 3D viewer."
+          />
+
+          <div className="mt-12 columns-1 gap-4 md:columns-2 lg:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid md:mt-16">
+            {catalogue.map((p) => (
+              <div key={p.slug} id={`product-${p.slug}`}>
+                <ProductTile item={p} onOpen={setActiveSlug} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ----- By application ---------------------------------------------- */}
+      <section
+        aria-labelledby="by-application-heading"
+        className="border-t border-graphite/10 bg-paper pb-24 pt-20 md:pb-32 md:pt-24"
+      >
+        <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+          <SectionHeader
+            eyebrow="By application"
+            title="What industry are you serving?"
+            intro="Same parts, grouped by the industries they typically land in. Click a chip to zoom the 3D viewer."
+          />
+
+          <div className="mt-12 grid grid-cols-1 gap-10 md:mt-16 md:grid-cols-3 md:gap-12">
+            {byApplication.map((group) => (
+              <div key={group.key} className="border-t border-graphite/15 pt-6">
+                <div className="flex items-baseline justify-between">
+                  <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-graphite">
+                    {group.label}
+                  </p>
+                  <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-ash">
+                    {group.items.length.toString().padStart(2, '0')}
+                  </span>
+                </div>
+                <ul className="mt-5 flex flex-wrap gap-2">
+                  {group.items.map((p) => (
+                    <li key={`${group.key}-${p.slug}`}>
+                      <button
+                        type="button"
+                        data-magnetic
+                        onClick={() => setActiveSlug(p.slug)}
+                        className="group inline-flex items-center gap-2 border border-graphite/15 bg-paper px-3 py-2 font-eyebrow text-[11px] font-semibold uppercase tracking-[0.16em] text-graphite transition-colors hover:border-mesh hover:bg-mesh hover:text-paper"
+                      >
+                        <span>{p.name}</span>
+                        <span
+                          aria-hidden
+                          className="font-eyebrow text-[9px] font-semibold text-ash transition-colors group-hover:text-paper/70"
+                        >
+                          {p.code}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ----- Shared overlay ---------------------------------------------- */}
       <AnimatePresence>
         {active && (
           <motion.div
@@ -193,6 +406,16 @@ export default function ProductsGallery() {
                   <p className="mt-6 font-body text-base leading-relaxed text-steel md:text-lg">
                     {active.blurb}
                   </p>
+                  <ul className="mt-6 flex flex-wrap gap-2">
+                    {productApplications(active).map((app) => (
+                      <li
+                        key={app}
+                        className="border border-graphite/20 px-2.5 py-1 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.18em] text-graphite"
+                      >
+                        {APPLICATION_LABEL[app]}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -217,6 +440,6 @@ export default function ProductsGallery() {
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+    </>
   );
 }
