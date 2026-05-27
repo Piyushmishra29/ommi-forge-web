@@ -245,7 +245,14 @@ export function StlViewer({
         />
         <Suspense fallback={<AnvilWireframe />}>
           <StlModel src={src} />
-          <Environment preset="warehouse" />
+          {/*
+            Self-hosted HDRI (CC0 from polyhaven, originally bundled by
+            drei). Using `preset` would force a runtime fetch from
+            raw.githack.com — leaking referer and adding ~1.5 MB to every
+            render-detail page. Serving it from /public/assets/hdr keeps
+            the request same-origin and cacheable.
+          */}
+          <Environment files="/assets/hdr/empty_warehouse_01_1k.hdr" />
         </Suspense>
         <ContactShadows
           position={[0, -50, 0]}

@@ -1,12 +1,64 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
 import PinnedSection, { useScroll } from '@/components/motion/PinnedSection';
 import { HammerStrikeHero } from '@/components/three/lazy';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { HAMMER_INTRO_WORDS } from '@/data/home';
+
+/**
+ * GatedHammerHero
+ *
+ * Wraps the lazy `<HammerStrikeHero>` in an IntersectionObserver so the
+ * three.js chunk (~890 KB) + WebGL context only initialize when the
+ * scene is within ~600 px of the viewport. The wrapper div ALWAYS
+ * renders at full height/width so the surrounding section keeps the
+ * exact same layout — the pin trigger sees no movement and the scroll
+ * math is untouched. We only gate the R3F mount itself.
+ *
+ * The observer disconnects after first intersection: once mounted, the
+ * Canvas stays mounted for the lifetime of the section.
+ */
+function GatedHammerHero({ progress }: { progress: number }) {
+  const [inView, setInView] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const setRefAndObserve = useCallback((node: HTMLDivElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    if (!node) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      // Non-browser / unsupported — render immediately.
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setInView(true);
+            observer.disconnect();
+            observerRef.current = null;
+            break;
+          }
+        }
+      },
+      { rootMargin: '600px' },
+    );
+    observer.observe(node);
+    observerRef.current = observer;
+  }, []);
+
+  return (
+    <div ref={setRefAndObserve} className="h-full w-full bg-paper">
+      {inView && <HammerStrikeHero progress={progress} />}
+    </div>
+  );
+}
 
 /**
  * HammerStrikeIntro
@@ -118,9 +170,13 @@ function HammerInner() {
         </div>
       </div>
 
-      {/* Right scene */}
+      {/* Right scene — gated so the three.js chunk + WebGL context
+          only spin up when the section nears the viewport. The wrapper
+          inside `<GatedHammerHero>` keeps the same h-full/w-full
+          footprint either way, so layout (and the pin trigger) is
+          stable regardless of mount state. */}
       <div className="relative h-[50vh] w-full md:h-full">
-        <HammerStrikeHero progress={progress} />
+        <GatedHammerHero progress={progress} />
       </div>
     </div>
   );
