@@ -163,26 +163,30 @@ export default function Hero() {
         preload="metadata"
         aria-hidden
       />
-      {/* Graphite overlay */}
-      <div className="absolute inset-0 bg-graphite/35" aria-hidden />
+      {/* Layered overlay: darker top-to-bottom gradient so headline + subhead
+          read on bright midday footage. */}
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-graphite/55 via-graphite/40 to-graphite/75"
+        aria-hidden
+      />
 
       {/* Foreground */}
-      <div className="relative z-10 mx-auto flex w-full max-w-[1140px] flex-col items-center px-6 text-center text-paper">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1140px] flex-col items-center px-6 text-center text-paper [text-shadow:0_2px_24px_rgba(0,0,0,0.45)]">
         <Eyebrow className="text-paper">{HERO_COPY.eyebrow}</Eyebrow>
 
         <div
           data-hero-headline
-          className="mt-8 font-display font-light leading-[1.05]"
+          className="mt-8 font-display font-light leading-[1.02]"
         >
           <SplitText
             as="h1"
-            className="text-[clamp(64px,12vw,128px)] text-paper"
+            className="text-[clamp(56px,11vw,124px)] text-paper"
           >
             {HERO_COPY.headlineLine1}
           </SplitText>
           <SplitText
             as="span"
-            className="mt-2 block text-[clamp(40px,7vw,64px)] italic text-paper/70"
+            className="mt-3 block text-[clamp(28px,5vw,52px)] italic text-paper/90"
           >
             {HERO_COPY.headlineLine2}
           </SplitText>
@@ -190,7 +194,7 @@ export default function Hero() {
 
         <p
           data-hero-subhead
-          className="mt-8 max-w-xl font-body text-base text-paper/85 md:text-lg"
+          className="mt-10 max-w-xl font-body text-base text-paper md:text-lg"
         >
           {HERO_COPY.subhead}
         </p>
@@ -202,39 +206,41 @@ export default function Hero() {
           <Link
             href={HERO_COPY.primaryCta.href}
             data-magnetic
-            className="inline-flex items-center justify-center bg-saffron px-7 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
+            className="inline-flex items-center justify-center bg-saffron px-7 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)] transition-colors hover:bg-mesh hover:text-paper"
+            style={{ textShadow: 'none' }}
           >
             {HERO_COPY.primaryCta.label}
           </Link>
           <Link
             href={HERO_COPY.secondaryCta.href}
             data-magnetic
-            className="inline-flex items-center justify-center border border-paper/70 px-7 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-paper transition-colors hover:bg-paper hover:text-graphite"
+            className="inline-flex items-center justify-center border border-paper/80 bg-graphite/20 px-7 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-paper backdrop-blur-sm transition-colors hover:bg-paper hover:text-graphite"
           >
             {HERO_COPY.secondaryCta.label}
           </Link>
         </div>
+      </div>
 
-        {/* Scroll cue */}
-        <div
-          data-hero-cue
-          className="pointer-events-none absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3 text-paper/70"
+      {/* Scroll cue — moved out of the center column, anchored bottom-right
+          so it never crosses the headline or subhead. */}
+      <div
+        data-hero-cue
+        className="pointer-events-none absolute bottom-8 right-6 z-10 hidden flex-col items-end gap-3 text-paper/85 md:flex md:right-10"
+      >
+        <AudioPulseBars reduced={reduced} />
+        <span
+          aria-hidden
+          className="block h-14 w-px animate-pulse bg-mesh"
+        />
+        <span
+          className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.45em]"
+          style={{
+            writingMode: 'vertical-rl',
+            transform: 'rotate(180deg)',
+          }}
         >
-          <span
-            className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.4em]"
-            style={{
-              writingMode: 'vertical-rl',
-              transform: 'rotate(180deg)',
-            }}
-          >
-            Scroll
-          </span>
-          <span
-            aria-hidden
-            className="block h-16 w-px animate-pulse bg-mesh"
-          />
-          <AudioPulseBars reduced={reduced} />
-        </div>
+          Scroll
+        </span>
       </div>
     </section>
   );
