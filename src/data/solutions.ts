@@ -87,7 +87,7 @@ export const SOLUTIONS_HERO = {
  */
 export const SOLUTIONS_CLOSING_CTA = {
   eyebrow: 'READY TO BUILD',
-  headline: 'Send us a spec sheet.',
+  headline: 'Send us your spec.',
   subhead:
     'Drawings, samples, or a paragraph in an email — we will quote the right method for the part and have a price back in a day.',
   primary: { label: 'Send us a spec sheet →', href: '/contact/' },

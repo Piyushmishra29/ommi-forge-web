@@ -64,7 +64,7 @@ export default function SolutionsClosingCta() {
   return (
     <section
       ref={root}
-      className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-saffron text-graphite"
+      className="relative flex w-full items-center justify-center overflow-hidden bg-saffron py-32 text-graphite md:py-48"
     >
       {/* Subtle diagonal hairline texture — barely visible, gives the
           slab the same "machined" feel as the rest of the route. */}
@@ -73,20 +73,31 @@ export default function SolutionsClosingCta() {
         className="pointer-events-none absolute inset-0 opacity-[0.08]"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(45deg, transparent 0 14px, #1F2124 14px 15px)',
+            'repeating-linear-gradient(45deg, transparent 0 14px, var(--color-graphite) 14px 15px)',
         }}
       />
 
-      <div className="relative mx-auto flex w-full max-w-[var(--container-page)] flex-col items-start px-6 py-32 md:px-10 md:py-40">
+      {/* Graphite vignette top + bottom — softens the pure-saffron slab
+          into a band rather than a wall, without losing the brand moment. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-graphite/15 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-graphite/15 to-transparent"
+      />
+
+      <div className="relative mx-auto flex w-full max-w-[var(--container-page)] flex-col items-start px-6 md:px-10">
         <Eyebrow data-cta-fade>
           <span className="text-graphite">{SOLUTIONS_CLOSING_CTA.eyebrow}</span>
         </Eyebrow>
 
-        <div data-cta-headline className="mt-8 max-w-[14ch]">
+        <div data-cta-headline className="mt-8 max-w-[18ch]">
           <SplitText
             as="h2"
-            className="block font-display font-light leading-[0.95]"
-            charClassName="text-[clamp(56px,11vw,140px)]"
+            className="block font-display font-light leading-[0.95] tracking-tight"
+            charClassName="text-[clamp(40px,7vw,88px)]"
           >
             {SOLUTIONS_CLOSING_CTA.headline}
           </SplitText>

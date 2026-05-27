@@ -44,14 +44,25 @@ export default function ClosingCta() {
   return (
     <section
       ref={root}
-      className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-saffron text-graphite"
+      className="relative flex w-full items-center justify-center overflow-hidden bg-saffron py-32 text-graphite md:py-48"
     >
-      <div className="mx-auto flex max-w-[1140px] flex-col items-center px-6 py-32 text-center md:px-10 md:py-40">
+      {/* Graphite vignette top + bottom — softens the pure-saffron slab
+          into a band rather than a wall, without losing the brand moment. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-graphite/15 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-graphite/15 to-transparent"
+      />
+
+      <div className="relative mx-auto flex max-w-[1140px] flex-col items-center px-6 text-center md:px-10">
         <div data-cta-headline>
           <SplitText
             as="h2"
-            className="font-display font-light leading-[0.95]"
-            charClassName="text-[clamp(56px,11vw,160px)]"
+            className="font-display font-light leading-[0.95] tracking-tight"
+            charClassName="text-[clamp(48px,8vw,112px)]"
           >
             {CLOSING_CTA.headline}
           </SplitText>
