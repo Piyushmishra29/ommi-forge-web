@@ -43,3 +43,7 @@ next-env.d.ts
 
 # Raw WordPress upload mirror — kept as a fallback safety net but not versioned
 /public/assets/wp-mirror/
+
+# Master JPG originals from client — too large to commit. Optimized
+# scaled/AVIF/WebP siblings are generated into the parent folder.
+/public/assets/images/originals/
