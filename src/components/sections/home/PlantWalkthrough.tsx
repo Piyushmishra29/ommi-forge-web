@@ -8,13 +8,14 @@ import PinnedSection, {
 import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
- * 57s 1080p re-encode of the client's 4K "Omni Forge fin" master.
- * Identical to the Hero source — by the time the user scrolls here the
- * browser already has it in cache, so the scroll-scrubbed playback is
- * instant. (Earlier we used a tiny plant-pan-1080.mp4 to keep payload
- * down, but on the new section order this isn't necessary.)
+ * Scrub-optimised re-encode of the client's "Omni Forge fin" master.
+ * 1280×720, libx264 -crf 26 with a forced keyframe every 12 frames
+ * (~0.5 s) so scroll-scrub can seek between arbitrary points without
+ * fetching a long inter-frame chain. ~16 MB vs 38 MB hero.mp4 — the
+ * Hero keeps the higher-quality 1080p loop, this is purpose-built
+ * for SEEK-heavy playback.
  */
-const PLANT_CLIP_SRC = '/assets/video/hero.mp4';
+const PLANT_CLIP_SRC = '/assets/video/walkthrough-scrub.mp4';
 
 /**
  * Inner scrubbed drone-footage stage. Subscribes to scroll progress via
