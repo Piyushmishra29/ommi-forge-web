@@ -28,22 +28,22 @@ export default function StatsCounter() {
           Which is why our numbers speak for themselves.
         </p>
 
-        <ul className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <ul className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-10 xl:grid-cols-4 xl:gap-8">
           {STATS.map((stat) => (
             <li
               key={stat.label}
-              className="flex min-w-0 flex-col gap-4 overflow-hidden border-t border-paper/15 pt-6"
+              className="flex min-w-0 flex-col gap-4 border-t border-paper/15 pt-6"
             >
               {/* Fluid font sizing tuned so the widest stat ("1,000+") fits
-                  its 4-col cell at 1140px container without spilling into
-                  siblings. Wider stats get less headroom; smaller stats
-                  (single digit "8" / "1") still feel big.
-                  Cell width at lg ≈ 260px → cap font-size at ~72px so
-                  "1,000+" stays inside the cell. */}
+                  every breakpoint without clipping. Grid drops to 2-up at
+                  sm/lg and only expands to 4-up at xl (≥1280px) where each
+                  cell is ~276px wide. Clamp cap of 96px keeps "1,000+"
+                  inside that cell while the single-digit stats still feel
+                  dramatic. overflow-hidden removed — no longer needed. */}
               <span
                 className="block font-display font-bold leading-[0.92] text-saffron tabular-nums"
                 style={{
-                  fontSize: 'clamp(56px, 9.5vw, 112px)',
+                  fontSize: 'clamp(56px, 8vw, 96px)',
                   letterSpacing: '-0.04em',
                   textShadow: '0 0 36px rgba(255,153,51,0.18)',
                 }}
