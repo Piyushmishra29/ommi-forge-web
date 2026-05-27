@@ -35,6 +35,12 @@ function Scene({ progress }: { progress: HammerStrikeProgress }) {
   const hammerRef = useRef<THREE.Group>(null);
   const cameraTilt = useRef(0);
   const impactPulse = useRef(0);
+  // Tracks the previous `struck` state across frames so the impact
+  // pulse only fires on the RISING edge of struck (false → true). Without
+  // this, V1 re-fires every 350 ms for as long as progress > 0.95 — i.e.
+  // forever once the pinned scroll bottoms out — creating a continuous
+  // camera-tilt wobble after the animation finishes.
+  const wasStruck = useRef(false);
 
   useFrame(({ camera }, rawDelta) => {
     // Cap delta so paused-tab unfreezes don't snap the scene.
@@ -49,15 +55,20 @@ function Scene({ progress }: { progress: HammerStrikeProgress }) {
         (targetY - hammerRef.current.position.y) * Math.min(1, delta * 12);
     }
 
-    // Impact pulse: bump camera 1.5° y-rotation briefly when struck.
-    if (struck && impactPulse.current <= 0) {
+    // Fire the impact pulse only on the rising edge of `struck`.
+    if (struck && !wasStruck.current) {
       impactPulse.current = 0.35; // 350ms decay window
     }
+    wasStruck.current = struck;
+
     if (impactPulse.current > 0) {
       cameraTilt.current = (impactPulse.current / 0.35) * ((1.5 * Math.PI) / 180);
       impactPulse.current = Math.max(0, impactPulse.current - delta);
     } else {
       cameraTilt.current *= 1 - Math.min(1, delta * 4);
+      // Snap to exactly 0 once the residual tilt is sub-pixel so the
+      // camera doesn't write a vanishingly tiny rotation forever.
+      if (Math.abs(cameraTilt.current) < 1e-4) cameraTilt.current = 0;
     }
     camera.rotation.y = cameraTilt.current;
   });
