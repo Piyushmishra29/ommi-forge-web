@@ -10,9 +10,22 @@ import { cn } from '@/lib/cn';
 /**
  * Contact form — react-hook-form + zod, floating-label styling, and a
  * success-state morph that swaps the form for a graphite slab on
- * submit. There's no real backend; submitting just validates and
- * flips the local state.
+ * submit.
+ *
+ * Wire-up:
+ *   - If `NEXT_PUBLIC_FORMSPREE_URL` is set at build time, the form
+ *     POSTs the payload as JSON to that endpoint. A 200/202 response
+ *     flips to the success state; anything else surfaces an error
+ *     banner with a "Try again" affordance.
+ *   - If the env var is unset (default), the form runs in "log only"
+ *     mode: a brief feigned latency, a `console.info` note for the
+ *     developer, then a success flip. No network is touched.
+ *
+ * Server-side spam protection: enable reCAPTCHA inside the Formspree
+ * dashboard once wired — this client never sees the captcha tokens.
  */
+const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_URL;
+
 const ContactSchema = z.object({
   firstName: z.string().min(1, 'Required'),
   lastName: z.string().min(1, 'Required'),
@@ -28,6 +41,7 @@ type ContactValues = z.infer<typeof ContactSchema>;
 
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -46,15 +60,54 @@ export default function ContactForm() {
     },
   });
 
-  async function onSubmit() {
-    // No real network call — feign latency, then morph to success state.
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitted(true);
+  async function onSubmit(values: ContactValues) {
+    setSubmitError(null);
+
+    if (!FORMSPREE_URL) {
+      // No endpoint configured — keep legacy behaviour. Feign latency,
+      // log the payload for the developer, then flip to success.
+      console.info(
+        '[ContactForm] NEXT_PUBLIC_FORMSPREE_URL is not set; submission was not sent.',
+        values,
+      );
+      await new Promise((r) => setTimeout(r, 600));
+      setSubmitted(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(FORMSPREE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (response.status === 200 || response.status === 202) {
+        setSubmitted(true);
+        return;
+      }
+
+      setSubmitError(
+        `Sorry — we couldn't send your message (status ${String(response.status)}). Please try again.`,
+      );
+    } catch {
+      setSubmitError(
+        "Sorry — we couldn't reach the form service. Please check your connection and try again.",
+      );
+    }
   }
 
   function handleReset() {
     reset();
     setSubmitted(false);
+    setSubmitError(null);
+  }
+
+  function handleRetry() {
+    setSubmitError(null);
   }
 
   return (
@@ -107,6 +160,25 @@ export default function ContactForm() {
               error={errors.message}
               registration={register('message')}
             />
+
+            {submitError && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="md:col-span-2 flex flex-col gap-3 border border-mesh bg-mesh/10 px-5 py-4 text-graphite sm:flex-row sm:items-center sm:justify-between"
+              >
+                <p className="font-body text-sm leading-relaxed">
+                  {submitError}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="self-start border border-mesh px-4 py-2 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.18em] text-mesh transition-colors hover:bg-mesh hover:text-paper sm:self-auto"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <button
