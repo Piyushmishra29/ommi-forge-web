@@ -32,12 +32,18 @@ export default function StatsCounter() {
           {STATS.map((stat) => (
             <li
               key={stat.label}
-              className="flex flex-col gap-4 border-t border-paper/15 pt-6"
+              className="flex min-w-0 flex-col gap-4 overflow-hidden border-t border-paper/15 pt-6"
             >
+              {/* Fluid font sizing tuned so the widest stat ("1,000+") fits
+                  its 4-col cell at 1140px container without spilling into
+                  siblings. Wider stats get less headroom; smaller stats
+                  (single digit "8" / "1") still feel big.
+                  Cell width at lg ≈ 260px → cap font-size at ~72px so
+                  "1,000+" stays inside the cell. */}
               <span
-                className="block font-display font-bold leading-[0.92] text-saffron"
+                className="block font-display font-bold leading-[0.92] text-saffron tabular-nums"
                 style={{
-                  fontSize: 'clamp(88px, 13vw, 184px)',
+                  fontSize: 'clamp(56px, 9.5vw, 112px)',
                   letterSpacing: '-0.04em',
                   textShadow: '0 0 36px rgba(255,153,51,0.18)',
                 }}

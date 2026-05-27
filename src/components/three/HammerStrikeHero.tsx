@@ -1,16 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Sparkles } from "@react-three/drei";
-import * as THREE from "three";
-import { BRAND_HEX } from "@/lib/brand";
+import { useEffect, useRef, useState } from 'react';
+import { BRAND_HEX } from '@/lib/brand';
 
 /**
  * The hero accepts EITHER a raw number OR a React ref carrying a
  * number. The ref form is preferred for scroll-driven usage because it
- * lets the parent mutate the value every frame without re-rendering the
- * R3F subtree — `useFrame` reads `ref.current` on each tick.
+ * lets the parent mutate the value every frame without re-rendering us.
  */
 export type HammerStrikeProgress = number | { readonly current: number };
 
@@ -25,618 +21,548 @@ function readProgress(p: HammerStrikeProgress): number {
 }
 
 /**
- * Industrial belt drop-hammer scene driven entirely by an external
- * `progress` prop. Modelled on the friction/belt drop hammers built by
- * makers like NKH (Ludhiana) — tall vertical guide slides, a long drop
- * rod extending up from the tup between two grooved drum pulleys with
- * a belt that grips it. No steam cylinder; this is a gravity drop.
+ * HammerStrikeHero — flat SVG illustration of a friction / belt drop
+ * forging hammer (the NKH-style "self-contained belt drop hammer").
  *
- * Composition:
- *  - Foundation: broad concrete-tone slab.
- *  - Anvil: stepped cast-iron block, polished bottom die on top.
- *  - Hot work-piece: emissive saffron billet that squishes on impact.
- *  - H-frame: two tall vertical guide posts + horizontal cross-head.
- *  - Tup (ram): heavy block + polished top die + long drop rod.
- *  - Belt mechanism: two horizontal drum pulleys at the top with a
- *    looped belt running between them; the drop rod passes through.
- *  - Side drive: small flywheel pulley off to the side connected by a
- *    diagonal belt (visual sugar — purely decorative).
- *  - Lights: ambient + key + fill + peach rim + saffron strike flash.
- *  - Sparks on strike; heat-glow ambient on the billet.
+ * Replaces a prior R3F three.js scene that read as flat black blobs at
+ * web viewport sizes. SVG gives us pixel-perfect industrial line-art,
+ * a recognisable hammer silhouette, and drops ~890 KB of three.js from
+ * this component's chunk.
+ *
+ * Anatomy (driven by `progress` 0 → 1):
+ *  - Two heavy H-frame posts on either side
+ *  - Heavy crosshead cap at the top
+ *  - Twin grooved drum pulleys + a vertical belt loop
+ *  - A long drop rod descending from the pulleys to the tup
+ *  - The tup (ram) carrying a polished bottom die — slides down the
+ *    frame as `progress` goes 0 → 1
+ *  - Stepped cast-iron anvil block sitting on a concrete foundation
+ *  - A hot saffron billet glowing on the anvil's top die
+ *  - Side flywheel + diagonal drive belt (decorative motion)
+ *
+ * On strike (progress > 0.95): a saffron flash + sparks burst around
+ * the billet for ~600 ms, the billet squishes 22 %, and the camera
+ * jiggles via a sub-pixel transform on the SVG wrapper.
+ *
+ * Reduced-motion: render the struck pose, no flash / no shake.
  */
-function Scene({
-  progress,
-  reduced,
-}: {
-  progress: HammerStrikeProgress;
-  reduced: boolean;
-}) {
-  const tupRef = useRef<THREE.Group>(null);
-  const billetRef = useRef<THREE.Mesh>(null);
-  const beltLeftRef = useRef<THREE.Mesh>(null);
-  const beltRightRef = useRef<THREE.Mesh>(null);
-  const pulleyTopLeftRef = useRef<THREE.Mesh>(null);
-  const pulleyTopRightRef = useRef<THREE.Mesh>(null);
-  const driveWheelRef = useRef<THREE.Mesh>(null);
-  const cameraShake = useRef(0);
-  const impactPulse = useRef(0);
-  const heatRef = useRef<THREE.PointLight>(null);
-  const flashRef = useRef<THREE.DirectionalLight>(null);
-  const sparkleGroupRef = useRef<THREE.Group>(null);
-  const sparkOpacity = useRef(0);
-  const wasStruck = useRef(false);
+export function HammerStrikeHero({ progress, className }: HammerStrikeHeroProps) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const tupRef = useRef<SVGGElement | null>(null);
+  const billetRef = useRef<SVGGElement | null>(null);
+  const flashRef = useRef<SVGRectElement | null>(null);
+  const sparksRef = useRef<SVGGElement | null>(null);
+  const beltLeftRef = useRef<SVGRectElement | null>(null);
+  const beltRightRef = useRef<SVGRectElement | null>(null);
+  const driveBeltRef = useRef<SVGLineElement | null>(null);
+  const flywheelRef = useRef<SVGGElement | null>(null);
+  const leftPulleyRef = useRef<SVGGElement | null>(null);
+  const rightPulleyRef = useRef<SVGGElement | null>(null);
+  const heatStopRef = useRef<SVGStopElement | null>(null);
 
-  // Tup parking position (top of stroke) vs strike position (just kissing
-  // the work-piece on top of the anvil).
-  const TUP_TOP = 38;
-  const TUP_HIT = 4.5;
-
-  useFrame(({ camera }, rawDelta) => {
-    const delta = Math.min(rawDelta, 1 / 30);
-    // Resolve the progress source EVERY frame so a parent that passes
-    // a ref (mutated by the PinnedSection scroll subscriber) keeps
-    // driving us without re-rendering the React subtree.
-    const rawProgress = readProgress(progress);
-    const clamped = Math.min(1, Math.max(0, rawProgress));
-    const struck = clamped > 0.95;
-
-    if (tupRef.current) {
-      const targetY = TUP_TOP - (TUP_TOP - TUP_HIT) * clamped;
-      tupRef.current.position.y +=
-        (targetY - tupRef.current.position.y) * Math.min(1, delta * 14);
-    }
-
-    if (billetRef.current) {
-      const targetScale = struck ? 0.78 : 1;
-      billetRef.current.scale.y +=
-        (targetScale - billetRef.current.scale.y) * Math.min(1, delta * 10);
-    }
-
-    // Belt wraps continuously around the two drums — visually, the belt
-    // strips slide along the Y axis at a rate proportional to the drum
-    // rotation. Drums spin slower while parked, faster as the tup falls.
-    const beltSpeed = 0.8 + clamped * 1.8;
-    if (pulleyTopLeftRef.current) pulleyTopLeftRef.current.rotation.x += delta * beltSpeed * 5;
-    if (pulleyTopRightRef.current) pulleyTopRightRef.current.rotation.x += delta * beltSpeed * 5;
-    if (driveWheelRef.current) driveWheelRef.current.rotation.x += delta * beltSpeed * 3.5;
-    if (beltLeftRef.current) {
-      beltLeftRef.current.position.y += delta * beltSpeed * 4;
-      if (beltLeftRef.current.position.y > 4) beltLeftRef.current.position.y -= 8;
-    }
-    if (beltRightRef.current) {
-      beltRightRef.current.position.y -= delta * beltSpeed * 4;
-      if (beltRightRef.current.position.y < -4) beltRightRef.current.position.y += 8;
-    }
-
-    if (!reduced && struck && !wasStruck.current) {
-      impactPulse.current = 0.5;
-      sparkOpacity.current = 1.2;
-    }
-    wasStruck.current = struck;
-
-    const baseTilt = (1.5 * Math.PI) / 180;
-    camera.rotation.y = -baseTilt * (clamped - 0.5);
-
-    if (!reduced && impactPulse.current > 0) {
-      const decay = impactPulse.current / 0.5;
-      cameraShake.current = Math.sin(performance.now() * 0.04) * 0.02 * decay;
-      impactPulse.current = Math.max(0, impactPulse.current - delta);
-    } else {
-      cameraShake.current *= 1 - Math.min(1, delta * 6);
-    }
-    camera.rotation.z = cameraShake.current;
-
-    if (heatRef.current) {
-      if (reduced) {
-        heatRef.current.intensity = struck ? 2 : 0.6;
-      } else {
-        const t = sparkOpacity.current;
-        const triangle =
-          t <= 0
-            ? 0.6
-            : t > 0.8
-              ? ((1.2 - t) / 0.4) * 4
-              : (t / 0.8) * 4;
-        heatRef.current.intensity = triangle;
-      }
-    }
-
-    if (flashRef.current) {
-      if (reduced) {
-        flashRef.current.intensity = struck ? 1.8 : 0;
-      } else {
-        const t = sparkOpacity.current;
-        flashRef.current.intensity = t > 0.95 ? 1.8 : 0;
-      }
-    }
-
-    if (sparkleGroupRef.current) {
-      if (reduced) {
-        sparkleGroupRef.current.visible = false;
-      } else {
-        const t = sparkOpacity.current;
-        const vis = t > 0 ? Math.min(1, t > 0.8 ? (1.2 - t) / 0.4 : t / 0.8) : 0;
-        sparkleGroupRef.current.visible = vis > 0.01;
-        sparkleGroupRef.current.scale.setScalar(vis);
-        sparkOpacity.current = Math.max(0, sparkOpacity.current - delta);
-      }
-    }
-  });
-
-  // ----- materials ------------------------------------------------------
-
-  const ironMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: BRAND_HEX.graphite,
-        metalness: 0.7,
-        roughness: 0.55,
-      }),
-    [],
-  );
-  const steelMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: BRAND_HEX.graphite,
-        metalness: 0.85,
-        roughness: 0.4,
-      }),
-    [],
-  );
-  const polishedMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: "#3a3f44",
-        metalness: 0.95,
-        roughness: 0.22,
-      }),
-    [],
-  );
-  const foundationMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: "#2a2c30",
-        metalness: 0.3,
-        roughness: 0.85,
-      }),
-    [],
-  );
-  const billetMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: BRAND_HEX.mesh,
-        emissive: BRAND_HEX.saffron,
-        emissiveIntensity: 1.4,
-        metalness: 0.3,
-        roughness: 0.6,
-      }),
-    [],
-  );
-  /** Worn leather belt — warm brown-ish, very matte. */
-  const beltMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: "#3d2a1c",
-        metalness: 0.0,
-        roughness: 0.95,
-      }),
-    [],
-  );
-
-  // ----- geometries -----------------------------------------------------
-
-  const foundationGeom = useMemo(() => new THREE.BoxGeometry(78, 6, 32), []);
-  const anvilBottomGeom = useMemo(() => new THREE.BoxGeometry(36, 8, 22), []);
-  const anvilMidGeom = useMemo(() => new THREE.BoxGeometry(28, 6, 18), []);
-  const anvilTopGeom = useMemo(() => new THREE.BoxGeometry(22, 4, 14), []);
-  const anvilDieGeom = useMemo(() => new THREE.BoxGeometry(18, 1.5, 12), []);
-
-  // Tall H-frame guide posts — these are the vertical slides the tup
-  // rides between. Drop-hammer posts are typically 4–6× the anvil's
-  // depth tall.
-  const postGeom = useMemo(() => new THREE.BoxGeometry(5, 84, 6), []);
-  const crossheadGeom = useMemo(() => new THREE.BoxGeometry(58, 8, 14), []);
-  const crossheadCapGeom = useMemo(() => new THREE.BoxGeometry(62, 3, 16), []);
-
-  // Tup + dies + drop rod
-  const tupGeom = useMemo(() => new THREE.BoxGeometry(16, 14, 12), []);
-  const tupDieGeom = useMemo(() => new THREE.BoxGeometry(16, 1.5, 12), []);
-  // Drop rod — long thin steel rod extending UP from the tup, gripped
-  // by the belt mechanism above. This is the visual signature of a
-  // belt drop hammer.
-  const dropRodGeom = useMemo(
-    () => new THREE.CylinderGeometry(1.2, 1.2, 56, 16),
-    [],
-  );
-  const dropRodCapGeom = useMemo(
-    () => new THREE.CylinderGeometry(2.2, 2.2, 2.5, 16),
-    [],
-  );
-
-  // Twin drum pulleys at the top — these are the friction wheels that
-  // grip the drop rod. Cylinder rotated 90° so its axis is horizontal.
-  const pulleyGeom = useMemo(
-    () => new THREE.CylinderGeometry(5, 5, 9, 24),
-    [],
-  );
-  const pulleyHubGeom = useMemo(
-    () => new THREE.CylinderGeometry(1.5, 1.5, 11, 16),
-    [],
-  );
-
-  // Belt strips — two flat vertical bands wrapping between the pulleys.
-  const beltStripGeom = useMemo(() => new THREE.BoxGeometry(1.2, 8, 7), []);
-
-  // Side drive flywheel — a bigger pulley off to one side, connected
-  // by a diagonal drive belt.
-  const driveWheelGeom = useMemo(
-    () => new THREE.CylinderGeometry(8, 8, 4, 24),
-    [],
-  );
-  const driveBeltGeom = useMemo(() => new THREE.BoxGeometry(0.6, 32, 1.5), []);
-
-  // Foot pedal — operator pulls a rope/pedal to clutch the belt
-  const pedalGeom = useMemo(() => new THREE.BoxGeometry(8, 1.2, 3), []);
-  const pedalRodGeom = useMemo(
-    () => new THREE.CylinderGeometry(0.5, 0.5, 18, 8),
-    [],
-  );
-
-  // Tie-rods + bolts for industrial detail
-  const tieRodGeom = useMemo(
-    () => new THREE.CylinderGeometry(0.7, 0.7, 78, 12),
-    [],
-  );
-  const boltGeom = useMemo(
-    () => new THREE.CylinderGeometry(1.3, 1.3, 1, 16),
-    [],
-  );
-  const billetGeom = useMemo(() => new THREE.BoxGeometry(7, 5, 6), []);
-
-  const tupEdges = useMemo(() => new THREE.EdgesGeometry(tupGeom), [tupGeom]);
-  const crossheadEdges = useMemo(
-    () => new THREE.EdgesGeometry(crossheadGeom),
-    [crossheadGeom],
-  );
-
-  // ----- positions ------------------------------------------------------
-  const FOUNDATION_Y = -32;
-  const ANVIL_BOTTOM_Y = -22;
-  const ANVIL_MID_Y = -15;
-  const ANVIL_TOP_Y = -10;
-  const ANVIL_DIE_Y = -7.25;
-  const POST_Y = 9; // posts (height 84) centered at +9 so they span -33..+51
-  const CROSSHEAD_Y = 48;
-  const CROSSHEAD_CAP_Y = 53.5;
-  const PULLEY_Y = 56;
-  const DRIVE_WHEEL_Y = 42;
-  const BILLET_Y = -5.5;
-
-  return (
-    <>
-      <ambientLight intensity={0.55} />
-      <directionalLight
-        position={[16, 28, 12]}
-        intensity={1.4}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        color={BRAND_HEX.snow}
-      />
-      <directionalLight
-        position={[22, 4, 18]}
-        intensity={0.5}
-        color={BRAND_HEX.snow}
-      />
-      <directionalLight
-        position={[-18, 10, -12]}
-        intensity={0.55}
-        color={BRAND_HEX.peach}
-      />
-      <directionalLight
-        ref={flashRef}
-        position={[0, 36, 0]}
-        intensity={0}
-        color={BRAND_HEX.saffron}
-      />
-      <pointLight
-        ref={heatRef}
-        position={[0, BILLET_Y, 0]}
-        intensity={0.6}
-        color={BRAND_HEX.mesh}
-        distance={70}
-        decay={2}
-      />
-
-      {/* Foundation */}
-      <mesh
-        position={[0, FOUNDATION_Y, 0]}
-        receiveShadow
-        material={foundationMat}
-      >
-        <primitive object={foundationGeom} attach="geometry" />
-      </mesh>
-
-      {/* Anvil — stacked tiers + polished bottom die */}
-      <mesh
-        position={[0, ANVIL_BOTTOM_Y, 0]}
-        castShadow
-        receiveShadow
-        material={ironMat}
-      >
-        <primitive object={anvilBottomGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        position={[0, ANVIL_MID_Y, 0]}
-        castShadow
-        receiveShadow
-        material={ironMat}
-      >
-        <primitive object={anvilMidGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        position={[0, ANVIL_TOP_Y, 0]}
-        castShadow
-        receiveShadow
-        material={ironMat}
-      >
-        <primitive object={anvilTopGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        position={[0, ANVIL_DIE_Y, 0]}
-        castShadow
-        receiveShadow
-        material={polishedMat}
-      >
-        <primitive object={anvilDieGeom} attach="geometry" />
-      </mesh>
-
-      {/* Hot saffron billet */}
-      <mesh
-        ref={billetRef}
-        position={[0, BILLET_Y, 0]}
-        castShadow
-        material={billetMat}
-      >
-        <primitive object={billetGeom} attach="geometry" />
-      </mesh>
-
-      {/* Tall H-frame guide posts */}
-      {[-26, 26].map((x) => (
-        <mesh
-          key={`post-${x}`}
-          position={[x, POST_Y, 0]}
-          castShadow
-          receiveShadow
-          material={steelMat}
-        >
-          <primitive object={postGeom} attach="geometry" />
-        </mesh>
-      ))}
-
-      {/* Tie-rods in front of each post */}
-      {[-26, 26].map((x) => (
-        <mesh
-          key={`tie-${x}`}
-          position={[x, POST_Y, 7.2]}
-          material={steelMat}
-        >
-          <primitive object={tieRodGeom} attach="geometry" />
-        </mesh>
-      ))}
-
-      {/* Cross-head — heavy beam connecting the post tops */}
-      <mesh
-        position={[0, CROSSHEAD_Y, 0]}
-        castShadow
-        receiveShadow
-        material={steelMat}
-      >
-        <primitive object={crossheadGeom} attach="geometry" />
-      </mesh>
-      <lineSegments position={[0, CROSSHEAD_Y, 0]}>
-        <primitive object={crossheadEdges} attach="geometry" />
-        <lineBasicMaterial color={BRAND_HEX.mesh} transparent opacity={0.18} />
-      </lineSegments>
-      {/* Cap plate above the cross-head */}
-      <mesh
-        position={[0, CROSSHEAD_CAP_Y, 0]}
-        castShadow
-        material={polishedMat}
-      >
-        <primitive object={crossheadCapGeom} attach="geometry" />
-      </mesh>
-
-      {/* Bolt heads on the cross-head corners */}
-      {[
-        [-24, CROSSHEAD_CAP_Y + 2, 7.5],
-        [24, CROSSHEAD_CAP_Y + 2, 7.5],
-        [-24, CROSSHEAD_CAP_Y + 2, -7.5],
-        [24, CROSSHEAD_CAP_Y + 2, -7.5],
-      ].map(([x, y, z], i) => (
-        <mesh
-          key={`bolt-${i}`}
-          position={[x, y, z]}
-          material={polishedMat}
-        >
-          <primitive object={boltGeom} attach="geometry" />
-        </mesh>
-      ))}
-
-      {/* Twin drum pulleys at the top — the friction wheels that grip
-          the drop rod. Cylinder rotated so its axis runs left↔right. */}
-      <mesh
-        ref={pulleyTopLeftRef}
-        position={[-4, PULLEY_Y, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-        castShadow
-        material={polishedMat}
-      >
-        <primitive object={pulleyGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        position={[-4, PULLEY_Y, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-        material={steelMat}
-      >
-        <primitive object={pulleyHubGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        ref={pulleyTopRightRef}
-        position={[4, PULLEY_Y, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-        castShadow
-        material={polishedMat}
-      >
-        <primitive object={pulleyGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        position={[4, PULLEY_Y, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-        material={steelMat}
-      >
-        <primitive object={pulleyHubGeom} attach="geometry" />
-      </mesh>
-
-      {/* Belt strips — two flat bands looping between the drum pulleys.
-          We animate their Y position to fake belt scroll. The belt
-          actually pinches the drop rod between the two pulleys. */}
-      <mesh
-        ref={beltLeftRef}
-        position={[-5.7, PULLEY_Y, 0]}
-        castShadow
-        material={beltMat}
-      >
-        <primitive object={beltStripGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        ref={beltRightRef}
-        position={[5.7, PULLEY_Y, 0]}
-        castShadow
-        material={beltMat}
-      >
-        <primitive object={beltStripGeom} attach="geometry" />
-      </mesh>
-
-      {/* Side drive flywheel + diagonal drive belt running to the
-          drum pulleys. Visual sugar — sells the "powered" feel. */}
-      <mesh
-        ref={driveWheelRef}
-        position={[34, DRIVE_WHEEL_Y, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-        castShadow
-        material={polishedMat}
-      >
-        <primitive object={driveWheelGeom} attach="geometry" />
-      </mesh>
-      <mesh
-        position={[34, DRIVE_WHEEL_Y, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-        material={steelMat}
-      >
-        <primitive object={pulleyHubGeom} attach="geometry" />
-      </mesh>
-      {/* Diagonal drive belt connecting flywheel → drum (angled) */}
-      <mesh
-        position={[19, (DRIVE_WHEEL_Y + PULLEY_Y) / 2, 2]}
-        rotation={[0, 0, -Math.atan2(PULLEY_Y - DRIVE_WHEEL_Y, 30)]}
-        material={beltMat}
-      >
-        <primitive object={driveBeltGeom} attach="geometry" />
-      </mesh>
-
-      {/* Operator pedal + linkage rod (right-front corner) */}
-      <mesh position={[20, FOUNDATION_Y + 4.5, 14]} material={steelMat}>
-        <primitive object={pedalGeom} attach="geometry" />
-      </mesh>
-      <mesh position={[20, FOUNDATION_Y + 14, 12.5]} material={steelMat}>
-        <primitive object={pedalRodGeom} attach="geometry" />
-      </mesh>
-
-      {/* Tup (ram) + die + drop rod — all move together vertically.
-          The drop rod is the signature of a belt drop hammer: a long
-          thin steel rod sticking up from the tup, gripped between the
-          two drum pulleys above. */}
-      <group ref={tupRef} position={[0, TUP_TOP, 0]}>
-        {/* Tup body */}
-        <mesh castShadow material={steelMat}>
-          <primitive object={tupGeom} attach="geometry" />
-        </mesh>
-        <lineSegments>
-          <primitive object={tupEdges} attach="geometry" />
-          <lineBasicMaterial
-            color={BRAND_HEX.saffron}
-            transparent
-            opacity={0.6}
-          />
-        </lineSegments>
-        {/* Top die */}
-        <mesh position={[0, -7.75, 0]} castShadow material={polishedMat}>
-          <primitive object={tupDieGeom} attach="geometry" />
-        </mesh>
-        {/* Drop rod — long thin rod extending up between the drum
-            pulleys. Centered at +35 above the tup's origin so its top
-            sits just below the pulleys at +56. */}
-        <mesh position={[0, 35, 0]} castShadow material={polishedMat}>
-          <primitive object={dropRodGeom} attach="geometry" />
-        </mesh>
-        {/* Small cap on the very top of the rod */}
-        <mesh position={[0, 63, 0]} castShadow material={polishedMat}>
-          <primitive object={dropRodCapGeom} attach="geometry" />
-        </mesh>
-      </group>
-
-      {/* Sparks on strike — emit at billet level */}
-      <group
-        ref={sparkleGroupRef}
-        position={[0, BILLET_Y + 1, 0]}
-        visible={false}
-      >
-        <Sparkles
-          count={80}
-          size={6}
-          speed={0.8}
-          scale={[18, 8, 12]}
-          color={BRAND_HEX.saffron}
-        />
-      </group>
-
-      <ContactShadows
-        position={[0, FOUNDATION_Y - 0.1, 0]}
-        opacity={0.55}
-        scale={140}
-        blur={2.4}
-        far={50}
-      />
-    </>
-  );
-}
-
-export function HammerStrikeHero({
-  progress,
-  className,
-}: HammerStrikeHeroProps) {
-  const stageBackground = `radial-gradient(120% 80% at 50% 35%, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 55%, #c8c4c1 100%)`;
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const onChange = () => setReduced(mq.matches);
     onChange();
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Animation loop. Reads progress every tick (works with both number
+    // and ref forms) and writes SVG element styles imperatively so we
+    // never re-render React on the scroll path.
+    const TUP_TOP = -310; // y translate at parked position
+    const TUP_HIT = 0; // y translate at impact position
+    let raf = 0;
+    let lastTime = performance.now();
+    let beltOffset = 0;
+    let driveAngle = 0;
+    let pulleyAngle = 0;
+    let sparkLife = 0; // 0..1, decays after strike
+    let prevStruck = false;
+
+    const tick = () => {
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 1 / 30);
+      lastTime = now;
+
+      const raw = readProgress(progress);
+      const p = Math.min(1, Math.max(0, raw));
+      const struck = p > 0.95;
+
+      // Tup descent (cubic ease so the early travel feels lighter)
+      const eased = p * p * (3 - 2 * p);
+      const tupY = TUP_TOP + (TUP_HIT - TUP_TOP) * eased;
+      if (tupRef.current) {
+        tupRef.current.setAttribute('transform', `translate(0 ${tupY})`);
+      }
+
+      // Billet squish on strike
+      if (billetRef.current) {
+        const target = struck ? 0.78 : 1;
+        const current = parseFloat(
+          billetRef.current.dataset.scaleY ?? '1',
+        );
+        const next = current + (target - current) * Math.min(1, dt * 12);
+        billetRef.current.dataset.scaleY = String(next);
+        billetRef.current.setAttribute(
+          'transform',
+          `translate(300 645) scale(1 ${next}) translate(-300 -645)`,
+        );
+      }
+
+      // Spark / flash trigger on rising edge of struck
+      if (!reduced && struck && !prevStruck) {
+        sparkLife = 1;
+      }
+      prevStruck = struck;
+
+      // Decay spark life
+      sparkLife = Math.max(0, sparkLife - dt * 1.4);
+
+      // Flash visibility
+      if (flashRef.current) {
+        flashRef.current.setAttribute(
+          'opacity',
+          reduced ? (struck ? '0.6' : '0') : (sparkLife * 0.55).toFixed(3),
+        );
+      }
+      // Spark group fades over its life
+      if (sparksRef.current) {
+        sparksRef.current.style.opacity = reduced ? '0' : sparkLife.toFixed(3);
+      }
+      // Heat radial intensity (keeps a constant ambient when parked + a
+      // big pulse during the spark window)
+      if (heatStopRef.current) {
+        const base = 0.55;
+        const burst = sparkLife * 0.4;
+        const intensity = Math.min(0.95, base + burst);
+        heatStopRef.current.setAttribute('stop-opacity', intensity.toFixed(3));
+      }
+
+      // Belt scroll — speeds up as the tup falls
+      if (!reduced) {
+        const beltSpeed = 60 + p * 220;
+        beltOffset = (beltOffset + dt * beltSpeed) % 60;
+        if (beltLeftRef.current) {
+          beltLeftRef.current.setAttribute(
+            'transform',
+            `translate(0 ${beltOffset})`,
+          );
+        }
+        if (beltRightRef.current) {
+          beltRightRef.current.setAttribute(
+            'transform',
+            `translate(0 ${-beltOffset})`,
+          );
+        }
+        // Pulley rotation matches belt direction
+        pulleyAngle = (pulleyAngle + dt * beltSpeed * 6) % 360;
+        if (leftPulleyRef.current) {
+          leftPulleyRef.current.setAttribute(
+            'transform',
+            `rotate(${pulleyAngle} 235 110)`,
+          );
+        }
+        if (rightPulleyRef.current) {
+          rightPulleyRef.current.setAttribute(
+            'transform',
+            `rotate(${-pulleyAngle} 365 110)`,
+          );
+        }
+        // Side flywheel
+        driveAngle = (driveAngle + dt * (40 + p * 140)) % 360;
+        if (flywheelRef.current) {
+          flywheelRef.current.setAttribute(
+            'transform',
+            `rotate(${driveAngle} 555 320)`,
+          );
+        }
+      }
+
+      // SVG-wrapper shake on strike
+      if (wrapperRef.current) {
+        const shake =
+          !reduced && sparkLife > 0
+            ? Math.sin(now * 0.04) * sparkLife * 1.6
+            : 0;
+        wrapperRef.current.style.transform = `translate3d(${shake.toFixed(2)}px, ${(shake * 0.5).toFixed(2)}px, 0)`;
+      }
+
+      raf = window.requestAnimationFrame(tick);
+    };
+
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [progress, reduced]);
+
+  // Sparks: hand-placed origin points so we don't allocate arrays in render.
+  // Each spark is a short line emanating from the strike origin (300, 645).
+  const sparks: Array<[number, number, number, number]> = [
+    [300, 645, 240, 590],
+    [300, 645, 360, 590],
+    [300, 645, 222, 640],
+    [300, 645, 378, 640],
+    [300, 645, 260, 700],
+    [300, 645, 340, 700],
+    [300, 645, 200, 680],
+    [300, 645, 400, 680],
+    [300, 645, 285, 595],
+    [300, 645, 315, 595],
+  ];
 
   return (
     <div
-      className={["relative h-full w-full", className ?? ""].join(" ")}
-      style={{ background: stageBackground }}
+      className={['relative h-full w-full', className ?? ''].join(' ')}
+      style={{
+        background: `radial-gradient(120% 80% at 50% 30%, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 60%, #c2bdb9 100%)`,
+      }}
     >
-      {/* Pulled back further + framed taller to fit the post + drop-rod */}
-      <Canvas dpr={[1, 2]} camera={{ position: [4, 20, 130], fov: 32 }} shadows>
-        <Scene progress={progress} reduced={reduced} />
-      </Canvas>
+      <div
+        ref={wrapperRef}
+        className="absolute inset-0 flex items-end justify-center"
+        style={{ willChange: 'transform' }}
+      >
+        <svg
+          viewBox="0 0 600 820"
+          preserveAspectRatio="xMidYMax meet"
+          className="h-[96%] w-auto max-w-full"
+          aria-hidden
+        >
+          <defs>
+            <radialGradient
+              id="hammer-heat"
+              cx="300"
+              cy="645"
+              r="120"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop
+                ref={heatStopRef}
+                offset="0%"
+                stopColor={BRAND_HEX.saffron}
+                stopOpacity="0.55"
+              />
+              <stop offset="60%" stopColor={BRAND_HEX.saffron} stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="hammer-billet" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FFC57A" />
+              <stop offset="55%" stopColor={BRAND_HEX.saffron} />
+              <stop offset="100%" stopColor={BRAND_HEX.mesh} />
+            </linearGradient>
+            <linearGradient id="hammer-tup" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3a3f44" />
+              <stop offset="55%" stopColor={BRAND_HEX.graphite} />
+              <stop offset="100%" stopColor="#0f1012" />
+            </linearGradient>
+            <linearGradient id="hammer-anvil" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3d4147" />
+              <stop offset="100%" stopColor={BRAND_HEX.graphite} />
+            </linearGradient>
+            <linearGradient id="hammer-frame" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2a2c30" />
+              <stop offset="100%" stopColor={BRAND_HEX.graphite} />
+            </linearGradient>
+            <pattern
+              id="belt-pattern"
+              x="0"
+              y="0"
+              width="20"
+              height="60"
+              patternUnits="userSpaceOnUse"
+            >
+              <rect width="20" height="60" fill="#4a3525" />
+              <rect x="2" y="6" width="16" height="3" fill="#3d2a1c" />
+              <rect x="2" y="32" width="16" height="3" fill="#3d2a1c" />
+              <line
+                x1="0"
+                y1="50"
+                x2="20"
+                y2="50"
+                stroke="#5c4530"
+                strokeWidth="1"
+              />
+            </pattern>
+          </defs>
+
+          {/* Foundation floor + cast shadow */}
+          <ellipse
+            cx="300"
+            cy="800"
+            rx="240"
+            ry="12"
+            fill="rgba(0,0,0,0.18)"
+          />
+          <rect x="40" y="770" width="520" height="32" fill="#2a2c30" />
+          <rect x="40" y="770" width="520" height="4" fill="#3a3f44" />
+
+          {/* Anvil — stacked cast-iron tiers */}
+          <polygon
+            points="120,770 180,720 420,720 480,770"
+            fill="url(#hammer-anvil)"
+          />
+          <rect x="170" y="700" width="260" height="22" fill="url(#hammer-anvil)" />
+          <rect
+            x="170"
+            y="700"
+            width="260"
+            height="3"
+            fill={BRAND_HEX.mesh}
+            opacity="0.15"
+          />
+          <rect x="195" y="680" width="210" height="22" fill="url(#hammer-anvil)" />
+          <rect x="220" y="665" width="160" height="18" fill="url(#hammer-anvil)" />
+          {/* Bottom die — polished plate */}
+          <rect x="235" y="657" width="130" height="10" fill="#5a6066" />
+          <rect x="235" y="657" width="130" height="2" fill="#7c8389" />
+
+          {/* Heat glow on the billet */}
+          <rect
+            x="100"
+            y="540"
+            width="400"
+            height="200"
+            fill="url(#hammer-heat)"
+            pointerEvents="none"
+          />
+
+          {/* Hot billet sitting on the bottom die */}
+          <g ref={billetRef}>
+            <rect
+              x="265"
+              y="617"
+              width="70"
+              height="40"
+              fill="url(#hammer-billet)"
+              rx="2"
+            />
+            <rect
+              x="265"
+              y="617"
+              width="70"
+              height="3"
+              fill="#FFD89C"
+              opacity="0.7"
+            />
+          </g>
+
+          {/* H-frame posts */}
+          <rect x="55" y="80" width="36" height="690" fill="url(#hammer-frame)" />
+          <rect x="91" y="80" width="4" height="690" fill="#0e0f11" />
+          <rect x="509" y="80" width="36" height="690" fill="url(#hammer-frame)" />
+          <rect x="505" y="80" width="4" height="690" fill="#0e0f11" />
+
+          {/* Inner guide channels — subtle saffron lines hint at the slide
+              the tup rides on */}
+          <rect
+            x="98"
+            y="120"
+            width="3"
+            height="600"
+            fill={BRAND_HEX.saffron}
+            opacity="0.18"
+          />
+          <rect
+            x="499"
+            y="120"
+            width="3"
+            height="600"
+            fill={BRAND_HEX.saffron}
+            opacity="0.18"
+          />
+
+          {/* Tie-rods */}
+          <line
+            x1="73"
+            y1="80"
+            x2="73"
+            y2="770"
+            stroke="#15171a"
+            strokeWidth="3"
+          />
+          <line
+            x1="527"
+            y1="80"
+            x2="527"
+            y2="770"
+            stroke="#15171a"
+            strokeWidth="3"
+          />
+
+          {/* Crosshead beam */}
+          <rect x="40" y="50" width="520" height="48" fill="url(#hammer-frame)" />
+          <rect x="40" y="50" width="520" height="4" fill="#3a3f44" />
+          <rect x="40" y="94" width="520" height="4" fill="#0e0f11" />
+          {/* Bolt heads on the crosshead corners */}
+          <circle cx="64" cy="74" r="6" fill="#5a6066" />
+          <circle cx="64" cy="74" r="2.5" fill="#2a2c30" />
+          <circle cx="536" cy="74" r="6" fill="#5a6066" />
+          <circle cx="536" cy="74" r="2.5" fill="#2a2c30" />
+
+          {/* Belt loop — two vertical strips running between the drum
+              pulleys (pinching the drop rod). The animation just slides
+              the pattern offset to fake belt motion. */}
+          <rect
+            ref={beltLeftRef}
+            x="218"
+            y="100"
+            width="18"
+            height="60"
+            fill="url(#belt-pattern)"
+          />
+          <rect
+            ref={beltRightRef}
+            x="364"
+            y="100"
+            width="18"
+            height="60"
+            fill="url(#belt-pattern)"
+          />
+
+          {/* Twin drum pulleys at the top */}
+          <g ref={leftPulleyRef}>
+            <circle cx="235" cy="110" r="42" fill="#3a3f44" />
+            <circle cx="235" cy="110" r="42" fill="none" stroke="#15171a" strokeWidth="2" />
+            <circle cx="235" cy="110" r="14" fill="#15171a" />
+            <circle cx="235" cy="110" r="5" fill="#5a6066" />
+            {/* Spoke marks so rotation is visible */}
+            <line x1="235" y1="78" x2="235" y2="92" stroke="#5a6066" strokeWidth="3" />
+            <line x1="235" y1="128" x2="235" y2="142" stroke="#5a6066" strokeWidth="3" />
+            <line x1="203" y1="110" x2="217" y2="110" stroke="#5a6066" strokeWidth="3" />
+            <line x1="253" y1="110" x2="267" y2="110" stroke="#5a6066" strokeWidth="3" />
+          </g>
+          <g ref={rightPulleyRef}>
+            <circle cx="365" cy="110" r="42" fill="#3a3f44" />
+            <circle cx="365" cy="110" r="42" fill="none" stroke="#15171a" strokeWidth="2" />
+            <circle cx="365" cy="110" r="14" fill="#15171a" />
+            <circle cx="365" cy="110" r="5" fill="#5a6066" />
+            <line x1="365" y1="78" x2="365" y2="92" stroke="#5a6066" strokeWidth="3" />
+            <line x1="365" y1="128" x2="365" y2="142" stroke="#5a6066" strokeWidth="3" />
+            <line x1="333" y1="110" x2="347" y2="110" stroke="#5a6066" strokeWidth="3" />
+            <line x1="383" y1="110" x2="397" y2="110" stroke="#5a6066" strokeWidth="3" />
+          </g>
+
+          {/* TUP GROUP — descends with progress. The drop rod, tup body,
+              and bottom die all move together. */}
+          <g ref={tupRef} style={{ willChange: 'transform' }}>
+            {/* Drop rod cap */}
+            <rect x="293" y="60" width="14" height="14" fill="#5a6066" />
+            <rect x="290" y="74" width="20" height="6" fill="#3a3f44" />
+            {/* Drop rod — long thin polished steel rod between the pulleys */}
+            <rect x="296" y="80" width="8" height="500" fill="#5a6066" />
+            <rect x="296" y="80" width="2" height="500" fill="#7c8389" />
+            {/* Tup (ram) body */}
+            <rect x="250" y="555" width="100" height="60" fill="url(#hammer-tup)" />
+            <rect x="250" y="555" width="100" height="3" fill="#5a6066" />
+            <rect
+              x="250"
+              y="555"
+              width="100"
+              height="60"
+              fill="none"
+              stroke={BRAND_HEX.saffron}
+              strokeOpacity="0.55"
+              strokeWidth="1.5"
+            />
+            {/* Tup top die — polished plate */}
+            <rect x="252" y="615" width="96" height="8" fill="#5a6066" />
+            <rect x="252" y="615" width="96" height="2" fill="#7c8389" />
+          </g>
+
+          {/* Side drive flywheel + diagonal drive belt */}
+          <line
+            ref={driveBeltRef}
+            x1="380"
+            y1="135"
+            x2="540"
+            y2="310"
+            stroke="#3d2a1c"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+          <line
+            x1="380"
+            y1="135"
+            x2="540"
+            y2="310"
+            stroke="#4a3525"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <g ref={flywheelRef}>
+            <circle cx="555" cy="320" r="32" fill="#3a3f44" />
+            <circle cx="555" cy="320" r="32" fill="none" stroke="#15171a" strokeWidth="2" />
+            <circle cx="555" cy="320" r="6" fill="#15171a" />
+            <line x1="555" y1="298" x2="555" y2="290" stroke="#5a6066" strokeWidth="3" />
+            <line x1="555" y1="350" x2="555" y2="342" stroke="#5a6066" strokeWidth="3" />
+            <line x1="527" y1="320" x2="519" y2="320" stroke="#5a6066" strokeWidth="3" />
+            <line x1="583" y1="320" x2="591" y2="320" stroke="#5a6066" strokeWidth="3" />
+          </g>
+
+          {/* Operator pedal + linkage */}
+          <line
+            x1="460"
+            y1="770"
+            x2="460"
+            y2="700"
+            stroke="#3a3f44"
+            strokeWidth="3"
+          />
+          <rect x="438" y="760" width="40" height="10" fill="#3a3f44" />
+          <rect x="438" y="760" width="40" height="2" fill="#5a6066" />
+
+          {/* Saffron flash — appears on strike. Full-area rect with low
+              opacity, gated by the rAF loop. */}
+          <rect
+            ref={flashRef}
+            x="0"
+            y="0"
+            width="600"
+            height="820"
+            fill={BRAND_HEX.saffron}
+            opacity="0"
+            pointerEvents="none"
+          />
+
+          {/* Sparks — short lines emanating from the strike point. The
+              parent group's opacity is animated by the rAF loop. */}
+          <g
+            ref={sparksRef}
+            style={{ opacity: 0 }}
+            pointerEvents="none"
+            strokeLinecap="round"
+          >
+            {sparks.map(([x1, y1, x2, y2], i) => (
+              <line
+                key={i}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke={BRAND_HEX.saffron}
+                strokeWidth={1.6}
+                opacity={0.85}
+              />
+            ))}
+            {/* Hot specks */}
+            {sparks.map(([, , x2, y2], i) => (
+              <circle
+                key={`d-${i}`}
+                cx={x2}
+                cy={y2}
+                r="2"
+                fill={BRAND_HEX.mesh}
+              />
+            ))}
+          </g>
+        </svg>
+      </div>
     </div>
   );
 }
