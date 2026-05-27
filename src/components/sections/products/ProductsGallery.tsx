@@ -10,6 +10,19 @@ import { PRODUCTS, type ProductItem } from '@/data/products';
 // Single source of truth for lazy-loaded three components — keeps
 // three.js in one shared async chunk instead of duplicating it per route.
 import { StlPreview, StlViewer } from '@/components/three/lazy';
+import { withExt } from '@/lib/image-formats';
+
+/**
+ * Explicit pixel dimensions per aspect — keep these in lockstep with
+ * `aspectClass` so `<img width/height>` always declares a box matching
+ * the rendered aspect ratio. Concrete numbers prevent CLS while the
+ * lazy-loaded JPGs decode.
+ */
+const aspectSize: Record<ProductItem['aspect'], { w: number; h: number }> = {
+  tall: { w: 600, h: 800 },
+  wide: { w: 800, h: 600 },
+  square: { w: 600, h: 600 },
+};
 
 const aspectClass: Record<ProductItem['aspect'], string> = {
   tall: 'aspect-[3/4]',
@@ -66,13 +79,25 @@ export default function ProductsGallery() {
                     className="h-full w-full"
                   />
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.src}
-                    alt={p.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
+                  <picture>
+                    <source
+                      srcSet={withExt(p.src, 'avif')}
+                      type="image/avif"
+                    />
+                    <source
+                      srcSet={withExt(p.src, 'webp')}
+                      type="image/webp"
+                    />
+                    <img
+                      src={p.src}
+                      alt={p.name}
+                      width={aspectSize[p.aspect].w}
+                      height={aspectSize[p.aspect].h}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </picture>
                 )}
               </div>
 
@@ -136,12 +161,24 @@ export default function ProductsGallery() {
                     className="h-full w-full"
                   />
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={active.src}
-                    alt={active.name}
-                    className="h-full w-full object-cover"
-                  />
+                  <picture>
+                    <source
+                      srcSet={withExt(active.src, 'avif')}
+                      type="image/avif"
+                    />
+                    <source
+                      srcSet={withExt(active.src, 'webp')}
+                      type="image/webp"
+                    />
+                    <img
+                      src={active.src}
+                      alt={active.name}
+                      width={aspectSize[active.aspect].w}
+                      height={aspectSize[active.aspect].h}
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </picture>
                 )}
               </div>
 

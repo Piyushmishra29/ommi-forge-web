@@ -13,23 +13,24 @@ export type HammerStrikeHeroProps = {
 };
 
 /**
- * Industrial drop-hammer scene driven entirely by an external `progress`
- * prop. The component does NOT subscribe to scroll — the parent owns that.
+ * Industrial belt drop-hammer scene driven entirely by an external
+ * `progress` prop. Modelled on the friction/belt drop hammers built by
+ * makers like NKH (Ludhiana) — tall vertical guide slides, a long drop
+ * rod extending up from the tup between two grooved drum pulleys with
+ * a belt that grips it. No steam cylinder; this is a gravity drop.
  *
- * Composition (modelled after a steam / pneumatic power hammer):
- *  - Foundation block: wide concrete-like base under the whole rig.
- *  - Anvil: stepped cast-iron block sitting on the foundation; flat top die.
- *  - H-frame: two vertical posts + horizontal cross-head connecting them.
- *  - Cylinder housing + piston rod: cylindrical steam-engine cap on top.
- *  - Tup (ram): heavy block + bottom die, slides down the frame between
- *    the posts on every strike. Driven by `progress` (0 = parked at top,
- *    1 = die kissing the work-piece).
- *  - Hot work-piece: glowing saffron billet sitting on the anvil — gets
- *    hit when the tup reaches bottom.
- *  - Lights: ambient + key + peach rim + saffron strike flash + heat glow.
- *  - Sparks: <Sparkles> burst on strike.
- *  - Camera: small progress tilt + 0.5s decaying shake on impact.
- *  - Reduced-motion: static struck pose, no sparks/glow/shake.
+ * Composition:
+ *  - Foundation: broad concrete-tone slab.
+ *  - Anvil: stepped cast-iron block, polished bottom die on top.
+ *  - Hot work-piece: emissive saffron billet that squishes on impact.
+ *  - H-frame: two tall vertical guide posts + horizontal cross-head.
+ *  - Tup (ram): heavy block + polished top die + long drop rod.
+ *  - Belt mechanism: two horizontal drum pulleys at the top with a
+ *    looped belt running between them; the drop rod passes through.
+ *  - Side drive: small flywheel pulley off to the side connected by a
+ *    diagonal belt (visual sugar — purely decorative).
+ *  - Lights: ambient + key + fill + peach rim + saffron strike flash.
+ *  - Sparks on strike; heat-glow ambient on the billet.
  */
 function Scene({
   progress,
@@ -40,6 +41,11 @@ function Scene({
 }) {
   const tupRef = useRef<THREE.Group>(null);
   const billetRef = useRef<THREE.Mesh>(null);
+  const beltLeftRef = useRef<THREE.Mesh>(null);
+  const beltRightRef = useRef<THREE.Mesh>(null);
+  const pulleyTopLeftRef = useRef<THREE.Mesh>(null);
+  const pulleyTopRightRef = useRef<THREE.Mesh>(null);
+  const driveWheelRef = useRef<THREE.Mesh>(null);
   const cameraShake = useRef(0);
   const impactPulse = useRef(0);
   const heatRef = useRef<THREE.PointLight>(null);
@@ -48,45 +54,54 @@ function Scene({
   const sparkOpacity = useRef(0);
   const wasStruck = useRef(false);
 
-  // Clamp once per render.
   const clamped = Math.min(1, Math.max(0, progress));
   const struck = clamped > 0.95;
 
   // Tup parking position (top of stroke) vs strike position (just kissing
   // the work-piece on top of the anvil).
-  const TUP_TOP = 36;
+  const TUP_TOP = 38;
   const TUP_HIT = 4.5;
 
   useFrame(({ camera }, rawDelta) => {
-    // Cap delta so paused-tab unfreezes don't snap the scene.
     const delta = Math.min(rawDelta, 1 / 30);
 
     if (tupRef.current) {
-      // Tup descends linearly with progress; smoothed lerp to feel weighty.
       const targetY = TUP_TOP - (TUP_TOP - TUP_HIT) * clamped;
       tupRef.current.position.y +=
         (targetY - tupRef.current.position.y) * Math.min(1, delta * 14);
     }
 
-    // Billet "squish" on strike (very subtle scale-y compression).
     if (billetRef.current) {
       const targetScale = struck ? 0.78 : 1;
       billetRef.current.scale.y +=
         (targetScale - billetRef.current.scale.y) * Math.min(1, delta * 10);
     }
 
-    // Trigger impact pulse on rising edge of `struck`.
+    // Belt wraps continuously around the two drums — visually, the belt
+    // strips slide along the Y axis at a rate proportional to the drum
+    // rotation. Drums spin slower while parked, faster as the tup falls.
+    const beltSpeed = 0.8 + clamped * 1.8;
+    if (pulleyTopLeftRef.current) pulleyTopLeftRef.current.rotation.x += delta * beltSpeed * 5;
+    if (pulleyTopRightRef.current) pulleyTopRightRef.current.rotation.x += delta * beltSpeed * 5;
+    if (driveWheelRef.current) driveWheelRef.current.rotation.x += delta * beltSpeed * 3.5;
+    if (beltLeftRef.current) {
+      beltLeftRef.current.position.y += delta * beltSpeed * 4;
+      if (beltLeftRef.current.position.y > 4) beltLeftRef.current.position.y -= 8;
+    }
+    if (beltRightRef.current) {
+      beltRightRef.current.position.y -= delta * beltSpeed * 4;
+      if (beltRightRef.current.position.y < -4) beltRightRef.current.position.y += 8;
+    }
+
     if (!reduced && struck && !wasStruck.current) {
       impactPulse.current = 0.5;
-      sparkOpacity.current = 1.2; // total visible window (0.4 in + 0.8 out)
+      sparkOpacity.current = 1.2;
     }
     wasStruck.current = struck;
 
-    // Camera y tilt from progress (subtle).
     const baseTilt = (1.5 * Math.PI) / 180;
     camera.rotation.y = -baseTilt * (clamped - 0.5);
 
-    // Camera shake — sin-modulated decay over 0.5s.
     if (!reduced && impactPulse.current > 0) {
       const decay = impactPulse.current / 0.5;
       cameraShake.current = Math.sin(performance.now() * 0.04) * 0.02 * decay;
@@ -96,23 +111,21 @@ function Scene({
     }
     camera.rotation.z = cameraShake.current;
 
-    // Heat glow pulse — 0 → 4 → 0 across the spark window.
     if (heatRef.current) {
       if (reduced) {
-        heatRef.current.intensity = struck ? 2 : 0.6; // ambient billet glow
+        heatRef.current.intensity = struck ? 2 : 0.6;
       } else {
         const t = sparkOpacity.current;
         const triangle =
           t <= 0
-            ? 0.6 // resting ambient glow on the billet
+            ? 0.6
             : t > 0.8
-              ? ((1.2 - t) / 0.4) * 4 // ramp up (0 → 4) over the first 0.4s
-              : (t / 0.8) * 4; // ramp down (4 → 0) over the next 0.8s
+              ? ((1.2 - t) / 0.4) * 4
+              : (t / 0.8) * 4;
         heatRef.current.intensity = triangle;
       }
     }
 
-    // Strike flash directional light — match the sparkle ramp window.
     if (flashRef.current) {
       if (reduced) {
         flashRef.current.intensity = struck ? 1.8 : 0;
@@ -122,7 +135,6 @@ function Scene({
       }
     }
 
-    // Sparkle group opacity (sync with sparkOpacity counter).
     if (sparkleGroupRef.current) {
       if (reduced) {
         sparkleGroupRef.current.visible = false;
@@ -138,7 +150,6 @@ function Scene({
 
   // ----- materials ------------------------------------------------------
 
-  /** Cast iron — slightly more matte than the rest. */
   const ironMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -148,7 +159,6 @@ function Scene({
       }),
     [],
   );
-  /** Mid-finish steel for the frame/posts. */
   const steelMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -158,7 +168,6 @@ function Scene({
       }),
     [],
   );
-  /** Polished steel for the cylinder housing + dies. */
   const polishedMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -168,7 +177,6 @@ function Scene({
       }),
     [],
   );
-  /** Foundation — slightly lighter, almost grout. */
   const foundationMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -178,7 +186,6 @@ function Scene({
       }),
     [],
   );
-  /** Glowing hot billet — emissive saffron. */
   const billetMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -190,86 +197,109 @@ function Scene({
       }),
     [],
   );
-
-  // ----- geometries (reused via primitive) ------------------------------
-
-  // Foundation: broad low slab
-  const foundationGeom = useMemo(
-    () => new THREE.BoxGeometry(72, 6, 30),
+  /** Worn leather belt — warm brown-ish, very matte. */
+  const beltMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#3d2a1c",
+        metalness: 0.0,
+        roughness: 0.95,
+      }),
     [],
   );
-  // Anvil: stepped cast-iron block. Three stacked pieces give it the
-  // classic narrowing silhouette.
+
+  // ----- geometries -----------------------------------------------------
+
+  const foundationGeom = useMemo(() => new THREE.BoxGeometry(78, 6, 32), []);
   const anvilBottomGeom = useMemo(() => new THREE.BoxGeometry(36, 8, 22), []);
   const anvilMidGeom = useMemo(() => new THREE.BoxGeometry(28, 6, 18), []);
   const anvilTopGeom = useMemo(() => new THREE.BoxGeometry(22, 4, 14), []);
   const anvilDieGeom = useMemo(() => new THREE.BoxGeometry(18, 1.5, 12), []);
-  // H-frame: two vertical posts + cross-head
-  const postGeom = useMemo(() => new THREE.BoxGeometry(5, 70, 6), []);
-  const crossheadGeom = useMemo(() => new THREE.BoxGeometry(58, 7, 14), []);
-  // Cylinder housing — the steam/pneumatic cap on top
-  const cylinderGeom = useMemo(
-    () => new THREE.CylinderGeometry(11, 11, 18, 32),
-    [],
-  );
-  const cylinderCapGeom = useMemo(
-    () => new THREE.CylinderGeometry(13, 13, 3, 32),
-    [],
-  );
-  // Tup (ram) — heavy block + bottom die
+
+  // Tall H-frame guide posts — these are the vertical slides the tup
+  // rides between. Drop-hammer posts are typically 4–6× the anvil's
+  // depth tall.
+  const postGeom = useMemo(() => new THREE.BoxGeometry(5, 84, 6), []);
+  const crossheadGeom = useMemo(() => new THREE.BoxGeometry(58, 8, 14), []);
+  const crossheadCapGeom = useMemo(() => new THREE.BoxGeometry(62, 3, 16), []);
+
+  // Tup + dies + drop rod
   const tupGeom = useMemo(() => new THREE.BoxGeometry(16, 14, 12), []);
   const tupDieGeom = useMemo(() => new THREE.BoxGeometry(16, 1.5, 12), []);
-  // Piston rod going up into the cylinder housing
-  const pistonRodGeom = useMemo(
-    () => new THREE.CylinderGeometry(2.4, 2.4, 32, 16),
+  // Drop rod — long thin steel rod extending UP from the tup, gripped
+  // by the belt mechanism above. This is the visual signature of a
+  // belt drop hammer.
+  const dropRodGeom = useMemo(
+    () => new THREE.CylinderGeometry(1.2, 1.2, 56, 16),
     [],
   );
-  // Tie-rods (slender vertical bolts visible on real hammers)
+  const dropRodCapGeom = useMemo(
+    () => new THREE.CylinderGeometry(2.2, 2.2, 2.5, 16),
+    [],
+  );
+
+  // Twin drum pulleys at the top — these are the friction wheels that
+  // grip the drop rod. Cylinder rotated 90° so its axis is horizontal.
+  const pulleyGeom = useMemo(
+    () => new THREE.CylinderGeometry(5, 5, 9, 24),
+    [],
+  );
+  const pulleyHubGeom = useMemo(
+    () => new THREE.CylinderGeometry(1.5, 1.5, 11, 16),
+    [],
+  );
+
+  // Belt strips — two flat vertical bands wrapping between the pulleys.
+  const beltStripGeom = useMemo(() => new THREE.BoxGeometry(1.2, 8, 7), []);
+
+  // Side drive flywheel — a bigger pulley off to one side, connected
+  // by a diagonal drive belt.
+  const driveWheelGeom = useMemo(
+    () => new THREE.CylinderGeometry(8, 8, 4, 24),
+    [],
+  );
+  const driveBeltGeom = useMemo(() => new THREE.BoxGeometry(0.6, 32, 1.5), []);
+
+  // Foot pedal — operator pulls a rope/pedal to clutch the belt
+  const pedalGeom = useMemo(() => new THREE.BoxGeometry(8, 1.2, 3), []);
+  const pedalRodGeom = useMemo(
+    () => new THREE.CylinderGeometry(0.5, 0.5, 18, 8),
+    [],
+  );
+
+  // Tie-rods + bolts for industrial detail
   const tieRodGeom = useMemo(
-    () => new THREE.CylinderGeometry(0.7, 0.7, 64, 12),
+    () => new THREE.CylinderGeometry(0.7, 0.7, 78, 12),
     [],
   );
-  // Bolt heads — small flat cylinders
   const boltGeom = useMemo(
     () => new THREE.CylinderGeometry(1.3, 1.3, 1, 16),
     [],
   );
-  // Hot work-piece
   const billetGeom = useMemo(() => new THREE.BoxGeometry(7, 5, 6), []);
 
-  // Edge-overlay geometries for the saffron rim accents on the moving parts
-  const tupEdges = useMemo(
-    () => new THREE.EdgesGeometry(tupGeom),
-    [tupGeom],
-  );
-  const cylinderEdges = useMemo(
-    () => new THREE.EdgesGeometry(cylinderGeom),
-    [cylinderGeom],
-  );
-
-  // Mesh-orange tech accent on the static frame
+  const tupEdges = useMemo(() => new THREE.EdgesGeometry(tupGeom), [tupGeom]);
   const crossheadEdges = useMemo(
     () => new THREE.EdgesGeometry(crossheadGeom),
     [crossheadGeom],
   );
 
   // ----- positions ------------------------------------------------------
-  // y=0 floor level
   const FOUNDATION_Y = -32;
   const ANVIL_BOTTOM_Y = -22;
   const ANVIL_MID_Y = -15;
   const ANVIL_TOP_Y = -10;
   const ANVIL_DIE_Y = -7.25;
-  const POST_Y = 0; // posts centered around 0 (height 70 so span -35..+35)
-  const CROSSHEAD_Y = 36; // top of posts
-  const CYLINDER_Y = 49; // sits on cross-head
-  const CYLINDER_CAP_Y = 60;
+  const POST_Y = 9; // posts (height 84) centered at +9 so they span -33..+51
+  const CROSSHEAD_Y = 48;
+  const CROSSHEAD_CAP_Y = 53.5;
+  const PULLEY_Y = 56;
+  const DRIVE_WHEEL_Y = 42;
   const BILLET_Y = -5.5;
 
   return (
     <>
       <ambientLight intensity={0.55} />
-      {/* Key directional */}
       <directionalLight
         position={[16, 28, 12]}
         intensity={1.4}
@@ -278,26 +308,22 @@ function Scene({
         shadow-mapSize-height={1024}
         color={BRAND_HEX.snow}
       />
-      {/* Fill from camera-right */}
       <directionalLight
         position={[22, 4, 18]}
         intensity={0.5}
         color={BRAND_HEX.snow}
       />
-      {/* Peach rim from back-left */}
       <directionalLight
         position={[-18, 10, -12]}
         intensity={0.55}
         color={BRAND_HEX.peach}
       />
-      {/* Saffron strike flash from directly above */}
       <directionalLight
         ref={flashRef}
         position={[0, 36, 0]}
         intensity={0}
         color={BRAND_HEX.saffron}
       />
-      {/* Heat glow pointLight on the billet */}
       <pointLight
         ref={heatRef}
         position={[0, BILLET_Y, 0]}
@@ -316,7 +342,7 @@ function Scene({
         <primitive object={foundationGeom} attach="geometry" />
       </mesh>
 
-      {/* Anvil — three stacked tiers */}
+      {/* Anvil — stacked tiers + polished bottom die */}
       <mesh
         position={[0, ANVIL_BOTTOM_Y, 0]}
         castShadow
@@ -341,7 +367,6 @@ function Scene({
       >
         <primitive object={anvilTopGeom} attach="geometry" />
       </mesh>
-      {/* Anvil bottom die (polished plate) */}
       <mesh
         position={[0, ANVIL_DIE_Y, 0]}
         castShadow
@@ -351,7 +376,7 @@ function Scene({
         <primitive object={anvilDieGeom} attach="geometry" />
       </mesh>
 
-      {/* Hot billet sitting on the bottom die */}
+      {/* Hot saffron billet */}
       <mesh
         ref={billetRef}
         position={[0, BILLET_Y, 0]}
@@ -361,7 +386,7 @@ function Scene({
         <primitive object={billetGeom} attach="geometry" />
       </mesh>
 
-      {/* H-frame posts — left & right */}
+      {/* Tall H-frame guide posts */}
       {[-26, 26].map((x) => (
         <mesh
           key={`post-${x}`}
@@ -374,7 +399,7 @@ function Scene({
         </mesh>
       ))}
 
-      {/* Tie rods (slender bolts) in front of each post */}
+      {/* Tie-rods in front of each post */}
       {[-26, 26].map((x) => (
         <mesh
           key={`tie-${x}`}
@@ -385,7 +410,7 @@ function Scene({
         </mesh>
       ))}
 
-      {/* Cross-head connecting the post tops */}
+      {/* Cross-head — heavy beam connecting the post tops */}
       <mesh
         position={[0, CROSSHEAD_Y, 0]}
         castShadow
@@ -398,65 +423,160 @@ function Scene({
         <primitive object={crossheadEdges} attach="geometry" />
         <lineBasicMaterial color={BRAND_HEX.mesh} transparent opacity={0.18} />
       </lineSegments>
+      {/* Cap plate above the cross-head */}
+      <mesh
+        position={[0, CROSSHEAD_CAP_Y, 0]}
+        castShadow
+        material={polishedMat}
+      >
+        <primitive object={crossheadCapGeom} attach="geometry" />
+      </mesh>
 
       {/* Bolt heads on the cross-head corners */}
       {[
-        [-24, CROSSHEAD_Y, 7.5],
-        [24, CROSSHEAD_Y, 7.5],
-        [-24, CROSSHEAD_Y, -7.5],
-        [24, CROSSHEAD_Y, -7.5],
+        [-24, CROSSHEAD_CAP_Y + 2, 7.5],
+        [24, CROSSHEAD_CAP_Y + 2, 7.5],
+        [-24, CROSSHEAD_CAP_Y + 2, -7.5],
+        [24, CROSSHEAD_CAP_Y + 2, -7.5],
       ].map(([x, y, z], i) => (
         <mesh
           key={`bolt-${i}`}
-          position={[x, y + 4, z]}
-          rotation={[0, 0, 0]}
+          position={[x, y, z]}
           material={polishedMat}
         >
           <primitive object={boltGeom} attach="geometry" />
         </mesh>
       ))}
 
-      {/* Cylinder housing on top of the cross-head */}
+      {/* Twin drum pulleys at the top — the friction wheels that grip
+          the drop rod. Cylinder rotated so its axis runs left↔right. */}
       <mesh
-        position={[0, CYLINDER_Y, 0]}
+        ref={pulleyTopLeftRef}
+        position={[-4, PULLEY_Y, 0]}
+        rotation={[0, 0, Math.PI / 2]}
         castShadow
-        receiveShadow
         material={polishedMat}
       >
-        <primitive object={cylinderGeom} attach="geometry" />
+        <primitive object={pulleyGeom} attach="geometry" />
       </mesh>
-      <lineSegments position={[0, CYLINDER_Y, 0]}>
-        <primitive object={cylinderEdges} attach="geometry" />
-        <lineBasicMaterial color={BRAND_HEX.saffron} transparent opacity={0.4} />
-      </lineSegments>
-      <mesh position={[0, CYLINDER_CAP_Y, 0]} castShadow material={steelMat}>
-        <primitive object={cylinderCapGeom} attach="geometry" />
+      <mesh
+        position={[-4, PULLEY_Y, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+        material={steelMat}
+      >
+        <primitive object={pulleyHubGeom} attach="geometry" />
+      </mesh>
+      <mesh
+        ref={pulleyTopRightRef}
+        position={[4, PULLEY_Y, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+        castShadow
+        material={polishedMat}
+      >
+        <primitive object={pulleyGeom} attach="geometry" />
+      </mesh>
+      <mesh
+        position={[4, PULLEY_Y, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+        material={steelMat}
+      >
+        <primitive object={pulleyHubGeom} attach="geometry" />
       </mesh>
 
-      {/* Tup (ram) — moves vertically. Wrap the head + die + piston rod
-          in one group so they slide together. */}
+      {/* Belt strips — two flat bands looping between the drum pulleys.
+          We animate their Y position to fake belt scroll. The belt
+          actually pinches the drop rod between the two pulleys. */}
+      <mesh
+        ref={beltLeftRef}
+        position={[-5.7, PULLEY_Y, 0]}
+        castShadow
+        material={beltMat}
+      >
+        <primitive object={beltStripGeom} attach="geometry" />
+      </mesh>
+      <mesh
+        ref={beltRightRef}
+        position={[5.7, PULLEY_Y, 0]}
+        castShadow
+        material={beltMat}
+      >
+        <primitive object={beltStripGeom} attach="geometry" />
+      </mesh>
+
+      {/* Side drive flywheel + diagonal drive belt running to the
+          drum pulleys. Visual sugar — sells the "powered" feel. */}
+      <mesh
+        ref={driveWheelRef}
+        position={[34, DRIVE_WHEEL_Y, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+        castShadow
+        material={polishedMat}
+      >
+        <primitive object={driveWheelGeom} attach="geometry" />
+      </mesh>
+      <mesh
+        position={[34, DRIVE_WHEEL_Y, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+        material={steelMat}
+      >
+        <primitive object={pulleyHubGeom} attach="geometry" />
+      </mesh>
+      {/* Diagonal drive belt connecting flywheel → drum (angled) */}
+      <mesh
+        position={[19, (DRIVE_WHEEL_Y + PULLEY_Y) / 2, 2]}
+        rotation={[0, 0, -Math.atan2(PULLEY_Y - DRIVE_WHEEL_Y, 30)]}
+        material={beltMat}
+      >
+        <primitive object={driveBeltGeom} attach="geometry" />
+      </mesh>
+
+      {/* Operator pedal + linkage rod (right-front corner) */}
+      <mesh position={[20, FOUNDATION_Y + 4.5, 14]} material={steelMat}>
+        <primitive object={pedalGeom} attach="geometry" />
+      </mesh>
+      <mesh position={[20, FOUNDATION_Y + 14, 12.5]} material={steelMat}>
+        <primitive object={pedalRodGeom} attach="geometry" />
+      </mesh>
+
+      {/* Tup (ram) + die + drop rod — all move together vertically.
+          The drop rod is the signature of a belt drop hammer: a long
+          thin steel rod sticking up from the tup, gripped between the
+          two drum pulleys above. */}
       <group ref={tupRef} position={[0, TUP_TOP, 0]}>
         {/* Tup body */}
         <mesh castShadow material={steelMat}>
           <primitive object={tupGeom} attach="geometry" />
         </mesh>
-        {/* Saffron rim on the tup so the moving part reads against the frame */}
         <lineSegments>
           <primitive object={tupEdges} attach="geometry" />
-          <lineBasicMaterial color={BRAND_HEX.saffron} transparent opacity={0.6} />
+          <lineBasicMaterial
+            color={BRAND_HEX.saffron}
+            transparent
+            opacity={0.6}
+          />
         </lineSegments>
-        {/* Top die (the polished face that hits the work-piece) */}
+        {/* Top die */}
         <mesh position={[0, -7.75, 0]} castShadow material={polishedMat}>
           <primitive object={tupDieGeom} attach="geometry" />
         </mesh>
-        {/* Piston rod going up into the cylinder housing */}
-        <mesh position={[0, 23, 0]} castShadow material={polishedMat}>
-          <primitive object={pistonRodGeom} attach="geometry" />
+        {/* Drop rod — long thin rod extending up between the drum
+            pulleys. Centered at +35 above the tup's origin so its top
+            sits just below the pulleys at +56. */}
+        <mesh position={[0, 35, 0]} castShadow material={polishedMat}>
+          <primitive object={dropRodGeom} attach="geometry" />
+        </mesh>
+        {/* Small cap on the very top of the rod */}
+        <mesh position={[0, 63, 0]} castShadow material={polishedMat}>
+          <primitive object={dropRodCapGeom} attach="geometry" />
         </mesh>
       </group>
 
       {/* Sparks on strike — emit at billet level */}
-      <group ref={sparkleGroupRef} position={[0, BILLET_Y + 1, 0]} visible={false}>
+      <group
+        ref={sparkleGroupRef}
+        position={[0, BILLET_Y + 1, 0]}
+        visible={false}
+      >
         <Sparkles
           count={80}
           size={6}
@@ -478,8 +598,6 @@ function Scene({
 }
 
 export function HammerStrikeHero({ progress, className }: HammerStrikeHeroProps) {
-  // Slight floor-ward gradient so the foundation has a place to sit; warm
-  // saffron whisper near the bottom mirrors the heat coming off the billet.
   const stageBackground = `radial-gradient(120% 80% at 50% 35%, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 55%, #c8c4c1 100%)`;
   const [reduced, setReduced] = useState(false);
 
@@ -497,7 +615,8 @@ export function HammerStrikeHero({ progress, className }: HammerStrikeHeroProps)
       className={["relative h-full w-full", className ?? ""].join(" ")}
       style={{ background: stageBackground }}
     >
-      <Canvas dpr={[1, 2]} camera={{ position: [0, 14, 110], fov: 35 }} shadows>
+      {/* Pulled back further + framed taller to fit the post + drop-rod */}
+      <Canvas dpr={[1, 2]} camera={{ position: [4, 20, 130], fov: 32 }} shadows>
         <Scene progress={progress} reduced={reduced} />
       </Canvas>
     </div>

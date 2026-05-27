@@ -4,6 +4,7 @@ import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
 import { useEffect, useRef } from 'react';
 import { gsap } from '@/lib/gsap';
+import { cssImageSet } from '@/lib/image-formats';
 import { FOUNDER_QUOTE } from '@/data/about';
 
 /**
@@ -57,11 +58,16 @@ export default function AboutHero() {
       ref={rootRef}
       className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-graphite text-paper"
     >
-      {/* Background image — graceful if missing */}
+      {/* Background image — graceful if missing.
+          Uses CSS `image-set()` so AVIF (~170 KB) is picked first, then
+          WebP (~305 KB), with the 1.22 MB JPG only as a fallback for
+          ancient browsers. */}
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center opacity-40"
-        style={{ backgroundImage: 'url(/assets/images/DSC09268.jpg)' }}
+        style={{
+          backgroundImage: cssImageSet('/assets/images/DSC09268.jpg'),
+        }}
       />
       <div
         aria-hidden

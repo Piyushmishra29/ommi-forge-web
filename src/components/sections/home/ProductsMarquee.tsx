@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -8,6 +7,7 @@ import { StlPreview } from '@/components/three/lazy';
 import { RENDERS } from '@/data/renders';
 import { PRODUCT_IMAGES } from '@/data/home';
 import { gsap } from '@/lib/gsap';
+import { withExt } from '@/lib/image-formats';
 
 type Tile =
   | { kind: 'image'; src: string; name: string }
@@ -127,15 +127,24 @@ function ProductTile({ tile }: { tile: Tile }) {
       {tile.kind === 'stl' ? (
         <StlPreview src={tile.src} ariaLabel={tile.name} className="h-full" />
       ) : imageOk ? (
-        <Image
-          src={tile.src}
-          alt={tile.name}
-          width={280}
-          height={360}
-          loading="lazy"
-          className="h-full w-full object-cover"
-          onError={() => setImageOk(false)}
-        />
+        // `images.unoptimized: true` (required for `output: 'export'`)
+        // turns `next/image` into a passthrough anyway — a native
+        // <picture> with AVIF/WebP siblings is a strictly smaller
+        // payload, and we keep the explicit width/height for CLS.
+        <picture>
+          <source srcSet={withExt(tile.src, 'avif')} type="image/avif" />
+          <source srcSet={withExt(tile.src, 'webp')} type="image/webp" />
+          <img
+            src={tile.src}
+            alt={tile.name}
+            width={280}
+            height={360}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+            onError={() => setImageOk(false)}
+          />
+        </picture>
       ) : (
         <div
           aria-hidden

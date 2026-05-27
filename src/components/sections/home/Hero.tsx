@@ -152,15 +152,21 @@ export default function Hero() {
       style={{ marginTop: 'calc(-1 * var(--header-h))' }}
       className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden"
     >
-      {/* Background video */}
+      {/* Background video.
+          `preload="none"` + an explicit `poster` means Chrome paints the
+          still frame instantly and only kicks off the 27 MB hero.mp4
+          fetch when the browser actually starts autoplay (i.e. once the
+          element is visible and decodable). This shaves the entire
+          hero clip off the initial network budget. */}
       <video
         className="absolute inset-0 h-full w-full object-cover"
         src="/assets/video/hero.mp4"
+        poster="/assets/video/hero-poster.jpg"
         autoPlay
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="none"
         aria-hidden
       />
       {/* Layered overlay: darker top-to-bottom gradient so headline + subhead

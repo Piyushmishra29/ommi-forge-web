@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Eyebrow from '@/components/ui/Eyebrow';
+import { cssImageSet } from '@/lib/image-formats';
 import { SUSTAINABILITY } from '@/data/about';
 
 /**
@@ -19,8 +20,11 @@ export default function Sustainability() {
             <div
               className="absolute inset-0 bg-cover bg-center"
               style={{
-                backgroundImage:
-                  'url(/assets/images/1-Copy-scaled.jpg)',
+                // CSS `image-set()`: AVIF (~138 KB) → WebP (~277 KB) →
+                // 725 KB source JPG fallback.
+                backgroundImage: cssImageSet(
+                  '/assets/images/1-Copy-scaled.jpg',
+                ),
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-graphite/40 to-transparent" />
