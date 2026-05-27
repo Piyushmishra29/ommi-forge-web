@@ -94,6 +94,30 @@ No PDF assets were found referenced from the live canonical site (home, about, c
 | `https://www.ommiforge.com/wp-content/uploads/2022/03/ISO-9001.pdf` | Guess — not present on server. |
 | Top-level `https://www.ommiforge.com/wp-content/uploads/` directory listing | 403 Forbidden — server blocks index. Worked around by scraping all linked pages and downloading each referenced URL. |
 
+## Brand originals — `public/assets/brand/`
+
+Highest-resolution canonical brand assets fetched directly from `https://www.ommiforge.com` and its WP REST media library (`/wp-json/wp/v2/media`) on 2026-05-27. These are the masters; the older `public/assets/images/ommi-logo.png` and `public/assets/images/favicon-source.png` are downstream Jetpack-resized copies that should eventually be replaced by these.
+
+**Key findings:**
+- **No SVG version of the brand logo exists.** The only SVGs in the WP media library are a 14x13 Instagram icon and a stray `arrow-icon-size3.svg` (the latter pointed at an unrelated dev IP). The brand wordmark exists only as PNG.
+- **No Open Graph image is set** on the live home page — no `<meta property="og:image">` tag is present. Any social card would need to be generated client-side or supplied by the rebuild.
+- **`<head>` referenced favicons only via Jetpack i0.wp.com resize URLs** of `cropped-IMG_0261-1.png` (32x32, 192x192, 180x180). The true master is `IMG_0261.png` (2732x2048) and the square master is `IMG_0261-1.png` (2000x2000).
+- The header logo `<img>` in the home HTML uses Jetpack-resized variants of `Screenshot_2022-01-21_at_3.08.21_PM-removebg-preview-1-e1643095532377.png` (max 699x140). The actual uncropped master is `Screenshot_2022-01-21_at_3.08.21_PM-removebg-preview.png` (802x311), found via the REST media library.
+
+| Local path | Source URL | Bytes | Dimensions | Better than `public/assets/images/` copy? |
+| --- | --- | --- | --- | --- |
+| `public/assets/brand/logo-original.png` | `2022/01/Screenshot_2022-01-21_at_3.08.21_PM-removebg-preview.png` | 55,506 | 802x311 | **Yes** — uncropped master. Existing `images/ommi-logo.png` is 699x140 (Jetpack-resized crop). **Canonical going forward.** |
+| `public/assets/brand/logo-cropped-679x140.png` | `2022/01/cropped-Screenshot_2022-01-21_at_3.08.21_PM-removebg-preview-1-e1643095532377.png` | 29,064 | 679x140 | Equivalent to existing `images/ommi-logo.png` (which is 699x140, the same source under a different Jetpack resize). Kept for parity / reference. |
+| `public/assets/brand/logo-square-512.png` | `2022/03/cropped-cropped-Screenshot_2022-01-21_at_3.08.21_PM-removebg-preview-1-e1643095532377.png` | 84,766 | 512x512 | Net-new — square wordmark crop used by some WP installers. Useful for square social tiles. |
+| `public/assets/brand/favicon-original.png` | `2022/03/IMG_0261.png` | 3,712,395 | 2732x2048 | **Yes** — true master. Existing `images/favicon-source.png` (316,179 B) is byte-identical to `favicon-cropped-512.png` below. **Canonical going forward.** |
+| `public/assets/brand/favicon-square-2000.png` | `2022/03/IMG_0261-1.png` | 4,609,241 | 2000x2000 | **Yes** — square 1:1 master. Best source for favicon/PWA icon generation since it's already square. |
+| `public/assets/brand/favicon-cropped-512.png` | `2022/03/cropped-IMG_0261-1.png` | 316,179 | 512x512 | Byte-identical (MD5 `15184e49…`) to existing `images/favicon-source.png`. Kept for reference. |
+| `public/assets/brand/apple-touch-icon-original.png` | `i0.wp.com/.../cropped-IMG_0261-1.png?fit=180,180&ssl=1` | 14,221 | 180x180 | Net-new — matches the exact URL the live `<link rel="apple-touch-icon">` points at. Jetpack-rendered PNG, useful as a sanity reference. |
+
+**Recommended canonical source files** (for downstream favicon/logo build):
+- Logo: `public/assets/brand/logo-original.png` (802x311, transparent PNG).
+- Favicon / app icons: `public/assets/brand/favicon-square-2000.png` (2000x2000) — square master is ideal because no further cropping is needed.
+
 ## Raw fallback mirror — `public/assets/wp-mirror/`
 
 Contains 59 files (~15 MB) covering every `wp-content/uploads/...` URL referenced from the canonical pages above. Structure mirrors the source: `wp-mirror/2022/01/...`, `wp-mirror/2022/02/...`, etc. Browse with:
