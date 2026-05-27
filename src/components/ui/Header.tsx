@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -123,30 +124,33 @@ export default function Header() {
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       className={cn(
         'fixed inset-x-0 top-0 z-[1000] transition-colors duration-300',
-        scrolled
+        // Home keeps the transparent-over-hero treatment at the top; every
+        // other route now gets a solid graphite bar so the white-outlined
+        // wordmark logo always reads cleanly.
+        scrolled || !onDarkHero
           ? 'bg-graphite text-paper shadow-[0_2px_24px_-12px_rgba(0,0,0,0.4)]'
-          : onDarkHero
-            ? 'bg-transparent text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]'
-            : 'bg-paper/85 text-graphite backdrop-blur-md',
+          : 'bg-transparent text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]',
       )}
     >
-      <div className="mx-auto flex max-w-[1140px] items-center justify-between px-6 py-4 md:px-10 md:py-5">
+      <div className="mx-auto flex max-w-[1140px] items-center justify-between px-6 py-3 md:px-10 md:py-4">
         <Link
           href="/"
           aria-label="Ommi Forge — home"
           data-magnetic
           data-cursor-label="Home"
-          className="font-display text-lg font-bold tracking-[0.04em] uppercase leading-none"
+          className="inline-flex items-center"
         >
-          <span className="block leading-none">Ommi</span>
-          <span
-            className={cn(
-              'block text-[10px] font-eyebrow font-semibold tracking-[0.4em] uppercase',
-              scrolled ? 'text-saffron' : 'text-mesh',
-            )}
-          >
-            Forge
-          </span>
+          {/* Real brand wordmark (Ommi italic + Forge block + tricolor bar).
+              Outlined strokes — designed for dark backgrounds. Sized to the
+              header height: ~32px on mobile, ~38px on desktop. */}
+          <Image
+            src="/assets/brand/logo-cropped-679x140.png"
+            alt="Ommi Forge"
+            width={679}
+            height={140}
+            priority
+            className="h-8 w-auto md:h-9"
+          />
         </Link>
 
         {/* Desktop nav */}
