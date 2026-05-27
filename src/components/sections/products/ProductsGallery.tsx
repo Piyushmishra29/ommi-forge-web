@@ -160,7 +160,7 @@ export default function ProductsGallery() {
 
                 <div className="mt-10 flex flex-wrap items-center gap-4">
                   <a
-                    href="/contact"
+                    href="/contact/"
                     data-magnetic
                     className="inline-flex items-center justify-center bg-saffron px-6 py-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
                   >

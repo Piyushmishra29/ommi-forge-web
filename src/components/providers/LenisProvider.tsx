@@ -62,8 +62,18 @@ export default function LenisProvider({ children }: LenisProviderProps) {
     };
     document.addEventListener('lenis:setpaused', onSetPaused);
 
+    // Route-reset bridge — RouteResetEffects fires this on every nav so
+    // it can snap to top without holding a direct Lenis reference.
+    const onScrollTo = (e: Event) => {
+      const detail = (e as CustomEvent<{ target: number; immediate?: boolean }>).detail;
+      if (!detail) return;
+      lenis.scrollTo(detail.target, { immediate: detail.immediate ?? false });
+    };
+    document.addEventListener('lenis:scrollto', onScrollTo);
+
     return () => {
       document.removeEventListener('lenis:setpaused', onSetPaused);
+      document.removeEventListener('lenis:scrollto', onScrollTo);
       gsap.ticker.remove(tick);
       lenis.destroy();
       lenisRef.current = null;

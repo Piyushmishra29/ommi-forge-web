@@ -4,6 +4,7 @@ import './globals.css';
 
 import LenisProvider from '@/components/providers/LenisProvider';
 import LegacyRedirects from '@/components/providers/LegacyRedirects';
+import RouteResetEffects from '@/components/providers/RouteResetEffects';
 import MagneticCursor from '@/components/motion/MagneticCursor';
 import PageTransition, { PageWipe } from '@/components/motion/PageTransition';
 import Header from '@/components/ui/Header';
@@ -65,6 +66,7 @@ export default function RootLayout({
       <body className="min-h-dvh bg-paper text-graphite">
         <LegacyRedirects />
         <LenisProvider>
+          <RouteResetEffects />
           <MagneticCursor />
           <Header />
           <PageTransition>

@@ -51,7 +51,7 @@ export default async function RenderDetailPage({
         <ol className="flex items-center gap-2 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-steel">
           <li>
             <Link
-              href="/renders"
+              href="/renders/"
               className="underline-offset-4 hover:text-graphite hover:underline"
             >
               Renders

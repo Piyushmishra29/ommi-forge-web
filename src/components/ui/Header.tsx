@@ -40,6 +40,14 @@ export default function Header() {
     setOpen(false);
   }
 
+  // Only the home route ("/") opens against the dark hero video. Every
+  // other route has a paper-toned hero at the top, so the transparent
+  // "text-paper" treatment would render the logo invisible until the
+  // user scrolls past 100px. Detect that here and flip to a graphite
+  // foreground at the top of secondary routes; once scrolled past 100px
+  // the bar becomes solid graphite either way.
+  const onDarkHero = pathname === '/';
+
   // Scroll-progress + scrolled boolean
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -117,7 +125,9 @@ export default function Header() {
         'fixed inset-x-0 top-0 z-[1000] transition-colors duration-300',
         scrolled
           ? 'bg-graphite text-paper shadow-[0_2px_24px_-12px_rgba(0,0,0,0.4)]'
-          : 'bg-transparent text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]',
+          : onDarkHero
+            ? 'bg-transparent text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]'
+            : 'bg-paper/85 text-graphite backdrop-blur-md',
       )}
     >
       <div className="mx-auto flex max-w-[1140px] items-center justify-between px-6 py-4 md:px-10 md:py-5">
