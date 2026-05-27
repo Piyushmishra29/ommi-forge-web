@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Raw WordPress upload mirror — kept as a fallback safety net but not versioned
+/public/assets/wp-mirror/
