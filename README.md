@@ -91,6 +91,20 @@ public/
 
 Built as authorized client work for Ommi Forge Pvt. Ltd. via [SMARK8ING](https://smark8ing.com). The hero video, plant footage, and all 3D STL part files are the client's own assets, downloaded from their existing site and the YouTube channel that hosts their plant tour.
 
+## Privacy + headers
+
+This build has no analytics, no third-party trackers, no cookies, and
+no outbound `fetch`/`XHR` at runtime. The Google Maps embeds use the
+unauthenticated `output=embed` URL (no API key). Drei's HDRI is
+self-hosted (see `public/assets/hdr/`).
+
+Security headers are supplied by the host. `public/_headers`
+(Netlify-style) and `public/.htaccess` (Apache/Hostinger) ship a
+baseline policy: `X-Frame-Options DENY`, `Referrer-Policy`,
+`Permissions-Policy`, HSTS, and a Content-Security-Policy that only
+allows `self` for everything except the Google Maps iframe and Google
+Fonts. Update the policy if you add analytics or third-party widgets.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
