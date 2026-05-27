@@ -112,6 +112,23 @@ export default function ContactForm() {
 
   return (
     <div className="relative">
+      {/* Section heading above the form — editorial, not corporate. */}
+      <div className="mb-10 md:mb-12">
+        <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+          <span
+            aria-hidden
+            className="mr-3 inline-block h-px w-8 align-middle bg-mesh"
+          />
+          Start a quote
+        </p>
+        <h2
+          className="mt-6 font-display font-light leading-tight text-graphite"
+          style={{ fontSize: 'clamp(24px, 3vw, 32px)' }}
+        >
+          Tell us what you&apos;re making.
+        </h2>
+      </div>
+
       <AnimatePresence mode="wait">
         {!submitted ? (
           <motion.form
@@ -185,10 +202,21 @@ export default function ContactForm() {
                 type="submit"
                 disabled={isSubmitting}
                 data-magnetic
-                className="inline-flex items-center justify-center bg-saffron px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-paper disabled:opacity-60"
+                data-cursor-label="Send"
+                className="inline-flex items-center justify-center bg-saffron px-10 py-5 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-mesh hover:text-paper disabled:opacity-60"
               >
                 {isSubmitting ? 'Sending…' : 'Send →'}
               </button>
+              <p className="mt-6 font-body text-sm leading-relaxed text-steel">
+                Or email{' '}
+                <a
+                  href="mailto:marketing@ommiforge.com"
+                  className="text-graphite underline decoration-saffron decoration-2 underline-offset-4 transition-colors hover:text-mesh"
+                >
+                  marketing@ommiforge.com
+                </a>{' '}
+                directly — same inbox.
+              </p>
             </div>
           </motion.form>
         ) : (
@@ -269,7 +297,7 @@ function FloatingField({
       <label
         htmlFor={registration.name}
         className={cn(
-          'pointer-events-none absolute left-0 top-6 origin-left font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-steel transition-all duration-200',
+          'pointer-events-none absolute left-0 top-6 origin-left font-eyebrow text-xs font-semibold uppercase tracking-[0.28em] text-steel transition-all duration-200',
           // Floats when focused OR has value (peer:not(:placeholder-shown))
           'peer-focus:top-0 peer-focus:scale-90 peer-focus:text-mesh',
           'peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:scale-90',
@@ -308,7 +336,7 @@ function FloatingTextArea({
       <label
         htmlFor={registration.name}
         className={cn(
-          'pointer-events-none absolute left-0 top-6 origin-left font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-steel transition-all duration-200',
+          'pointer-events-none absolute left-0 top-6 origin-left font-eyebrow text-xs font-semibold uppercase tracking-[0.28em] text-steel transition-all duration-200',
           'peer-focus:top-0 peer-focus:scale-90 peer-focus:text-mesh',
           'peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:scale-90',
         )}
