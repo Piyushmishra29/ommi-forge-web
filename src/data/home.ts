@@ -93,23 +93,28 @@ export const LOCATION = {
 
 /**
  * Image assets surfaced on the Forged Products marquee. Paths are all
- * confirmed-present on disk in `public/assets/images/`; the `1-5`,
- * `1-8`, and `1-10` legacy WordPress slugs never landed on disk, so
- * the corresponding slots reuse the foundry-floor DSC photos copied
- * from the wp-mirror fallback. Each tile still has a built-in CSS
- * fallback in `ProductsMarquee` if a file goes missing later.
+ * confirmed-present on disk in `public/assets/images/` (including the
+ * `1-5`, `1-8`, and `1-10` legacy WordPress slugs which now have local
+ * jpg/webp/avif siblings). The foundry-floor DSC photos round out the
+ * pool so the marquee has enough unique tiles for two image-heavy
+ * rows. Each tile still has a built-in CSS fallback in
+ * `ProductsMarquee` if a file goes missing later.
  */
 export const PRODUCT_IMAGES: string[] = [
   '/assets/images/1-2-scaled.jpg',
   '/assets/images/1-3-scaled.jpg',
   '/assets/images/1-4-scaled.jpg',
-  '/assets/images/DSC09309.jpg',
+  '/assets/images/1-5-scaled.jpg',
   '/assets/images/1-6-scaled.jpg',
   '/assets/images/1-7-scaled.jpg',
-  '/assets/images/DSC09326.jpg',
+  '/assets/images/1-8-scaled.jpg',
   '/assets/images/1-9-scaled.jpg',
-  '/assets/images/DSC09350.jpg',
+  '/assets/images/1-10-scaled.jpg',
   '/assets/images/1-11-scaled.jpg',
+  '/assets/images/DSC09268.jpg',
+  '/assets/images/DSC09309.jpg',
+  '/assets/images/DSC09326.jpg',
+  '/assets/images/DSC09350.jpg',
 ];
 
 export const CLOSING_CTA = {

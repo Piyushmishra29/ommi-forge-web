@@ -14,39 +14,60 @@ type Tile =
   | { kind: 'stl'; src: string; name: string };
 
 /**
- * Build two interleaved tile rows. The top row mixes image tiles +
- * STL previews (4 STL + 4 image); the bottom row is shuffled so the
- * two scroll planes don't visually mirror each other.
+ * Build two interleaved tile rows. Each row is 8 tiles with 6 image
+ * tiles + 2 STL previews (down from 4 STL + 4 image previously); the
+ * bottom row uses a different STL ordering so the two scroll planes
+ * don't visually mirror each other. Halving the STL count was a
+ * deliberate perf call — every STL is a 2-5 MB fetch + WebGL ticker,
+ * and the marquee mounts both copies (looped) at once, so 16 STL
+ * instances was the dominant hitch on Act 03 entry. With 4 unique
+ * STLs total (2 per row, duplicated for the loop) we're at 8 GL
+ * canvases, half the previous load.
  */
 function buildTiles(): { top: Tile[]; bottom: Tile[] } {
-  const stlTiles: Tile[] = RENDERS.slice(0, 4).map((r) => ({
+  const topStls: Tile[] = RENDERS.slice(0, 2).map((r) => ({
     kind: 'stl',
     src: r.stl,
     name: r.productName,
   }));
-  const imgTiles: Tile[] = PRODUCT_IMAGES.slice(0, 8).map((src, i) => ({
+  const bottomStls: Tile[] = RENDERS.slice(2, 4).map((r) => ({
+    kind: 'stl',
+    src: r.stl,
+    name: r.productName,
+  }));
+
+  const imgTiles: Tile[] = PRODUCT_IMAGES.slice(0, 12).map((src, i) => ({
     kind: 'image',
     src,
     name: `Product ${i + 1}`,
   }));
 
-  const top: Tile[] = [];
-  for (let i = 0; i < 4; i += 1) {
-    top.push(imgTiles[i]);
-    top.push(stlTiles[i]);
-  }
+  // Top row: img, img, stl, img, img, img, stl, img  (6 img + 2 stl)
+  const topImgs = imgTiles.slice(0, 6);
+  const top: Tile[] = [
+    topImgs[0],
+    topImgs[1],
+    topStls[0],
+    topImgs[2],
+    topImgs[3],
+    topImgs[4],
+    topStls[1],
+    topImgs[5],
+  ];
 
-  const bottomImgs = imgTiles.slice(4, 8);
-  const bottomStls: Tile[] = RENDERS.slice(4, 8).map((r) => ({
-    kind: 'stl',
-    src: r.stl,
-    name: r.productName,
-  }));
-  const bottom: Tile[] = [];
-  for (let i = 0; i < 4; i += 1) {
-    bottom.push(bottomStls[i]);
-    bottom.push(bottomImgs[i]);
-  }
+  // Bottom row: img, stl, img, img, img, img, stl, img  (6 img + 2 stl)
+  // Offset STL positions so the two rows don't line up vertically.
+  const bottomImgs = imgTiles.slice(6, 12);
+  const bottom: Tile[] = [
+    bottomImgs[0],
+    bottomStls[0],
+    bottomImgs[1],
+    bottomImgs[2],
+    bottomImgs[3],
+    bottomImgs[4],
+    bottomStls[1],
+    bottomImgs[5],
+  ];
 
   return { top, bottom };
 }
@@ -97,6 +118,19 @@ function MarqueeRow({ tiles, direction, duration, reduced }: MarqueeRowProps) {
 
   const items = [...tiles, ...tiles];
 
+  // Compute a stagger delay (ms) for every STL tile so the network
+  // sees them one after another instead of all at once. Image tiles
+  // get 0 ms (they're cheap, lazy-loaded by the browser). Indexing by
+  // tile position in the rendered list — duplicates share the same
+  // src so the second pass is a memory-cache hit anyway.
+  let stlSeen = 0;
+  const stlDelays = items.map((tile) => {
+    if (tile.kind !== 'stl') return 0;
+    const delay = stlSeen * 200;
+    stlSeen += 1;
+    return delay;
+  });
+
   return (
     <div
       className="relative overflow-hidden"
@@ -109,15 +143,36 @@ function MarqueeRow({ tiles, direction, duration, reduced }: MarqueeRowProps) {
         style={{ willChange: 'transform' }}
       >
         {items.map((tile, i) => (
-          <ProductTile key={`${tile.name}-${i}`} tile={tile} />
+          <ProductTile
+            key={`${tile.name}-${i}`}
+            tile={tile}
+            stlDelayMs={stlDelays[i]}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function ProductTile({ tile }: { tile: Tile }) {
+function ProductTile({
+  tile,
+  stlDelayMs,
+}: {
+  tile: Tile;
+  stlDelayMs: number;
+}) {
   const [imageOk, setImageOk] = useState(true);
+  const [stlReady, setStlReady] = useState(stlDelayMs === 0);
+
+  // Stagger STL activation. The StlPreview itself still gates the
+  // GL Canvas via IntersectionObserver, but on viewport entry we'd
+  // otherwise queue every STL fetch in the same frame. Holding back
+  // by 200 ms × stl-index lets the browser pipeline them.
+  useEffect(() => {
+    if (tile.kind !== 'stl' || stlDelayMs === 0) return;
+    const t = setTimeout(() => setStlReady(true), stlDelayMs);
+    return () => clearTimeout(t);
+  }, [tile.kind, stlDelayMs]);
 
   return (
     <div
@@ -125,7 +180,18 @@ function ProductTile({ tile }: { tile: Tile }) {
       data-magnetic
     >
       {tile.kind === 'stl' ? (
-        <StlPreview src={tile.src} ariaLabel={tile.name} className="h-full" />
+        stlReady ? (
+          <StlPreview src={tile.src} ariaLabel={tile.name} className="h-full" />
+        ) : (
+          <div
+            aria-hidden
+            className="h-full w-full"
+            style={{
+              background:
+                'radial-gradient(circle at center, #FFFFFF 0%, #D9D9D9 70%)',
+            }}
+          />
+        )
       ) : imageOk ? (
         // `images.unoptimized: true` (required for `output: 'export'`)
         // turns `next/image` into a passthrough anyway — a native

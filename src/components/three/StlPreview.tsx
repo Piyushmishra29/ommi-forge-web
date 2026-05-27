@@ -142,7 +142,11 @@ export function StlPreview({ src, className, ariaLabel }: StlPreviewProps) {
     >
       {inView && (
         <Canvas
-          dpr={[1, 1.5]}
+          // DPR capped at 1 — marquee tiles are 280×360 and rotating
+          // gently, so super-sampling above device pixels burns GPU
+          // for no visible win. Crucial when up to 8 of these mount
+          // on viewport entry.
+          dpr={[1, 1]}
           camera={{ position: [0, 0, 200], fov: 35 }}
           gl={{ antialias: true }}
         >
