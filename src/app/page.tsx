@@ -15,9 +15,14 @@ import ClosingCta from '@/components/sections/home/ClosingCta';
  *  1. Hero                — full-bleed muted hero video + headline
  *  2. HammerStrikeIntro   — pinned R3F hammer + Heat/Strike/Forge
  *  3. MaterialsGrid       — Carbon / Alloy / Stainless / Custom
- *  4. ProductsMarquee     — double-row infinite catalogue marquee
+ *  4. PlantWalkthrough    — scroll-scrubbed Ommi-fin drone footage
+ *                           (moved up from Act 06 — its hero.mp4 source
+ *                           is already in browser cache from the Hero,
+ *                           so it loads instantly)
  *  5. StatsCounter        — 8 / 1000+ / 100+ / 1 day
- *  6. PlantWalkthrough    — scroll-scrubbed plant video
+ *  6. ProductsMarquee     — image-only catalogue marquee (moved down
+ *                           from Act 04 — lazy-loaded JPGs cost less
+ *                           than the previous STL canvases anyway)
  *  7. HeritageTimeline    — 1975 → 2026 horizontal timeline
  *  8. Location            — Malur address + Maps iframe
  *  9. ClosingCta          — saffron slab, quote CTA
@@ -28,9 +33,9 @@ export default function HomePage() {
       <Hero />
       <HammerStrikeIntro />
       <MaterialsGrid />
-      <ProductsMarquee />
-      <StatsCounter />
       <PlantWalkthrough />
+      <StatsCounter />
+      <ProductsMarquee />
       <HeritageTimeline />
       <Location />
       <ClosingCta />

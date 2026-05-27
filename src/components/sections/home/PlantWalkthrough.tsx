@@ -8,11 +8,13 @@ import PinnedSection, {
 import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
- * Lightweight 1080p plant pan that ships ~1 MB instead of the 27 MB
- * `hero.mp4`. Duration ~5 s — the scrub math is `progress * duration`
- * so this works for any clip length.
+ * 57s 1080p re-encode of the client's 4K "Omni Forge fin" master.
+ * Identical to the Hero source — by the time the user scrolls here the
+ * browser already has it in cache, so the scroll-scrubbed playback is
+ * instant. (Earlier we used a tiny plant-pan-1080.mp4 to keep payload
+ * down, but on the new section order this isn't necessary.)
  */
-const PLANT_CLIP_SRC = '/assets/video/plant-pan-1080.mp4';
+const PLANT_CLIP_SRC = '/assets/video/hero.mp4';
 
 /**
  * Inner scrubbed drone-footage stage. Subscribes to scroll progress via
@@ -106,7 +108,7 @@ function ScrubStage() {
 
       {/* Top-right overlay */}
       <div className="absolute right-6 top-24 z-10 max-w-sm bg-graphite/55 p-6 backdrop-blur-md md:right-10 md:top-32 md:p-8">
-        <Eyebrow className="text-paper">ACT 04 · WALKTHROUGH</Eyebrow>
+        <Eyebrow className="text-paper">ACT 03 · WALKTHROUGH</Eyebrow>
         <h2 className="mt-4 font-display text-3xl font-light leading-tight text-paper md:text-5xl">
           Inside the wonderworld.
         </h2>
@@ -173,7 +175,7 @@ function StaticPlant() {
       )}
       <div className="absolute inset-0 bg-graphite/30" aria-hidden />
       <div className="absolute right-6 top-12 z-10 max-w-sm bg-graphite/55 p-6 backdrop-blur-md md:right-10 md:p-8">
-        <Eyebrow className="text-paper">ACT 04 · WALKTHROUGH</Eyebrow>
+        <Eyebrow className="text-paper">ACT 03 · WALKTHROUGH</Eyebrow>
         <h2 className="mt-4 font-display text-3xl font-light leading-tight text-paper md:text-5xl">
           Inside the wonderworld.
         </h2>
