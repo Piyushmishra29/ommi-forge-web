@@ -149,18 +149,21 @@ export default function Header() {
             width={679}
             height={140}
             priority
-            className="h-8 w-auto md:h-9"
+            className="h-7 w-auto md:h-[34px]"
           />
         </Link>
 
         {/* Desktop nav */}
-        <nav aria-label="Primary" className="hidden items-center gap-8 md:flex">
+        <nav
+          aria-label="Primary"
+          className="hidden items-center gap-5 md:flex lg:gap-7"
+        >
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               data-magnetic
-              className="font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] transition-colors hover:text-saffron"
+              className="whitespace-nowrap font-eyebrow text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:text-saffron lg:text-xs"
             >
               {item.label}
             </Link>
