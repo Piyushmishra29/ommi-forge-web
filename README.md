@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ommi Forge — cinematic rebuild
 
-## Getting Started
+A scroll-driven Next.js 16 rebuild of [ommiforge.com](https://www.ommiforge.com) — an Indian steel-forging company founded in Bangalore in 1975, plant in Malur, Karnataka.
 
-First, run the development server:
+Replaces a stock WordPress + Elementor build with an editorial, animation-led static site that puts the actual brand asset — interactive 3D STL renders of forged parts — at the centre of the experience.
+
+## Stack
+
+- **Next.js 16** App Router with `output: 'export'` (deploys anywhere as static HTML)
+- **TypeScript** strict
+- **Tailwind CSS v4** (CSS-first `@theme` tokens — single source of truth in `src/app/globals.css`)
+- **React Three Fiber** + `@react-three/drei` — interactive STL viewer + the home-page drop-hammer scene
+- **GSAP** + ScrollTrigger + Observer — pinned-scrub sections, marquee, heritage timeline
+- **Framer Motion** — page transitions, page-wipe slab, magnetic cursor, layout animations
+- **Lenis** — smooth scroll, wired into ScrollTrigger so pinned sections track the smoothed position
+- Self-hosted Manrope + Work Sans + Roboto via `next/font/google`
+
+## Routes
+
+| Route | What it is |
+| --- | --- |
+| `/` | 9-section cinematic home (hero · hammer-strike pin · materials · products marquee · stats · drone walkthrough · heritage timeline · location · CTA) |
+| `/about/` | Heritage essay, values, sustainability |
+| `/solutions/` | Closed die / open die / ring rolling / upset forging — pinned scroll with morphing illustration |
+| `/products/` | Masonry gallery with shared-element modal (mixes STL previews + photos) |
+| `/materials/` | Carbon · alloy · stainless · custom families + certifications (request-on-email) |
+| `/careers/` | Single-CTA "send us your CV" panel |
+| `/contact/` | Quote form + address + map |
+| `/renders/` | Hub: 3×3 grid of interactive 3D parts |
+| `/renders/{a..i}/` | Full-screen STL viewer per part (auto-rotate, drag, fullscreen, download) |
+
+Legacy WordPress URLs (`/home/about-ommi-forge`, `/render-a`, `/3d-renders`, etc.) are mapped to the new routes via both a pre-hydration `beforeInteractive` script and a `public/_redirects` file for Netlify/Hostinger.
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev               # dev server on :3000 (or pass --port)
+pnpm build             # static export to ./out/
+pnpm lint              # ESLint (Next.js + React-hooks rules)
+pnpm exec tsc --noEmit # typecheck
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Design tokens
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Defined inside `@theme` in `src/app/globals.css` — Tailwind v4 auto-promotes each variable to a utility class:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Token | Hex | Role |
+| --- | --- | --- |
+| `--color-saffron` | `#FF9933` | India-heritage accent, primary CTAs |
+| `--color-mesh` | `#FF5533` | 3D render mesh color, eyebrows |
+| `--color-graphite` | `#1F2124` | Primary text + dark surfaces |
+| `--color-steel` | `#54595F` | Secondary text |
+| `--color-ash` | `#7A7A7A` | Body gray |
+| `--color-peach` | `#FFBC7D` | Transitions, rim lighting |
+| `--color-paper` | `#FAFAFA` | Page background |
+| `--color-render-bg` | `#D9D9D9` | STL viewer floor |
+| `--font-display` | Manrope | Headlines |
+| `--font-eyebrow` | Work Sans | Uppercase eyebrows |
+| `--font-body` | Roboto | Body copy |
+| `--header-h` | `60px` mobile / `76px` desktop (+ iOS safe-area) | Shared by header, `<main>`, Hero offset |
 
-## Learn More
+For R3F materials that can't consume Tailwind classes, the same palette is exported from `src/lib/brand.ts` as `BRAND_HEX`.
 
-To learn more about Next.js, take a look at the following resources:
+## Project layout
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/                     App Router routes + layout
+├── components/
+│   ├── motion/              MagneticCursor, PageTransition + PageWipe, SplitText, PinnedSection
+│   ├── providers/           LenisProvider, LegacyRedirects, RouteResetEffects
+│   ├── three/               StlViewer, StlPreview, HammerStrikeHero, lazy.tsx (dynamic-imports for code-split)
+│   ├── ui/                  Header, Footer, Eyebrow, NumberCounter
+│   └── sections/            Per-page section blocks
+├── data/                    Locked content (nav, home, materials, renders, certifications, …)
+├── lib/                     brand.ts, cn.ts, gsap.ts (registers ScrollTrigger + Observer)
+└── styles/                  globals.css (Tailwind v4 + @theme tokens)
+public/
+└── assets/                  hero/plant videos · 9 numbered + 11 named STLs · images · MEDIA_MANIFEST.md
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notable behaviour
 
-## Deploy on Vercel
+- **Smooth scroll ↔ ScrollTrigger**: `LenisProvider` drives `lenis.raf` from `gsap.ticker` and pipes `lenis.on('scroll', ScrollTrigger.update)` so pinned-scrub sections track the smoothed position. External code can pause smooth scroll (e.g. mobile menu open) by dispatching `lenis:setpaused` / `lenis:scrollto` CustomEvents — no Lenis ref needed.
+- **Route reset**: `RouteResetEffects` runs on every pathname change, scrolls to top via the Lenis bridge, sweeps detached ScrollTriggers, and calls `ScrollTrigger.refresh()` on the next rAF so the new route's pin positions are measured correctly.
+- **Reduced-motion**: every animated component reads `prefers-reduced-motion: reduce` and short-circuits (no smooth scroll, no magnetic cursor, no auto-rotate, no sparks, no scroll-scrubbed video).
+- **Bundle**: three.js is shared across `/`, `/renders/*`, and `/products/` via `src/components/three/lazy.tsx` (`dynamic({ ssr: false })` from a single module) — one shared async chunk instead of one per route.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Brand authorisation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built as authorized client work for Ommi Forge Pvt. Ltd. via [SMARK8ING](https://smark8ing.com). The hero video, plant footage, and all 3D STL part files are the client's own assets, downloaded from their existing site and the YouTube channel that hosts their plant tour.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
