@@ -7,7 +7,7 @@ import LenisProvider from '@/components/providers/LenisProvider';
 import LegacyRedirects from '@/components/providers/LegacyRedirects';
 import RouteResetEffects from '@/components/providers/RouteResetEffects';
 import MagneticCursor from '@/components/motion/MagneticCursor';
-import PageTransition, { PageWipe } from '@/components/motion/PageTransition';
+import PageTransition from '@/components/motion/PageTransition';
 import Header from '@/components/ui/Header';
 import Footer from '@/components/ui/Footer';
 
@@ -124,7 +124,6 @@ export default function RootLayout({
           </PageTransition>
           <Footer />
         </LenisProvider>
-        <PageWipe />
         {PLAUSIBLE_DOMAIN ? (
           <Script
             src={PLAUSIBLE_SRC}
