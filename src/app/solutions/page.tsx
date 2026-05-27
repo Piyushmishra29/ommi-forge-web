@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import SolutionsHero from '@/components/sections/solutions/SolutionsHero';
 import MethodsPinned from '@/components/sections/solutions/MethodsPinned';
+import SolutionsClosingCta from '@/components/sections/solutions/SolutionsClosingCta';
 
 export const metadata: Metadata = {
   title: 'Solutions — Closed die, open die, ring rolling, upset',
@@ -13,6 +14,7 @@ export default function SolutionsPage() {
     <>
       <SolutionsHero />
       <MethodsPinned />
+      <SolutionsClosingCta />
     </>
   );
 }
