@@ -1,5 +1,10 @@
 # Ommi Forge — cinematic rebuild
 
+![Built with Next.js 16](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js&logoColor=white)
+![License MIT](https://img.shields.io/badge/license-MIT-FF9933?style=flat-square)
+![Lint passing](https://img.shields.io/badge/lint-passing-3FB950?style=flat-square)
+![No analytics](https://img.shields.io/badge/analytics-none-FF9933?style=flat-square)
+
 A scroll-driven Next.js 16 rebuild of [ommiforge.com](https://www.ommiforge.com) — an Indian steel-forging company founded in Bangalore in 1975, plant in Malur, Karnataka.
 
 Replaces a stock WordPress + Elementor build with an editorial, animation-led static site that puts the actual brand asset — interactive 3D STL renders of forged parts — at the centre of the experience.
@@ -104,6 +109,59 @@ baseline policy: `X-Frame-Options DENY`, `Referrer-Policy`,
 `Permissions-Policy`, HSTS, and a Content-Security-Policy that only
 allows `self` for everything except the Google Maps iframe and Google
 Fonts. Update the policy if you add analytics or third-party widgets.
+
+## Wiring the contact form
+
+`/contact/` uses Formspree (or any compatible "form-to-email" endpoint)
+when `NEXT_PUBLIC_FORMSPREE_URL` is set; otherwise it falls back to a
+no-network "log only" mode so local dev still flows end-to-end.
+
+1. Create a project at <https://formspree.io> and copy its endpoint —
+   it looks like `https://formspree.io/f/xxxxxxxx`.
+2. Copy `.env.example` to `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Paste the endpoint into `.env.local`:
+   ```env
+   NEXT_PUBLIC_FORMSPREE_URL=https://formspree.io/f/xxxxxxxx
+   ```
+4. Restart `pnpm dev`. Submissions now POST as JSON with
+   `{ firstName, lastName, email, phone, message }` to that endpoint.
+   A 200/202 flips the form to its success state; anything else
+   surfaces an inline error banner with a "Try again" button.
+5. **Server-side spam protection**: in the Formspree dashboard, enable
+   reCAPTCHA. The client only sends the JSON payload — Formspree
+   handles bot-checking on its side.
+
+To send the same env to Vercel, add `NEXT_PUBLIC_FORMSPREE_URL` under
+**Project Settings → Environment Variables** and redeploy.
+
+## Optional Plausible analytics
+
+The site is analytics-free by default. To opt in to
+[Plausible](https://plausible.io):
+
+```env
+# .env.local
+NEXT_PUBLIC_PLAUSIBLE_DOMAIN=www.ommiforge.com
+```
+
+Setting `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` injects
+`<script defer src="https://plausible.io/js/script.js" data-domain="…">`
+into the document via `next/script` with `strategy="afterInteractive"`.
+Leaving it unset renders nothing — no third-party request is made.
+
+Self-hosted Plausible: also set `NEXT_PUBLIC_PLAUSIBLE_SRC` to your
+script URL (e.g. `https://stats.example.com/js/script.js`). When set,
+that URL is used instead of the cloud-hosted one. Don't forget to add
+your stats host to the CSP `script-src` in `public/_headers`,
+`public/.htaccess`, and `vercel.json` if you go this route.
+
+## Deploying
+
+See [`docs/DEPLOY.md`](./docs/DEPLOY.md) for the Vercel and Hostinger
+playbooks (build, upload, DNS cutover, smoke tests).
 
 ## License
 

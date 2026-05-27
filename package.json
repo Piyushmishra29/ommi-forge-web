@@ -4,11 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/build-sitemap.mjs && node scripts/build-favicons.mjs && node scripts/build-og.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "optimize-images": "node scripts/optimize-images.mjs"
+    "optimize-images": "node scripts/optimize-images.mjs",
+    "build:sitemap": "node scripts/build-sitemap.mjs",
+    "build:favicons": "node scripts/build-favicons.mjs",
+    "build:og": "node scripts/build-og.mjs",
+    "build:meta": "pnpm build:sitemap && pnpm build:favicons && pnpm build:og"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
