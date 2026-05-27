@@ -55,18 +55,29 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Body-scroll lock + focus trap while the sheet is open
+  // Body-scroll lock + Lenis pause + focus trap while the sheet is open
   useEffect(() => {
     if (typeof document === 'undefined') return;
+
+    const setLenisPaused = (paused: boolean) => {
+      document.dispatchEvent(
+        new CustomEvent('lenis:setpaused', { detail: { paused } }),
+      );
+    };
+
     if (!open) {
       document.body.style.overflow = '';
-      // Return focus to the trigger after closing
-      triggerRef.current?.focus();
+      setLenisPaused(false);
+      // Return focus to the trigger without scrolling the page
+      triggerRef.current?.focus({ preventScroll: true });
       return;
     }
+    // Pause Lenis FIRST so it stops driving transforms on the document
+    // while we lock the body — prevents the scroll-position glitch.
+    setLenisPaused(true);
     document.body.style.overflow = 'hidden';
-    // Move focus into the sheet
-    firstLinkRef.current?.focus();
+    // Move focus into the sheet without yanking the page
+    firstLinkRef.current?.focus({ preventScroll: true });
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -85,16 +96,17 @@ export default function Header() {
       const active = document.activeElement;
       if (e.shiftKey && active === first) {
         e.preventDefault();
-        last.focus();
+        last.focus({ preventScroll: true });
       } else if (!e.shiftKey && active === last) {
         e.preventDefault();
-        first.focus();
+        first.focus({ preventScroll: true });
       }
     };
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
+      setLenisPaused(false);
     };
   }, [open]);
 
@@ -218,6 +230,7 @@ export default function Header() {
               role="dialog"
               aria-modal="true"
               aria-label="Site navigation"
+              data-lenis-prevent
               initial={{ x: '100%', skewY: 2, opacity: 0.6 }}
               animate={{ x: 0, skewY: 0, opacity: 1 }}
               exit={{ x: '100%', skewY: 2, opacity: 0.6 }}

@@ -53,7 +53,17 @@ export default function LenisProvider({ children }: LenisProviderProps) {
 
     ScrollTrigger.refresh();
 
+    // External controls — any component (e.g. mobile menu) can stop/start
+    // smooth scroll without holding a direct reference to the instance.
+    const onSetPaused = (e: Event) => {
+      const detail = (e as CustomEvent<{ paused: boolean }>).detail;
+      if (detail?.paused) lenis.stop();
+      else lenis.start();
+    };
+    document.addEventListener('lenis:setpaused', onSetPaused);
+
     return () => {
+      document.removeEventListener('lenis:setpaused', onSetPaused);
       gsap.ticker.remove(tick);
       lenis.destroy();
       lenisRef.current = null;
@@ -62,6 +72,7 @@ export default function LenisProvider({ children }: LenisProviderProps) {
         'lenis-smooth',
         'lenis-scrolling',
         'lenis-smooth-scrolling',
+        'lenis-stopped',
       );
     };
   }, []);

@@ -57,6 +57,10 @@
 html {
   background: var(--color-paper);
   color: var(--color-graphite);
+  /* Reserve the scrollbar slot so toggling overflow:hidden on the body
+     (mobile menu open, modals, etc.) doesn't shift the layout sideways
+     on Windows/macOS-with-classic-scrollbars. */
+  scrollbar-gutter: stable;
 }
 
 body {
