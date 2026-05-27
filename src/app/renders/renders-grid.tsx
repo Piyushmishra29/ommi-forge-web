@@ -44,9 +44,9 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
                 <div className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.25em] text-steel">
                   {render.title}
                 </div>
-                <div className="mt-1 font-display text-lg text-graphite">
+                <h2 className="mt-1 font-display text-lg font-light text-graphite">
                   {render.productName}
-                </div>
+                </h2>
               </div>
               <ul className="flex flex-wrap justify-end gap-1.5">
                 {render.tags.map((tag) => (

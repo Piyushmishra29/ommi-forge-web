@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AnimatePresence,
   motion,
@@ -97,7 +97,7 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
       layoutId={`card-${item.slug}`}
       data-magnetic
       onClick={() => onOpen(item.slug)}
-      className="group relative block w-full overflow-hidden bg-render-bg text-left focus:outline-none"
+      className="group relative block w-full overflow-hidden bg-render-bg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
     >
       <div
         className={
@@ -227,7 +227,9 @@ export default function ProductsGallery() {
     return { featured, catalogue, byApplication };
   }, []);
 
-  // Close on Escape + lock body scroll while open.
+  // Close on Escape + lock body scroll + focus-trap inside the modal.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (!active) return;
@@ -235,13 +237,50 @@ export default function ProductsGallery() {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
+    // Save the element that opened the modal so we can return focus to it on close.
+    lastFocusedRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    // Move focus into the dialog on the next frame (layoutId animation needs the node).
+    const focusFrame = requestAnimationFrame(() => {
+      const node = dialogRef.current;
+      if (!node) return;
+      const focusable = node.querySelectorAll<HTMLElement>(
+        'a, button, [tabindex]:not([tabindex="-1"])',
+      );
+      focusable[0]?.focus({ preventScroll: true });
+    });
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveSlug(null);
+      if (e.key === 'Escape') {
+        setActiveSlug(null);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const node = dialogRef.current;
+      if (!node) return;
+      const focusable = node.querySelectorAll<HTMLElement>(
+        'a, button, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const activeEl = document.activeElement;
+      if (e.shiftKey && activeEl === first) {
+        e.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!e.shiftKey && activeEl === last) {
+        e.preventDefault();
+        first.focus({ preventScroll: true });
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
+      cancelAnimationFrame(focusFrame);
+      // Restore focus to whatever opened the modal.
+      lastFocusedRef.current?.focus({ preventScroll: true });
     };
   }, [active]);
 
@@ -313,7 +352,7 @@ export default function ProductsGallery() {
                   <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-graphite">
                     {group.label}
                   </p>
-                  <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-ash">
+                  <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-steel">
                     {group.items.length.toString().padStart(2, '0')}
                   </span>
                 </div>
@@ -329,7 +368,7 @@ export default function ProductsGallery() {
                         <span>{p.name}</span>
                         <span
                           aria-hidden
-                          className="font-eyebrow text-[9px] font-semibold text-ash transition-colors group-hover:text-paper/70"
+                          className="font-eyebrow text-[9px] font-semibold text-steel transition-colors group-hover:text-paper/70"
                         >
                           {p.code}
                         </span>
@@ -347,6 +386,7 @@ export default function ProductsGallery() {
       <AnimatePresence>
         {active && (
           <motion.div
+            ref={dialogRef}
             key="product-overlay"
             variants={overlayVariants}
             initial="initial"

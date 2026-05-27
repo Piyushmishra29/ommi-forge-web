@@ -170,7 +170,7 @@ export default function AboutHero() {
             {FOUNDER_QUOTE.body}
             <span className="text-mesh">”</span>
           </p>
-          <p className="mt-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ash">
+          <p className="mt-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-steel">
             {FOUNDER_QUOTE.attribution}
           </p>
         </div>

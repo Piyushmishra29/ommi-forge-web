@@ -95,6 +95,32 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-graphite);
 }
 
+/* Skip-to-content link — hidden until focused.
+   Used by the root layout so keyboard users can bypass the header/nav. */
+.skip-link {
+  position: fixed;
+  inset-inline-start: 1rem;
+  top: -100px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-saffron);
+  color: var(--color-graphite);
+  font-family: var(--font-eyebrow), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.25rem;
+  transition: top 0.2s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 1rem;
+  outline: 2px solid var(--color-graphite);
+  outline-offset: 2px;
+}
+
 /* ------------------------------------------------------------
  * Lenis smooth scroll
  * Mirrors `node_modules/lenis/dist/lenis.css` (Lenis 1.3+). The

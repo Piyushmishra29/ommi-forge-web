@@ -162,9 +162,9 @@ export default function Hero() {
         className="absolute inset-0 h-full w-full object-cover"
         src="/assets/video/hero.mp4"
         poster="/assets/video/hero-poster.jpg"
-        autoPlay
+        autoPlay={!reduced}
         muted
-        loop
+        loop={!reduced}
         playsInline
         preload="none"
         aria-hidden

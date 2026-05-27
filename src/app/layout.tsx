@@ -105,6 +105,9 @@ export default function RootLayout({
       className={`${manrope.variable} ${workSans.variable} ${roboto.variable} antialiased`}
     >
       <body className="min-h-dvh bg-paper text-graphite">
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
         <LegacyRedirects />
         <LenisProvider>
           <RouteResetEffects />

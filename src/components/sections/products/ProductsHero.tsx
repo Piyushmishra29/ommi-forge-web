@@ -113,7 +113,7 @@ export default function ProductsHero() {
             data-magnetic
             data-cursor-label="Browse"
             onClick={handleBrowseAll}
-            className="group inline-flex items-center gap-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-saffron transition-colors hover:text-mesh"
+            className="group inline-flex items-center gap-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-mesh"
           >
             <span
               aria-hidden
@@ -124,7 +124,7 @@ export default function ProductsHero() {
               →
             </span>
           </a>
-          <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.32em] text-ash">
+          <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.32em] text-steel">
             Tap any part for the 3D viewer
           </span>
         </div>

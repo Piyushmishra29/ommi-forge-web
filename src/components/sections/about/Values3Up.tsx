@@ -206,7 +206,7 @@ function ValueTrack() {
                 <p className="mt-8 max-w-xl font-body text-lg leading-relaxed text-paper/80 md:text-xl md:leading-[1.6]">
                   {v.body}
                 </p>
-                <p className="mt-10 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ash">
+                <p className="mt-10 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-paper/70">
                   Value {String(i + 1).padStart(2, '0')} of{' '}
                   {String(VALUES.length).padStart(2, '0')}
                 </p>
