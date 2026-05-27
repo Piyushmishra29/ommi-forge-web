@@ -103,7 +103,62 @@ function AudioPulseBars({ reduced }: { reduced: boolean }) {
 
 export default function Hero() {
   const root = useRef<HTMLElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const reduced = useReducedMotion() ?? false;
+
+  // Scroll-scrub the first-shot clip. As the user scrolls down through
+  // the hero (0 → 100dvh), `video.currentTime` advances from 0 → end.
+  // The clip is only 3.8 s (hero-firstshot.mp4) with a keyframe every
+  // 6 frames, so seeking between any two scroll positions is essentially
+  // instant. Once scrolled fully past, the video sits on its last frame
+  // (no loop) — when the user scrolls back up, we run the same map in
+  // reverse, so the video rewinds naturally.
+  useEffect(() => {
+    if (reduced) return;
+    if (typeof window === 'undefined') return;
+    const v = videoRef.current;
+    const el = root.current;
+    if (!v || !el) return;
+
+    let raf = 0;
+    let lastSet = -1;
+
+    const update = () => {
+      raf = 0;
+      if (!Number.isFinite(v.duration) || v.duration <= 0) return;
+      const rect = el.getBoundingClientRect();
+      // progress = how far the section's top has moved past the viewport top,
+      // capped at the section's own height. 0 when hero is fully in view,
+      // 1 when fully scrolled past.
+      const p = Math.min(1, Math.max(0, -rect.top / Math.max(1, rect.height)));
+      const t = Math.min(v.duration * p, v.duration - 0.04);
+      if (Math.abs(t - lastSet) < 0.03) return;
+      lastSet = t;
+      try {
+        v.currentTime = t;
+      } catch {
+        /* Safari sometimes throws if metadata isn't ready yet. */
+      }
+    };
+
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(update);
+    };
+
+    const prime = () => update();
+    if (v.readyState >= 1) prime();
+    else v.addEventListener('loadedmetadata', prime, { once: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      v.removeEventListener('loadedmetadata', prime);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [reduced]);
 
   useEffect(() => {
     if (reduced) return;
@@ -152,21 +207,18 @@ export default function Hero() {
       style={{ marginTop: 'calc(-1 * var(--header-h))' }}
       className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden"
     >
-      {/* Background video.
-          `preload="none"` + an explicit `poster` means Chrome paints the
-          still frame instantly and only kicks off the 27 MB hero.mp4
-          fetch when the browser actually starts autoplay (i.e. once the
-          element is visible and decodable). This shaves the entire
-          hero clip off the initial network budget. */}
+      {/* Background video — scroll-scrubbed playback of the 3.8 s
+          first-shot clip. We do NOT autoplay; the effect above sets
+          `currentTime` from scroll position. preload="auto" because the
+          clip is tiny (5.6 MB) and we want it ready to seek instantly. */}
       <video
+        ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
-        src="/assets/video/hero.mp4"
+        src="/assets/video/hero-firstshot.mp4"
         poster="/assets/video/hero-poster.jpg"
-        autoPlay={!reduced}
         muted
-        loop={!reduced}
         playsInline
-        preload="none"
+        preload="auto"
         aria-hidden
       />
       {/* Layered overlay: darker top-to-bottom gradient so headline + subhead
