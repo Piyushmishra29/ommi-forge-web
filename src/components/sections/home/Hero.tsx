@@ -106,6 +106,54 @@ export default function Hero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reduced = useReducedMotion() ?? false;
 
+  // Scroll-driven playback: the video does NOT autoplay. Its currentTime
+  // is set from the user's scroll position relative to the hero section.
+  // 0 → top of hero in view, 1 → fully scrolled past. Clip is 3.8 s with
+  // dense keyframes so any-to-any seek is essentially instant.
+  useEffect(() => {
+    if (reduced) return;
+    if (typeof window === 'undefined') return;
+    const v = videoRef.current;
+    const el = root.current;
+    if (!v || !el) return;
+
+    let raf = 0;
+    let lastSet = -1;
+
+    const update = () => {
+      raf = 0;
+      if (!Number.isFinite(v.duration) || v.duration <= 0) return;
+      const rect = el.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, -rect.top / Math.max(1, rect.height)));
+      const t = Math.min(v.duration * p, v.duration - 0.04);
+      if (Math.abs(t - lastSet) < 0.03) return;
+      lastSet = t;
+      try {
+        v.currentTime = t;
+      } catch {
+        /* Safari sometimes throws if metadata isn't ready yet. */
+      }
+    };
+
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(update);
+    };
+
+    const prime = () => update();
+    if (v.readyState >= 1) prime();
+    else v.addEventListener('loadedmetadata', prime, { once: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      v.removeEventListener('loadedmetadata', prime);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [reduced]);
+
   useEffect(() => {
     if (reduced) return;
     const el = root.current;
@@ -153,17 +201,16 @@ export default function Hero() {
       style={{ marginTop: 'calc(-1 * var(--header-h))' }}
       className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden"
     >
-      {/* Background video — autoplays the 3.8 s first-shot clip ONCE on
-          landing. No loop: when it finishes, the video rests on its last
-          frame as a still hero image while the user scrolls down to
-          advance the page. preload="auto" because the clip is tiny
-          (5.6 MB) and we want it ready to play instantly. */}
+      {/* Background video — scroll-scrubbed (no autoplay). The effect
+          above sets currentTime from the section's scroll position so
+          the 3.8 s first-shot clip advances frame-by-frame as the user
+          scrolls down through the hero. preload="auto" because the clip
+          is tiny (5.6 MB) and seek needs to be instant. */}
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
         src="/assets/video/hero-firstshot.mp4"
         poster="/assets/video/hero-poster.jpg"
-        autoPlay={!reduced}
         muted
         playsInline
         preload="auto"
