@@ -30,17 +30,21 @@ export default function StatsCounter() {
 
         <ul className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {STATS.map((stat) => (
-            <li key={stat.label} className="flex flex-col gap-3">
+            <li
+              key={stat.label}
+              className="flex flex-col gap-4 border-t border-paper/15 pt-6"
+            >
               <span
-                className="block font-display font-light leading-none text-mesh"
+                className="block font-display font-bold leading-[0.92] text-saffron"
                 style={{
-                  fontSize: 'clamp(80px, 14vw, 200px)',
-                  letterSpacing: '-0.03em',
+                  fontSize: 'clamp(88px, 13vw, 184px)',
+                  letterSpacing: '-0.04em',
+                  textShadow: '0 0 36px rgba(255,153,51,0.18)',
                 }}
               >
                 <NumberCounter to={stat.value} suffix={stat.suffix} />
               </span>
-              <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-paper/80">
+              <p className="font-eyebrow text-sm font-semibold uppercase tracking-[0.22em] text-paper">
                 {stat.label}
               </p>
             </li>

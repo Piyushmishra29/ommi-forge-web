@@ -6,22 +6,15 @@ import PinnedSection, { useScroll } from '@/components/motion/PinnedSection';
 import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
- * Inner scrubbed-video stage. Subscribes to `useScroll()` and drives
- * `video.currentTime` from the progress value. We deliberately do NOT
- * autoplay — every frame is driven by scroll.
- *
- * Source clip is `plant-walkthrough.mp4` — 1.8s loop, ambient. The
- * pinned scroll runs ~200vh, so we wrap progress*duration with a
- * modulo on the clip length, producing a slowed-down loop where the
- * viewer scrubs through the 1.8s clip ~N times across the pin.
+ * Inner scrubbed drone-footage stage. Subscribes to `useScroll()` and
+ * drives `video.currentTime` from the progress value. Source is the
+ * 57s aerial plant tour (the same MP4 the Hero plays muted/looped) —
+ * here the viewer scrubs through it across a 200vh pinned scroll.
  */
 function ScrubStage() {
   const { progress } = useScroll();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastSetRef = useRef(0);
-  // Number of times the 1.8s clip wraps across the full pinned scroll.
-  // Higher = faster perceived motion; 2 plays the loop twice top→bottom.
-  const LOOPS = 2;
 
   useEffect(() => {
     const v = videoRef.current;
@@ -30,9 +23,8 @@ function ScrubStage() {
     // Wait for the metadata before trying to scrub.
     const tryScrub = () => {
       if (!Number.isFinite(v.duration) || v.duration <= 0) return;
-      // 1.8s loop, ambient — wrap the scrubbed time so the clip
-      // restarts cleanly each pass through the pinned scroll.
-      const t = (progress * v.duration * LOOPS) % v.duration;
+      // Linear map progress (0..1) → currentTime across the full clip.
+      const t = Math.min(progress * v.duration, v.duration - 0.05);
       // Avoid hammering the video element with sub-pixel updates.
       if (Math.abs(t - lastSetRef.current) < 0.03) return;
       lastSetRef.current = t;
@@ -55,7 +47,7 @@ function ScrubStage() {
     <div className="relative h-full w-full overflow-hidden bg-graphite">
       <video
         ref={videoRef}
-        src="/assets/video/plant-walkthrough.mp4"
+        src="/assets/video/hero.mp4"
         muted
         playsInline
         preload="auto"
@@ -79,12 +71,12 @@ function ScrubStage() {
   );
 }
 
-/** Reduced-motion fallback — plain autoplay loop of the same source. */
+/** Reduced-motion fallback — plain autoplay loop of the same drone clip. */
 function StaticPlant() {
   return (
     <section className="relative h-[80vh] w-full overflow-hidden bg-graphite">
       <video
-        src="/assets/video/plant-walkthrough.mp4"
+        src="/assets/video/hero.mp4"
         autoPlay
         muted
         loop
