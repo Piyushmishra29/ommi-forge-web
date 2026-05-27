@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { gsap } from '@/lib/gsap';
+import { gsap, ScrollTrigger } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
 import { HERO_COPY } from '@/data/home';
@@ -106,10 +106,11 @@ export default function Hero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reduced = useReducedMotion() ?? false;
 
-  // Scroll-driven playback: the video does NOT autoplay. Its currentTime
-  // is set from the user's scroll position relative to the hero section.
-  // 0 → top of hero in view, 1 → fully scrolled past. Clip is 3.8 s with
-  // dense keyframes so any-to-any seek is essentially instant.
+  // Scroll-locked playback: the hero PINS at top of viewport while the
+  // user scrolls through a 150% spacer, during which video.currentTime
+  // tweens 0 → end. Once the spacer is consumed, the hero unpins and the
+  // page scrolls normally. No autoplay. The 3.8 s clip has a keyframe
+  // every 6 frames so the scrub never stalls on inter-frames.
   useEffect(() => {
     if (reduced) return;
     if (typeof window === 'undefined') return;
@@ -117,40 +118,37 @@ export default function Hero() {
     const el = root.current;
     if (!v || !el) return;
 
-    let raf = 0;
-    let lastSet = -1;
+    let st: ScrollTrigger | null = null;
 
-    const update = () => {
-      raf = 0;
+    const setup = () => {
       if (!Number.isFinite(v.duration) || v.duration <= 0) return;
-      const rect = el.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, -rect.top / Math.max(1, rect.height)));
-      const t = Math.min(v.duration * p, v.duration - 0.04);
-      if (Math.abs(t - lastSet) < 0.03) return;
-      lastSet = t;
-      try {
-        v.currentTime = t;
-      } catch {
-        /* Safari sometimes throws if metadata isn't ready yet. */
-      }
+      st?.kill();
+      st = ScrollTrigger.create({
+        trigger: el,
+        start: 'top top',
+        end: '+=300%', // hero pins for 3× viewport — 3.8 s clip → ~1.3 s of video per viewport scrolled, so the user can read each frame
+        pin: true,
+        pinSpacing: true,
+        scrub: 0.6, // small smoothing so the seek feels weighted
+        onUpdate: (self) => {
+          if (!Number.isFinite(v.duration)) return;
+          const t = Math.min(self.progress * v.duration, v.duration - 0.04);
+          try {
+            v.currentTime = t;
+          } catch {
+            /* Safari sometimes throws if metadata isn't ready. */
+          }
+        },
+      });
     };
 
-    const onScroll = () => {
-      if (raf) return;
-      raf = window.requestAnimationFrame(update);
-    };
-
-    const prime = () => update();
-    if (v.readyState >= 1) prime();
-    else v.addEventListener('loadedmetadata', prime, { once: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    if (v.readyState >= 1) setup();
+    else v.addEventListener('loadedmetadata', setup, { once: true });
 
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      v.removeEventListener('loadedmetadata', prime);
-      if (raf) window.cancelAnimationFrame(raf);
+      st?.kill();
+      st = null;
+      v.removeEventListener('loadedmetadata', setup);
     };
   }, [reduced]);
 
