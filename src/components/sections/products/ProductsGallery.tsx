@@ -1,29 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 import {
   AnimatePresence,
   motion,
   type Variants,
 } from 'framer-motion';
 import { PRODUCTS, type ProductItem } from '@/data/products';
-
-// Heavy three-deps are client-only — never run on the server.
-const StlPreview = dynamic(
-  () =>
-    import('@/components/three/StlPreview').then((m) => ({
-      default: m.default,
-    })),
-  { ssr: false },
-);
-const StlViewer = dynamic(
-  () =>
-    import('@/components/three/StlViewer').then((m) => ({
-      default: m.default,
-    })),
-  { ssr: false },
-);
+// Single source of truth for lazy-loaded three components — keeps
+// three.js in one shared async chunk instead of duplicating it per route.
+import { StlPreview, StlViewer } from '@/components/three/lazy';
 
 const aspectClass: Record<ProductItem['aspect'], string> = {
   tall: 'aspect-[3/4]',

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import Eyebrow from '@/components/ui/Eyebrow';
-import StlPreview from '@/components/three/StlPreview';
+import { StlPreview } from '@/components/three/lazy';
 import { RENDERS } from '@/data/renders';
 import { PRODUCT_IMAGES } from '@/data/home';
 import { gsap } from '@/lib/gsap';

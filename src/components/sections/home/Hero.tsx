@@ -1,12 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
 import { HERO_COPY } from '@/data/home';
+import { BRAND_HEX } from '@/lib/brand';
+
+/**
+ * Synthesised "hammer pulse" waveform — 60 floats in [0..1].
+ * We don't fight autoplay/muted-video constraints; instead we
+ * pre-compute a periodic amplitude curve that *feels* like the
+ * cadence of a hammer line (a slow swell modulated by a sharper
+ * strike component). The 4-bar visualiser reads this array each
+ * RAF tick.
+ */
+function buildHammerPulse(steps = 60): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < steps; i += 1) {
+    const t = i / steps;
+    out.push(Math.abs(Math.sin(t * 7 + t * 0.4)) * 0.6 + 0.4);
+  }
+  return out;
+}
 
 /**
  * Hero
@@ -22,6 +40,67 @@ import { HERO_COPY } from '@/data/home';
  * the video still showing (the browser/OS honours reduced-motion for
  * `<video autoplay>` separately).
  */
+/**
+ * AudioPulseBars
+ *
+ * 4-bar SVG visualiser that pulses on a synthesised hammer waveform.
+ * Each bar samples the waveform at a phase offset, so the bars don't
+ * move in lockstep. Reduced-motion: bars rest at 50% height.
+ */
+function AudioPulseBars({ reduced }: { reduced: boolean }) {
+  const groupRef = useRef<SVGGElement | null>(null);
+  const wave = useMemo(() => buildHammerPulse(60), []);
+
+  useEffect(() => {
+    if (reduced) return;
+    const node = groupRef.current;
+    if (!node) return;
+    const bars = Array.from(node.querySelectorAll<SVGRectElement>('rect'));
+    if (bars.length === 0) return;
+
+    let rafId = 0;
+    const phases = [0, 12, 24, 36]; // step offsets so bars desync
+
+    const tick = () => {
+      const base = Math.floor(Date.now() / 80);
+      bars.forEach((bar, i) => {
+        const idx = (base + phases[i]) % wave.length;
+        const v = wave[idx];
+        bar.setAttribute('transform', `translate(${i * 8} ${20 - v * 20}) scale(1 ${v})`);
+      });
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [reduced, wave]);
+
+  // Initial (reduced-motion) heights: 50%.
+  return (
+    <svg
+      width={60}
+      height={20}
+      viewBox="0 0 60 20"
+      aria-hidden
+      className="opacity-70"
+    >
+      <g ref={groupRef}>
+        {[0, 1, 2, 3].map((i) => (
+          <rect
+            key={i}
+            x={0}
+            y={0}
+            width={4}
+            height={20}
+            fill={BRAND_HEX.mesh}
+            transform={`translate(${i * 8} 10) scale(1 0.5)`}
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
 export default function Hero() {
   const root = useRef<HTMLElement | null>(null);
   const reduced = useReducedMotion() ?? false;
@@ -70,7 +149,8 @@ export default function Hero() {
   return (
     <section
       ref={root}
-      className="relative -mt-[68px] flex h-[100dvh] w-full items-center justify-center overflow-hidden"
+      style={{ marginTop: 'calc(-1 * var(--header-h))' }}
+      className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden"
     >
       {/* Background video */}
       <video
@@ -153,6 +233,7 @@ export default function Hero() {
             aria-hidden
             className="block h-16 w-px animate-pulse bg-mesh"
           />
+          <AudioPulseBars reduced={reduced} />
         </div>
       </div>
     </section>

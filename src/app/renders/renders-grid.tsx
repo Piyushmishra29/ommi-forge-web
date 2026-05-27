@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { StlPreview } from "@/components/three/StlPreview";
+import { StlPreview } from "@/components/three/lazy";
 import type { Render } from "@/data/renders";
 
 export function RendersGrid({ renders }: { renders: Render[] }) {

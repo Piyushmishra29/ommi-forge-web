@@ -140,7 +140,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Power Hammer Bay',
     code: 'PLANT',
     blurb: 'The closed-die bay at Malur — eight hammers in parallel, fed by induction heaters.',
-    src: '/assets/images/1-power-hammer-bay-scaled.jpg',
+    src: '/assets/images/1-3-scaled.jpg',
     aspect: 'wide',
   },
   {

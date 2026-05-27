@@ -12,8 +12,7 @@ import Script from 'next/script';
  * first. A pre-hydration script gets us closest to a true HTTP
  * redirect without a server.
  *
- * Mirrors `src/data/nav.ts → LEGACY_REDIRECTS` and the
- * `public/_redirects` file. Every URL is canonicalised to trailing-
+ * Map kept in sync with `public/_redirects`. Every URL is canonicalised to trailing-
  * slash form to match `next.config.ts → trailingSlash: true`.
  */
 const REDIRECT_SCRIPT = `(function() {

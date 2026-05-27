@@ -68,7 +68,11 @@ export default function RootLayout({
           <MagneticCursor />
           <Header />
           <PageTransition>
-            <main id="main" className="min-h-dvh pt-[68px]">
+            <main
+              id="main"
+              className="min-h-dvh"
+              style={{ paddingTop: 'var(--header-h)' }}
+            >
               {children}
             </main>
           </PageTransition>

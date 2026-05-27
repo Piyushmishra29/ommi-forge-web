@@ -92,20 +92,23 @@ export const LOCATION = {
 } as const;
 
 /**
- * Image assets surfaced on the Forged Products marquee. These paths
- * are predicted (the media-downloader agent is still placing files);
- * each tile has a built-in CSS fallback for missing files.
+ * Image assets surfaced on the Forged Products marquee. Paths are all
+ * confirmed-present on disk in `public/assets/images/`; the `1-5`,
+ * `1-8`, and `1-10` legacy WordPress slugs never landed on disk, so
+ * the corresponding slots reuse the foundry-floor DSC photos copied
+ * from the wp-mirror fallback. Each tile still has a built-in CSS
+ * fallback in `ProductsMarquee` if a file goes missing later.
  */
 export const PRODUCT_IMAGES: string[] = [
   '/assets/images/1-2-scaled.jpg',
   '/assets/images/1-3-scaled.jpg',
   '/assets/images/1-4-scaled.jpg',
-  '/assets/images/1-5-scaled.jpg',
+  '/assets/images/DSC09309.jpg',
   '/assets/images/1-6-scaled.jpg',
   '/assets/images/1-7-scaled.jpg',
-  '/assets/images/1-8-scaled.jpg',
+  '/assets/images/DSC09326.jpg',
   '/assets/images/1-9-scaled.jpg',
-  '/assets/images/1-10-scaled.jpg',
+  '/assets/images/DSC09350.jpg',
   '/assets/images/1-11-scaled.jpg',
 ];
 

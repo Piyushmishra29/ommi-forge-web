@@ -20,7 +20,7 @@ export default function Sustainability() {
               className="absolute inset-0 bg-cover bg-center"
               style={{
                 backgroundImage:
-                  'url(/assets/images/1-garden-rainwater-scaled.jpg)',
+                  'url(/assets/images/1-Copy-scaled.jpg)',
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-graphite/40 to-transparent" />

@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
 import PinnedSection, { useScroll } from '@/components/motion/PinnedSection';
-import HammerStrikeHero from '@/components/three/HammerStrikeHero';
+import { HammerStrikeHero } from '@/components/three/lazy';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { HAMMER_INTRO_WORDS } from '@/data/home';
 

@@ -32,6 +32,22 @@
 }
 
 /* ------------------------------------------------------------
+ * Header height token (with iOS safe-area)
+ *   Mobile bar = py-4 (32px) + logo content (~28px) → ~60px
+ *   Desktop bar = py-5 (40px) + logo content (~36px) → ~76px
+ * Shared by <main>'s top padding, the Hero's negative offset,
+ * and the mobile menu sheet/backdrop so all three stay in sync.
+ * ------------------------------------------------------------ */
+:root {
+  --header-h: calc(60px + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 768px) {
+  :root {
+    --header-h: calc(76px + env(safe-area-inset-top, 0px));
+  }
+}
+
+/* ------------------------------------------------------------
  * Base layer
  * ------------------------------------------------------------ */
 :root {

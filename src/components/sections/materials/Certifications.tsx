@@ -1,7 +1,7 @@
 import Eyebrow from '@/components/ui/Eyebrow';
-import { CERTIFICATIONS } from '@/data/certifications';
+import { CERTIFICATIONS, type Certification } from '@/data/certifications';
 
-const DownloadIcon = () => (
+const RequestIcon = () => (
   <svg
     aria-hidden
     viewBox="0 0 24 24"
@@ -13,17 +13,30 @@ const DownloadIcon = () => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <path d="M12 4v12" />
-    <path d="m7 11 5 5 5-5" />
-    <path d="M4 20h16" />
+    <path d="M4 12h14" />
+    <path d="m13 6 6 6-6 6" />
   </svg>
 );
 
 /**
+ * Build a `mailto:` URL pre-filled with subject + body for one cert.
+ * Each character is URL-encoded so spaces, em-dashes and slashes
+ * survive intact in the visitor's mail client.
+ */
+function buildMailto({ title }: Certification): string {
+  const subject = encodeURIComponent(`Certification copy request — ${title}`);
+  const body = encodeURIComponent(
+    `Please send the latest copy of ${title}.`,
+  );
+  return `mailto:marketing@ommiforge.com?subject=${subject}&body=${body}`;
+}
+
+/**
  * Certifications — anchored at #certif so legacy `/materials/#certif`
- * inbound links keep working. Each card links to a PDF on disk; the
- * data lives in `src/data/certifications.ts` so the file list is
- * deterministic at build time even if the PDFs haven't been added yet.
+ * inbound links keep working. Certificates are kept current internally
+ * and shared on request, so each card now renders a `Request copy →`
+ * mailto action with a pre-filled subject + body instead of a download
+ * link. Data lives in `src/data/certifications.ts`.
  */
 export default function Certifications() {
   return (
@@ -36,31 +49,28 @@ export default function Certifications() {
           Audited. Accredited. On the wall.
         </h2>
         <p className="mt-6 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]">
-          Download the current certificates for the management systems and
-          product standards we hold. Customer-specific PPAP packages are
-          available on request from{' '}
+          Certifications are kept current and shared on request. Email{' '}
           <a
             href="mailto:marketing@ommiforge.com"
             data-magnetic
             className="text-mesh underline-offset-4 hover:underline"
           >
             marketing@ommiforge.com
-          </a>
-          .
+          </a>{' '}
+          and we’ll send the latest PDF within one business day.
         </p>
 
         <ul className="mt-16 grid grid-cols-1 gap-px bg-graphite/10 md:grid-cols-2 lg:grid-cols-3">
           {CERTIFICATIONS.map((c) => (
             <li key={c.title} className="bg-paper">
               <a
-                href={c.href}
-                download
+                href={buildMailto(c)}
                 data-magnetic
                 className="group relative flex h-full flex-col justify-between gap-8 bg-paper p-8 transition-colors hover:bg-graphite hover:text-paper"
               >
                 <div>
                   <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
-                    PDF · Certificate
+                    Available on request
                   </p>
                   <h3 className="mt-4 font-display text-2xl font-light leading-tight md:text-3xl">
                     {c.title}
@@ -73,7 +83,7 @@ export default function Certifications() {
                 <div className="flex items-center justify-between font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em]">
                   <span className="opacity-70">{c.validity}</span>
                   <span className="flex items-center gap-2 text-mesh transition-transform group-hover:translate-x-1">
-                    Download <DownloadIcon />
+                    Request copy <RequestIcon />
                   </span>
                 </div>
               </a>

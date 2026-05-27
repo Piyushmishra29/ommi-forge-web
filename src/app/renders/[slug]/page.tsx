@@ -5,7 +5,7 @@ import {
   generateRenderParams,
   getRenderBySlug,
 } from "@/data/renders";
-import { StlViewer } from "@/components/three/StlViewer";
+import { StlViewer } from "@/components/three/lazy";
 import Eyebrow from "@/components/ui/Eyebrow";
 
 export async function generateStaticParams() {
