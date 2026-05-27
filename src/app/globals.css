@@ -1,26 +1,156 @@
 @import "tailwindcss";
 
+/* ============================================================
+ * Ommi Forge — brand tokens (Tailwind CSS v4, CSS-first @theme)
+ * ============================================================
+ * Tailwind v4 reads design tokens from `@theme`. Every variable
+ * declared here is auto-promoted to a utility class:
+ *   --color-saffron   →  bg-saffron / text-saffron / border-saffron
+ *   --font-display    →  font-display
+ * Keep this file the single source of truth for brand styling.
+ */
+
+@theme {
+  /* ----- Colour palette (Elementor kit, final) ----- */
+  --color-saffron:    #FF9933;
+  --color-mesh:       #FF5533;
+  --color-graphite:   #1F2124;
+  --color-steel:      #54595F;
+  --color-ash:        #7A7A7A;
+  --color-peach:      #FFBC7D;
+  --color-paper:      #FAFAFA;
+  --color-snow:       #FFFFFF;
+  --color-render-bg:  #D9D9D9;
+
+  /* ----- Typography (CSS vars are injected by next/font in layout.tsx) ----- */
+  --font-display: var(--font-display);
+  --font-eyebrow: var(--font-eyebrow);
+  --font-body:    var(--font-body);
+
+  /* ----- Layout ----- */
+  --container-page: 1140px;
+}
+
+/* ------------------------------------------------------------
+ * Base layer
+ * ------------------------------------------------------------ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light only;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-paper);
+  color: var(--color-graphite);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* ------------------------------------------------------------
+ * Focus styles — saffron ring, WCAG-compliant
+ * ------------------------------------------------------------ */
+:focus-visible {
+  outline: 2px solid var(--color-saffron);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--color-saffron);
+  color: var(--color-graphite);
+}
+
+/* ------------------------------------------------------------
+ * Lenis smooth scroll (recommended boilerplate from
+ * darkroomengineering/lenis README)
+ * ------------------------------------------------------------ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+ * SplitText — animation primitives so consumers can hook into
+ * `[data-char]` with GSAP timelines.
+ * ------------------------------------------------------------ */
+[data-split-text] {
+  display: inline-block;
+}
+
+[data-split-text] [data-char] {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+[data-split-text] [data-word] {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------
+ * Magnetic cursor — only hide native cursor when our cursor is
+ * actually live (hover-capable pointer + reduced-motion off).
+ * ------------------------------------------------------------ */
+html[data-magnetic-cursor="on"],
+html[data-magnetic-cursor="on"] body,
+html[data-magnetic-cursor="on"] a,
+html[data-magnetic-cursor="on"] button,
+html[data-magnetic-cursor="on"] [data-magnetic] {
+  cursor: none;
+}
+
+/* ------------------------------------------------------------
+ * Reduced-motion — global hard overrides
+ * ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch devices never get the magnetic cursor */
+@media (hover: none) {
+  html[data-magnetic-cursor="on"],
+  html[data-magnetic-cursor="on"] body,
+  html[data-magnetic-cursor="on"] a,
+  html[data-magnetic-cursor="on"] button,
+  html[data-magnetic-cursor="on"] [data-magnetic] {
+    cursor: auto;
+  }
 }

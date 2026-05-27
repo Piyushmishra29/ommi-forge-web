@@ -1,0 +1,33 @@
+# Ommi Forge — legacy WordPress URLs → App Router paths
+# Netlify-style _redirects file. Honoured by Netlify, Cloudflare Pages,
+# and most static-host CDN rule engines. A client-side fallback in
+# src/components/providers/LegacyRedirects.tsx covers hosts that don't
+# read this file (e.g. plain Hostinger static).
+
+/home/about-ommi-forge        /about        308
+/home/about-ommi-forge/       /about/       308
+/home/solutuion               /solutions    308
+/home/solutuion/              /solutions/   308
+/home/forged-products         /products     308
+/home/forged-products/        /products/    308
+/3d-renders                   /renders      308
+/3d-renders/                  /renders/     308
+
+/render-a                     /renders/part-a    308
+/render-a/                    /renders/part-a/   308
+/render-b                     /renders/part-b    308
+/render-b/                    /renders/part-b/   308
+/render-c                     /renders/part-c    308
+/render-c/                    /renders/part-c/   308
+/render-d                     /renders/part-d    308
+/render-d/                    /renders/part-d/   308
+/render-e                     /renders/part-e    308
+/render-e/                    /renders/part-e/   308
+/render-f                     /renders/part-f    308
+/render-f/                    /renders/part-f/   308
+/render-g                     /renders/part-g    308
+/render-g/                    /renders/part-g/   308
+/render-h                     /renders/part-h    308
+/render-h/                    /renders/part-h/   308
+/render-h-2                   /renders/part-i    308
+/render-h-2/                  /renders/part-i/   308
