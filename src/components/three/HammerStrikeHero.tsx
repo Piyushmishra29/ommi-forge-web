@@ -13,16 +13,22 @@ export type HammerStrikeHeroProps = {
 };
 
 /**
- * Hammer + anvil scene driven entirely by an external `progress` prop.
- * The component does NOT subscribe to scroll — the parent owns that.
+ * Industrial drop-hammer scene driven entirely by an external `progress`
+ * prop. The component does NOT subscribe to scroll — the parent owns that.
  *
- * Composition:
- *  - Anvil: 3-box body (main + horn + step) with subtle mesh-orange edges.
- *  - Hammer: cylinder handle + box head with saffron rim edges.
- *  - Lights: ambient + key + peach rim + transient saffron flash on strike.
- *  - Sparks: <Sparkles> burst on strike, fades 0.4s in / 0.8s out.
- *  - Heat glow: mesh-orange pointLight whose intensity pulses 0→4→0.
- *  - Camera: progress-driven y tilt + 0.5s decaying shake on strike.
+ * Composition (modelled after a steam / pneumatic power hammer):
+ *  - Foundation block: wide concrete-like base under the whole rig.
+ *  - Anvil: stepped cast-iron block sitting on the foundation; flat top die.
+ *  - H-frame: two vertical posts + horizontal cross-head connecting them.
+ *  - Cylinder housing + piston rod: cylindrical steam-engine cap on top.
+ *  - Tup (ram): heavy block + bottom die, slides down the frame between
+ *    the posts on every strike. Driven by `progress` (0 = parked at top,
+ *    1 = die kissing the work-piece).
+ *  - Hot work-piece: glowing saffron billet sitting on the anvil — gets
+ *    hit when the tup reaches bottom.
+ *  - Lights: ambient + key + peach rim + saffron strike flash + heat glow.
+ *  - Sparks: <Sparkles> burst on strike.
+ *  - Camera: small progress tilt + 0.5s decaying shake on impact.
  *  - Reduced-motion: static struck pose, no sparks/glow/shake.
  */
 function Scene({
@@ -32,7 +38,8 @@ function Scene({
   progress: number;
   reduced: boolean;
 }) {
-  const hammerRef = useRef<THREE.Group>(null);
+  const tupRef = useRef<THREE.Group>(null);
+  const billetRef = useRef<THREE.Mesh>(null);
   const cameraShake = useRef(0);
   const impactPulse = useRef(0);
   const heatRef = useRef<THREE.PointLight>(null);
@@ -45,15 +52,27 @@ function Scene({
   const clamped = Math.min(1, Math.max(0, progress));
   const struck = clamped > 0.95;
 
+  // Tup parking position (top of stroke) vs strike position (just kissing
+  // the work-piece on top of the anvil).
+  const TUP_TOP = 36;
+  const TUP_HIT = 4.5;
+
   useFrame(({ camera }, rawDelta) => {
     // Cap delta so paused-tab unfreezes don't snap the scene.
     const delta = Math.min(rawDelta, 1 / 30);
 
-    if (hammerRef.current) {
-      // Hammer descends linearly from +80 → 0 over the full progress range.
-      const targetY = 80 * (1 - clamped);
-      hammerRef.current.position.y +=
-        (targetY - hammerRef.current.position.y) * Math.min(1, delta * 12);
+    if (tupRef.current) {
+      // Tup descends linearly with progress; smoothed lerp to feel weighty.
+      const targetY = TUP_TOP - (TUP_TOP - TUP_HIT) * clamped;
+      tupRef.current.position.y +=
+        (targetY - tupRef.current.position.y) * Math.min(1, delta * 14);
+    }
+
+    // Billet "squish" on strike (very subtle scale-y compression).
+    if (billetRef.current) {
+      const targetScale = struck ? 0.78 : 1;
+      billetRef.current.scale.y +=
+        (targetScale - billetRef.current.scale.y) * Math.min(1, delta * 10);
     }
 
     // Trigger impact pulse on rising edge of `struck`.
@@ -80,13 +99,12 @@ function Scene({
     // Heat glow pulse — 0 → 4 → 0 across the spark window.
     if (heatRef.current) {
       if (reduced) {
-        heatRef.current.intensity = struck ? 2 : 0;
+        heatRef.current.intensity = struck ? 2 : 0.6; // ambient billet glow
       } else {
         const t = sparkOpacity.current;
-        // t starts at 1.2 and falls to 0; map → triangle 0→4→0
         const triangle =
           t <= 0
-            ? 0
+            ? 0.6 // resting ambient glow on the billet
             : t > 0.8
               ? ((1.2 - t) / 0.4) * 4 // ramp up (0 → 4) over the first 0.4s
               : (t / 0.8) * 4; // ramp down (4 → 0) over the next 0.8s
@@ -99,7 +117,6 @@ function Scene({
       if (reduced) {
         flashRef.current.intensity = struck ? 1.8 : 0;
       } else {
-        // Only burns for the first ~250ms of the spark window.
         const t = sparkOpacity.current;
         flashRef.current.intensity = t > 0.95 ? 1.8 : 0;
       }
@@ -119,157 +136,351 @@ function Scene({
     }
   });
 
-  const anvilMaterial = useMemo(
+  // ----- materials ------------------------------------------------------
+
+  /** Cast iron — slightly more matte than the rest. */
+  const ironMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         color: BRAND_HEX.graphite,
-        metalness: 0.8,
-        roughness: 0.45,
+        metalness: 0.7,
+        roughness: 0.55,
       }),
     [],
   );
-  const hammerMaterial = useMemo(
+  /** Mid-finish steel for the frame/posts. */
+  const steelMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         color: BRAND_HEX.graphite,
-        metalness: 0.8,
-        roughness: 0.45,
+        metalness: 0.85,
+        roughness: 0.4,
+      }),
+    [],
+  );
+  /** Polished steel for the cylinder housing + dies. */
+  const polishedMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#3a3f44",
+        metalness: 0.95,
+        roughness: 0.22,
+      }),
+    [],
+  );
+  /** Foundation — slightly lighter, almost grout. */
+  const foundationMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#2a2c30",
+        metalness: 0.3,
+        roughness: 0.85,
+      }),
+    [],
+  );
+  /** Glowing hot billet — emissive saffron. */
+  const billetMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: BRAND_HEX.mesh,
+        emissive: BRAND_HEX.saffron,
+        emissiveIntensity: 1.4,
+        metalness: 0.3,
+        roughness: 0.6,
       }),
     [],
   );
 
-  // Edge-overlay geometries (mesh-orange tech-drawing accent).
-  const anvilBodyGeom = useMemo(() => new THREE.BoxGeometry(40, 14, 18), []);
-  const anvilHornGeom = useMemo(() => new THREE.BoxGeometry(14, 8, 12), []);
-  const anvilStepGeom = useMemo(() => new THREE.BoxGeometry(28, 4, 14), []);
-  const anvilBaseGeom = useMemo(() => new THREE.BoxGeometry(26, 10, 14), []);
-  const hammerHeadGeom = useMemo(() => new THREE.BoxGeometry(18, 12, 12), []);
+  // ----- geometries (reused via primitive) ------------------------------
 
-  const anvilBodyEdges = useMemo(
-    () => new THREE.EdgesGeometry(anvilBodyGeom),
-    [anvilBodyGeom],
+  // Foundation: broad low slab
+  const foundationGeom = useMemo(
+    () => new THREE.BoxGeometry(72, 6, 30),
+    [],
   );
-  const anvilStepEdges = useMemo(
-    () => new THREE.EdgesGeometry(anvilStepGeom),
-    [anvilStepGeom],
+  // Anvil: stepped cast-iron block. Three stacked pieces give it the
+  // classic narrowing silhouette.
+  const anvilBottomGeom = useMemo(() => new THREE.BoxGeometry(36, 8, 22), []);
+  const anvilMidGeom = useMemo(() => new THREE.BoxGeometry(28, 6, 18), []);
+  const anvilTopGeom = useMemo(() => new THREE.BoxGeometry(22, 4, 14), []);
+  const anvilDieGeom = useMemo(() => new THREE.BoxGeometry(18, 1.5, 12), []);
+  // H-frame: two vertical posts + cross-head
+  const postGeom = useMemo(() => new THREE.BoxGeometry(5, 70, 6), []);
+  const crossheadGeom = useMemo(() => new THREE.BoxGeometry(58, 7, 14), []);
+  // Cylinder housing — the steam/pneumatic cap on top
+  const cylinderGeom = useMemo(
+    () => new THREE.CylinderGeometry(11, 11, 18, 32),
+    [],
   );
-  const anvilHornEdges = useMemo(
-    () => new THREE.EdgesGeometry(anvilHornGeom),
-    [anvilHornGeom],
+  const cylinderCapGeom = useMemo(
+    () => new THREE.CylinderGeometry(13, 13, 3, 32),
+    [],
   );
-  const hammerHeadEdges = useMemo(
-    () => new THREE.EdgesGeometry(hammerHeadGeom),
-    [hammerHeadGeom],
+  // Tup (ram) — heavy block + bottom die
+  const tupGeom = useMemo(() => new THREE.BoxGeometry(16, 14, 12), []);
+  const tupDieGeom = useMemo(() => new THREE.BoxGeometry(16, 1.5, 12), []);
+  // Piston rod going up into the cylinder housing
+  const pistonRodGeom = useMemo(
+    () => new THREE.CylinderGeometry(2.4, 2.4, 32, 16),
+    [],
   );
+  // Tie-rods (slender vertical bolts visible on real hammers)
+  const tieRodGeom = useMemo(
+    () => new THREE.CylinderGeometry(0.7, 0.7, 64, 12),
+    [],
+  );
+  // Bolt heads — small flat cylinders
+  const boltGeom = useMemo(
+    () => new THREE.CylinderGeometry(1.3, 1.3, 1, 16),
+    [],
+  );
+  // Hot work-piece
+  const billetGeom = useMemo(() => new THREE.BoxGeometry(7, 5, 6), []);
+
+  // Edge-overlay geometries for the saffron rim accents on the moving parts
+  const tupEdges = useMemo(
+    () => new THREE.EdgesGeometry(tupGeom),
+    [tupGeom],
+  );
+  const cylinderEdges = useMemo(
+    () => new THREE.EdgesGeometry(cylinderGeom),
+    [cylinderGeom],
+  );
+
+  // Mesh-orange tech accent on the static frame
+  const crossheadEdges = useMemo(
+    () => new THREE.EdgesGeometry(crossheadGeom),
+    [crossheadGeom],
+  );
+
+  // ----- positions ------------------------------------------------------
+  // y=0 floor level
+  const FOUNDATION_Y = -32;
+  const ANVIL_BOTTOM_Y = -22;
+  const ANVIL_MID_Y = -15;
+  const ANVIL_TOP_Y = -10;
+  const ANVIL_DIE_Y = -7.25;
+  const POST_Y = 0; // posts centered around 0 (height 70 so span -35..+35)
+  const CROSSHEAD_Y = 36; // top of posts
+  const CYLINDER_Y = 49; // sits on cross-head
+  const CYLINDER_CAP_Y = 60;
+  const BILLET_Y = -5.5;
 
   return (
     <>
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.55} />
       {/* Key directional */}
       <directionalLight
-        position={[12, 22, 8]}
-        intensity={1.2}
+        position={[16, 28, 12]}
+        intensity={1.4}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
         color={BRAND_HEX.snow}
       />
+      {/* Fill from camera-right */}
+      <directionalLight
+        position={[22, 4, 18]}
+        intensity={0.5}
+        color={BRAND_HEX.snow}
+      />
       {/* Peach rim from back-left */}
       <directionalLight
-        position={[-14, 6, -10]}
-        intensity={0.4}
+        position={[-18, 10, -12]}
+        intensity={0.55}
         color={BRAND_HEX.peach}
       />
       {/* Saffron strike flash from directly above */}
       <directionalLight
         ref={flashRef}
-        position={[0, 30, 0]}
+        position={[0, 36, 0]}
         intensity={0}
         color={BRAND_HEX.saffron}
       />
-      {/* Heat glow pointLight on anvil top */}
+      {/* Heat glow pointLight on the billet */}
       <pointLight
         ref={heatRef}
-        position={[0, -2, 0]}
-        intensity={0}
+        position={[0, BILLET_Y, 0]}
+        intensity={0.6}
         color={BRAND_HEX.mesh}
-        distance={60}
+        distance={70}
         decay={2}
       />
 
-      {/* Anvil — main body */}
-      <mesh position={[0, -10, 0]} castShadow receiveShadow material={anvilMaterial}>
-        <primitive object={anvilBodyGeom} attach="geometry" />
-      </mesh>
-      <lineSegments position={[0, -10, 0]}>
-        <primitive object={anvilBodyEdges} attach="geometry" />
-        <lineBasicMaterial color={BRAND_HEX.mesh} transparent opacity={0.15} />
-      </lineSegments>
-
-      {/* Anvil — step (top plate) */}
-      <mesh position={[0, -1, 0]} castShadow receiveShadow material={anvilMaterial}>
-        <primitive object={anvilStepGeom} attach="geometry" />
-      </mesh>
-      <lineSegments position={[0, -1, 0]}>
-        <primitive object={anvilStepEdges} attach="geometry" />
-        <lineBasicMaterial color={BRAND_HEX.mesh} transparent opacity={0.15} />
-      </lineSegments>
-
-      {/* Anvil — horn (one side) */}
-      <mesh position={[24, -7, 0]} castShadow receiveShadow material={anvilMaterial}>
-        <primitive object={anvilHornGeom} attach="geometry" />
-      </mesh>
-      <lineSegments position={[24, -7, 0]}>
-        <primitive object={anvilHornEdges} attach="geometry" />
-        <lineBasicMaterial color={BRAND_HEX.mesh} transparent opacity={0.15} />
-      </lineSegments>
-
-      {/* Anvil base */}
-      <mesh position={[0, -22, 0]} receiveShadow material={anvilMaterial}>
-        <primitive object={anvilBaseGeom} attach="geometry" />
+      {/* Foundation */}
+      <mesh
+        position={[0, FOUNDATION_Y, 0]}
+        receiveShadow
+        material={foundationMat}
+      >
+        <primitive object={foundationGeom} attach="geometry" />
       </mesh>
 
-      {/* Hammer */}
-      <group ref={hammerRef} position={[0, 80, 0]}>
-        {/* Hammer head — boxy, larger */}
-        <mesh castShadow material={hammerMaterial}>
-          <primitive object={hammerHeadGeom} attach="geometry" />
+      {/* Anvil — three stacked tiers */}
+      <mesh
+        position={[0, ANVIL_BOTTOM_Y, 0]}
+        castShadow
+        receiveShadow
+        material={ironMat}
+      >
+        <primitive object={anvilBottomGeom} attach="geometry" />
+      </mesh>
+      <mesh
+        position={[0, ANVIL_MID_Y, 0]}
+        castShadow
+        receiveShadow
+        material={ironMat}
+      >
+        <primitive object={anvilMidGeom} attach="geometry" />
+      </mesh>
+      <mesh
+        position={[0, ANVIL_TOP_Y, 0]}
+        castShadow
+        receiveShadow
+        material={ironMat}
+      >
+        <primitive object={anvilTopGeom} attach="geometry" />
+      </mesh>
+      {/* Anvil bottom die (polished plate) */}
+      <mesh
+        position={[0, ANVIL_DIE_Y, 0]}
+        castShadow
+        receiveShadow
+        material={polishedMat}
+      >
+        <primitive object={anvilDieGeom} attach="geometry" />
+      </mesh>
+
+      {/* Hot billet sitting on the bottom die */}
+      <mesh
+        ref={billetRef}
+        position={[0, BILLET_Y, 0]}
+        castShadow
+        material={billetMat}
+      >
+        <primitive object={billetGeom} attach="geometry" />
+      </mesh>
+
+      {/* H-frame posts — left & right */}
+      {[-26, 26].map((x) => (
+        <mesh
+          key={`post-${x}`}
+          position={[x, POST_Y, 0]}
+          castShadow
+          receiveShadow
+          material={steelMat}
+        >
+          <primitive object={postGeom} attach="geometry" />
         </mesh>
-        {/* Saffron outline edge on head only */}
+      ))}
+
+      {/* Tie rods (slender bolts) in front of each post */}
+      {[-26, 26].map((x) => (
+        <mesh
+          key={`tie-${x}`}
+          position={[x, POST_Y, 7.2]}
+          material={steelMat}
+        >
+          <primitive object={tieRodGeom} attach="geometry" />
+        </mesh>
+      ))}
+
+      {/* Cross-head connecting the post tops */}
+      <mesh
+        position={[0, CROSSHEAD_Y, 0]}
+        castShadow
+        receiveShadow
+        material={steelMat}
+      >
+        <primitive object={crossheadGeom} attach="geometry" />
+      </mesh>
+      <lineSegments position={[0, CROSSHEAD_Y, 0]}>
+        <primitive object={crossheadEdges} attach="geometry" />
+        <lineBasicMaterial color={BRAND_HEX.mesh} transparent opacity={0.18} />
+      </lineSegments>
+
+      {/* Bolt heads on the cross-head corners */}
+      {[
+        [-24, CROSSHEAD_Y, 7.5],
+        [24, CROSSHEAD_Y, 7.5],
+        [-24, CROSSHEAD_Y, -7.5],
+        [24, CROSSHEAD_Y, -7.5],
+      ].map(([x, y, z], i) => (
+        <mesh
+          key={`bolt-${i}`}
+          position={[x, y + 4, z]}
+          rotation={[0, 0, 0]}
+          material={polishedMat}
+        >
+          <primitive object={boltGeom} attach="geometry" />
+        </mesh>
+      ))}
+
+      {/* Cylinder housing on top of the cross-head */}
+      <mesh
+        position={[0, CYLINDER_Y, 0]}
+        castShadow
+        receiveShadow
+        material={polishedMat}
+      >
+        <primitive object={cylinderGeom} attach="geometry" />
+      </mesh>
+      <lineSegments position={[0, CYLINDER_Y, 0]}>
+        <primitive object={cylinderEdges} attach="geometry" />
+        <lineBasicMaterial color={BRAND_HEX.saffron} transparent opacity={0.4} />
+      </lineSegments>
+      <mesh position={[0, CYLINDER_CAP_Y, 0]} castShadow material={steelMat}>
+        <primitive object={cylinderCapGeom} attach="geometry" />
+      </mesh>
+
+      {/* Tup (ram) — moves vertically. Wrap the head + die + piston rod
+          in one group so they slide together. */}
+      <group ref={tupRef} position={[0, TUP_TOP, 0]}>
+        {/* Tup body */}
+        <mesh castShadow material={steelMat}>
+          <primitive object={tupGeom} attach="geometry" />
+        </mesh>
+        {/* Saffron rim on the tup so the moving part reads against the frame */}
         <lineSegments>
-          <primitive object={hammerHeadEdges} attach="geometry" />
-          <lineBasicMaterial color={BRAND_HEX.saffron} transparent opacity={0.55} />
+          <primitive object={tupEdges} attach="geometry" />
+          <lineBasicMaterial color={BRAND_HEX.saffron} transparent opacity={0.6} />
         </lineSegments>
-        {/* Hammer handle — longer cylinder */}
-        <mesh position={[0, 30, 0]} castShadow material={hammerMaterial}>
-          <cylinderGeometry args={[1.8, 1.8, 48, 16]} />
+        {/* Top die (the polished face that hits the work-piece) */}
+        <mesh position={[0, -7.75, 0]} castShadow material={polishedMat}>
+          <primitive object={tupDieGeom} attach="geometry" />
+        </mesh>
+        {/* Piston rod going up into the cylinder housing */}
+        <mesh position={[0, 23, 0]} castShadow material={polishedMat}>
+          <primitive object={pistonRodGeom} attach="geometry" />
         </mesh>
       </group>
 
-      {/* Sparks on strike */}
-      <group ref={sparkleGroupRef} position={[0, -1, 0]} visible={false}>
+      {/* Sparks on strike — emit at billet level */}
+      <group ref={sparkleGroupRef} position={[0, BILLET_Y + 1, 0]} visible={false}>
         <Sparkles
-          count={60}
+          count={80}
           size={6}
-          speed={0.6}
-          scale={[40, 14, 18]}
+          speed={0.8}
+          scale={[18, 8, 12]}
           color={BRAND_HEX.saffron}
         />
       </group>
 
       <ContactShadows
-        position={[0, -28, 0]}
-        opacity={0.5}
-        scale={120}
-        blur={2.5}
-        far={40}
+        position={[0, FOUNDATION_Y - 0.1, 0]}
+        opacity={0.55}
+        scale={140}
+        blur={2.4}
+        far={50}
       />
     </>
   );
 }
 
 export function HammerStrikeHero({ progress, className }: HammerStrikeHeroProps) {
-  const stageBackground = `radial-gradient(circle at center, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 70%)`;
+  // Slight floor-ward gradient so the foundation has a place to sit; warm
+  // saffron whisper near the bottom mirrors the heat coming off the billet.
+  const stageBackground = `radial-gradient(120% 80% at 50% 35%, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 55%, #c8c4c1 100%)`;
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -286,7 +497,7 @@ export function HammerStrikeHero({ progress, className }: HammerStrikeHeroProps)
       className={["relative h-full w-full", className ?? ""].join(" ")}
       style={{ background: stageBackground }}
     >
-      <Canvas dpr={[1, 2]} camera={{ position: [0, 10, 90], fov: 38 }} shadows>
+      <Canvas dpr={[1, 2]} camera={{ position: [0, 14, 110], fov: 35 }} shadows>
         <Scene progress={progress} reduced={reduced} />
       </Canvas>
     </div>
