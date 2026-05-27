@@ -1,7 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useInView } from 'framer-motion';
+import { useEffect, useMemo, useRef } from 'react';
+import {
+  animate,
+  motion,
+  useInView,
+  useMotionValue,
+  useTransform,
+} from 'framer-motion';
 import { cn } from '@/lib/cn';
 
 interface NumberCounterProps {
@@ -23,8 +29,8 @@ interface NumberCounterProps {
  * NumberCounter
  *
  * Counts from 0 → `to` once the element enters the viewport. Uses
- * Framer Motion's `useInView` for the trigger and a manual rAF tween
- * so we don't pull GSAP in for trivial number animation.
+ * Framer Motion's `useInView` for the trigger plus a `useMotionValue`
+ * tween so the number animates without forcing React re-renders.
  *
  * Honours reduced-motion: jumps straight to the final value.
  */
@@ -39,13 +45,27 @@ export default function NumberCounter({
 }: NumberCounterProps) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const inView = useInView(ref, { once: true, margin: '0px 0px -10% 0px' });
-  const [value, setValue] = useState(0);
+
+  // Stable formatter — only re-creates when decimals changes.
+  const formatter = useMemo(
+    () =>
+      new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      }),
+    [decimals],
+  );
+
+  // Animate the raw number via a motion value; pipe to a string via
+  // useTransform so the rendered text updates outside React state.
+  const count = useMotionValue(0);
+  const text = useTransform(count, (v) => `${prefix}${formatter.format(v)}${suffix}`);
 
   useEffect(() => {
     if (!inView) return;
 
     if (typeof window === 'undefined') {
-      setValue(to);
+      count.set(to);
       return;
     }
 
@@ -53,27 +73,16 @@ export default function NumberCounter({
       '(prefers-reduced-motion: reduce)',
     ).matches;
     if (reduce) {
-      setValue(to);
+      count.set(to);
       return;
     }
 
-    let rafId = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / (duration * 1000));
-      // easeOutCubic — gentle settle
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValue(to * eased);
-      if (t < 1) rafId = window.requestAnimationFrame(tick);
-    };
-    rafId = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(rafId);
-  }, [inView, to, duration]);
-
-  const formatted = value.toLocaleString('en-IN', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
+    const controls = animate(count, to, {
+      duration,
+      ease: [0, 0, 0.2, 1], // easeOutCubic-ish — gentle settle
+    });
+    return () => controls.stop();
+  }, [inView, to, duration, count]);
 
   return (
     <span
@@ -81,11 +90,7 @@ export default function NumberCounter({
       className={cn('tabular-nums', className)}
       aria-label={ariaLabel ?? `${prefix}${to}${suffix}`}
     >
-      <span aria-hidden>
-        {prefix}
-        {formatted}
-        {suffix}
-      </span>
+      <motion.span aria-hidden>{text}</motion.span>
     </span>
   );
 }

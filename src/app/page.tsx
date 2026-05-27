@@ -1,29 +1,39 @@
-import Eyebrow from '@/components/ui/Eyebrow';
+import Hero from '@/components/sections/home/Hero';
+import HammerStrikeIntro from '@/components/sections/home/HammerStrikeIntro';
+import MaterialsGrid from '@/components/sections/home/MaterialsGrid';
+import ProductsMarquee from '@/components/sections/home/ProductsMarquee';
+import StatsCounter from '@/components/sections/home/StatsCounter';
+import PlantWalkthrough from '@/components/sections/home/PlantWalkthrough';
+import HeritageTimeline from '@/components/sections/home/HeritageTimeline';
+import Location from '@/components/sections/home/Location';
+import ClosingCta from '@/components/sections/home/ClosingCta';
 
 /**
- * Temporary home page.
+ * Ommi Forge — home page.
  *
- * Holds the scaffold together so the dev server boots cleanly while
- * another agent assembles the cinematic home (hero video, hammer
- * strike, materials grid, stats, plant walkthrough, heritage, etc.).
- * Replace this file when that work lands.
+ * Scroll order (each section is its own client/server component):
+ *  1. Hero                — full-bleed muted hero video + headline
+ *  2. HammerStrikeIntro   — pinned R3F hammer + Heat/Strike/Forge
+ *  3. MaterialsGrid       — Carbon / Alloy / Stainless / Custom
+ *  4. ProductsMarquee     — double-row infinite catalogue marquee
+ *  5. StatsCounter        — 8 / 1000+ / 100+ / 1 day
+ *  6. PlantWalkthrough    — scroll-scrubbed plant video
+ *  7. HeritageTimeline    — 1975 → 2026 horizontal timeline
+ *  8. Location            — Malur address + Maps iframe
+ *  9. ClosingCta          — saffron slab, quote CTA
  */
-export default function HomePlaceholder() {
+export default function HomePage() {
   return (
-    <section className="flex min-h-[calc(100dvh-68px)] items-center justify-center px-6">
-      <div className="mx-auto max-w-2xl text-center">
-        <Eyebrow className="justify-center">Coming soon</Eyebrow>
-        <h1 className="mt-6 font-display text-5xl font-light leading-[1.1] text-graphite md:text-7xl">
-          Ommi Forge
-        </h1>
-        <p className="mt-6 font-body text-base text-steel md:text-lg">
-          Forged in India since 1975. A cinematic rebuild of
-          ommiforge.com is in the press.
-        </p>
-        <p className="mt-10 font-eyebrow text-xs font-semibold uppercase tracking-[0.32em] text-mesh">
-          Design system online · Pages assembling
-        </p>
-      </div>
-    </section>
+    <>
+      <Hero />
+      <HammerStrikeIntro />
+      <MaterialsGrid />
+      <ProductsMarquee />
+      <StatsCounter />
+      <PlantWalkthrough />
+      <HeritageTimeline />
+      <Location />
+      <ClosingCta />
+    </>
   );
 }

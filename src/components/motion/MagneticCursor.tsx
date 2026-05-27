@@ -1,7 +1,39 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
+
+// Subscribe to (hover: hover) + (prefers-reduced-motion) media queries
+// via useSyncExternalStore — keeps support detection out of effect body
+// state, so we never call setState during an effect.
+function subscribeMQ(callback: () => void) {
+  if (typeof window === 'undefined') return () => {};
+  const hoverMQ = window.matchMedia('(hover: hover)');
+  const reduceMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+  hoverMQ.addEventListener('change', callback);
+  reduceMQ.addEventListener('change', callback);
+  return () => {
+    hoverMQ.removeEventListener('change', callback);
+    reduceMQ.removeEventListener('change', callback);
+  };
+}
+
+function getSnapshot() {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(hover: hover)').matches &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function getServerSnapshot() {
+  return false;
+}
 
 /**
  * MagneticCursor
@@ -18,30 +50,36 @@ import { motion, useMotionValue, useSpring } from 'framer-motion';
  * `globals.css` can hide the native cursor.
  */
 export default function MagneticCursor() {
-  const [enabled, setEnabled] = useState(false);
-  const [hover, setHover] = useState(false);
+  // Enablement comes from a media-query subscription, NOT from a
+  // setState-in-effect dance. This sidesteps the React 19 cascading-
+  // render lint rule entirely.
+  const enabled = useSyncExternalStore(
+    subscribeMQ,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
+  // Pointer position + hover state ride on motion values so updates
+  // don't trigger React re-renders.
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
+  const hover = useMotionValue(0); // 0 = idle, 1 = hovering magnetic target
   const springX = useSpring(x, { stiffness: 350, damping: 28, mass: 0.4 });
   const springY = useSpring(y, { stiffness: 350, damping: 28, mass: 0.4 });
+
+  // Derive animated style props off the hover motion value.
+  const size = useTransform(hover, [0, 1], [16, 48]);
+  const offset = useTransform(hover, [0, 1], [-8, -24]);
+  const bg = useTransform(
+    hover,
+    [0, 1],
+    ['rgba(0,0,0,0)', 'var(--color-saffron)'],
+  );
 
   const targetRef = useRef<Element | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const hoverCapable = window.matchMedia('(hover: hover)').matches;
-    const reduceMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-
-    if (!hoverCapable || reduceMotion) {
-      setEnabled(false);
-      return;
-    }
-
-    setEnabled(true);
+    if (!enabled) return;
     document.documentElement.dataset.magneticCursor = 'on';
 
     const onMove = (e: MouseEvent) => {
@@ -63,7 +101,7 @@ export default function MagneticCursor() {
       const el = (e.target as Element | null)?.closest('[data-magnetic]');
       if (el) {
         targetRef.current = el;
-        setHover(true);
+        hover.set(1);
       }
     };
 
@@ -71,7 +109,7 @@ export default function MagneticCursor() {
       const el = (e.target as Element | null)?.closest('[data-magnetic]');
       if (el && !el.contains(e.relatedTarget as Node | null)) {
         targetRef.current = null;
-        setHover(false);
+        hover.set(0);
       }
     };
 
@@ -85,7 +123,7 @@ export default function MagneticCursor() {
       document.removeEventListener('mouseout', onOut, true);
       delete document.documentElement.dataset.magneticCursor;
     };
-  }, [x, y]);
+  }, [enabled, x, y, hover]);
 
   if (!enabled) return null;
 
@@ -96,15 +134,14 @@ export default function MagneticCursor() {
       style={{ x: springX, y: springY }}
     >
       <motion.div
-        animate={{
-          width: hover ? 48 : 16,
-          height: hover ? 48 : 16,
-          marginLeft: hover ? -24 : -8,
-          marginTop: hover ? -24 : -8,
-          backgroundColor: hover ? 'var(--color-saffron)' : 'rgba(0,0,0,0)',
+        style={{
+          width: size,
+          height: size,
+          marginLeft: offset,
+          marginTop: offset,
+          backgroundColor: bg,
           borderColor: 'var(--color-mesh)',
         }}
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         className="rounded-full border-2 mix-blend-difference"
       />
     </motion.div>

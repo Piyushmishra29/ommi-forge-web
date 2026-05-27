@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Lenis from 'lenis';
-import { ScrollTrigger } from '@/lib/gsap';
+import { gsap, ScrollTrigger } from '@/lib/gsap';
 
 interface LenisProviderProps {
   children: React.ReactNode;
@@ -11,14 +11,22 @@ interface LenisProviderProps {
 /**
  * LenisProvider
  *
- * Instantiates a single Lenis instance on mount, drives its RAF loop, and
- * pipes Lenis scroll events into GSAP ScrollTrigger so scroll-driven
- * animations stay perfectly in sync with the smoothed scroll position.
+ * Instantiates a single Lenis instance on mount, drives its RAF loop
+ * through GSAP's ticker (so animations + smooth scroll share one
+ * frame budget), and pipes Lenis scroll events into ScrollTrigger so
+ * scroll-driven animations sync with the smoothed scroll position
+ * instead of `window.scrollY`.
+ *
+ * Lenis 1.3+ no longer adds default classes — we add `lenis` and
+ * `lenis-smooth` to <html> manually so the CSS contract in
+ * globals.css applies.
  *
  * Disabled entirely when `prefers-reduced-motion: reduce` is set —
  * the browser handles native scroll in that case.
  */
 export default function LenisProvider({ children }: LenisProviderProps) {
+  const lenisRef = useRef<Lenis | null>(null);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -33,25 +41,28 @@ export default function LenisProvider({ children }: LenisProviderProps) {
       wheelMultiplier: 1,
       touchMultiplier: 1.2,
     });
+    lenisRef.current = lenis;
 
-    const onScroll = () => ScrollTrigger.update();
-    lenis.on('scroll', onScroll);
+    document.documentElement.classList.add('lenis', 'lenis-smooth');
 
-    let rafId = 0;
-    const raf = (time: number) => {
-      lenis.raf(time);
-      rafId = window.requestAnimationFrame(raf);
-    };
-    rafId = window.requestAnimationFrame(raf);
+    lenis.on('scroll', ScrollTrigger.update);
 
-    // Bridge ScrollTrigger's ticker to RAF — keeps animations in lockstep
-    // even when Lenis is in a paused state (e.g. modal open).
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+
     ScrollTrigger.refresh();
 
     return () => {
-      lenis.off('scroll', onScroll);
-      window.cancelAnimationFrame(rafId);
+      gsap.ticker.remove(tick);
       lenis.destroy();
+      lenisRef.current = null;
+      document.documentElement.classList.remove(
+        'lenis',
+        'lenis-smooth',
+        'lenis-scrolling',
+        'lenis-smooth-scrolling',
+      );
     };
   }, []);
 

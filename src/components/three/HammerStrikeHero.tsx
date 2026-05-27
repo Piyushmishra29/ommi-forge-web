@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
+import { BRAND_HEX } from "@/lib/brand";
 
 export type HammerStrikeHeroProps = {
   /** 0..1 scrubbed by the parent (e.g. GSAP ScrollTrigger). */
@@ -48,7 +49,7 @@ function Scene({ progress }: { progress: number }) {
   const anvilMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: "#1F2124",
+        color: BRAND_HEX.graphite,
         metalness: 0.5,
         roughness: 0.6,
       }),
@@ -57,7 +58,7 @@ function Scene({ progress }: { progress: number }) {
   const hammerMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: "#2A2C30",
+        color: BRAND_HEX.graphite,
         metalness: 0.65,
         roughness: 0.5,
       }),
@@ -73,11 +74,12 @@ function Scene({ progress }: { progress: number }) {
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
+        color={struck ? BRAND_HEX.saffron : BRAND_HEX.snow}
       />
       <directionalLight
         position={[-14, 6, -10]}
         intensity={0.45}
-        color="#FFBC7D"
+        color={BRAND_HEX.peach}
       />
 
       {/* Anvil — stretched box */}
@@ -129,13 +131,12 @@ export function HammerStrikeHero({
   progress,
   className,
 }: HammerStrikeHeroProps) {
+  const stageBackground = `radial-gradient(circle at center, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 70%)`;
+
   return (
     <div
-      className={[
-        "relative h-full w-full",
-        "bg-[radial-gradient(circle_at_center,#FFFFFF_0%,#D9D9D9_70%)]",
-        className ?? "",
-      ].join(" ")}
+      className={["relative h-full w-full", className ?? ""].join(" ")}
+      style={{ background: stageBackground }}
     >
       <Canvas
         dpr={[1, 2]}

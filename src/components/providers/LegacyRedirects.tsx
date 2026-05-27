@@ -1,29 +1,53 @@
-'use client';
-
-import { useEffect } from 'react';
-import { LEGACY_REDIRECTS } from '@/data/nav';
+import Script from 'next/script';
 
 /**
- * LegacyRedirects
+ * Inline pre-hydration script that maps legacy WordPress slugs to
+ * their App Router successors. Runs with `strategy="beforeInteractive"`
+ * so the redirect fires BEFORE React hydrates — no visible flash of
+ * the wrong page while we wait for `useEffect` to run.
  *
- * Client-side fallback for the WordPress → App Router URL migration.
- * Next.js' `redirects()` config is silently dropped when
- * `output: 'export'` is on, and not every static host honours
- * `public/_redirects`. This component runs on mount, checks the
- * current pathname against the LEGACY_REDIRECTS map, and rewrites the
- * URL in-place with `location.replace` so old links keep working.
+ * Why inline (not a useEffect)?
+ * Next.js' `redirects()` config is a no-op under `output: 'export'`,
+ * and `useEffect`-based redirects ship a render of the wrong page
+ * first. A pre-hydration script gets us closest to a true HTTP
+ * redirect without a server.
  *
- * No UI; returns null.
+ * Mirrors `src/data/nav.ts → LEGACY_REDIRECTS` and the
+ * `public/_redirects` file. Every URL is canonicalised to trailing-
+ * slash form to match `next.config.ts → trailingSlash: true`.
  */
-export default function LegacyRedirects() {
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const path = window.location.pathname;
-    const target = LEGACY_REDIRECTS[path] ?? LEGACY_REDIRECTS[path.replace(/\/$/, '')];
-    if (target && target !== path) {
-      window.location.replace(target);
-    }
-  }, []);
+const REDIRECT_SCRIPT = `(function() {
+  var p = location.pathname;
+  var map = {
+    '/home/about-ommi-forge/': '/about/',
+    '/home/solutuion/': '/solutions/',
+    '/home/forged-products/': '/products/',
+    '/3d-renders/': '/renders/',
+    '/render-a/': '/renders/a/',
+    '/render-b/': '/renders/b/',
+    '/render-c/': '/renders/c/',
+    '/render-d/': '/renders/d/',
+    '/render-e/': '/renders/e/',
+    '/render-f/': '/renders/f/',
+    '/render-g/': '/renders/g/',
+    '/render-h-2/': '/renders/h/',
+    '/render-h/': '/renders/i/'
+  };
+  if (map[p]) location.replace(map[p]);
+})();`;
 
-  return null;
+export default function LegacyRedirects() {
+  return (
+    // The Next.js `no-before-interactive-script-outside-document`
+    // rule is a holdover from the Pages Router. Per the App Router
+    // docs, `beforeInteractive` scripts MUST live in the root layout
+    // (which is exactly where this component is mounted), so the
+    // warning is a false positive here.
+    // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
+    <Script
+      id="legacy-redirects"
+      strategy="beforeInteractive"
+      dangerouslySetInnerHTML={{ __html: REDIRECT_SCRIPT }}
+    />
+  );
 }

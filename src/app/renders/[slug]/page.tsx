@@ -6,6 +6,7 @@ import {
   getRenderBySlug,
 } from "@/data/renders";
 import { StlViewer } from "@/components/three/StlViewer";
+import Eyebrow from "@/components/ui/Eyebrow";
 
 export async function generateStaticParams() {
   return generateRenderParams();
@@ -41,23 +42,23 @@ export default async function RenderDetailPage({
     index < RENDERS.length - 1 ? RENDERS[index + 1] : RENDERS[0];
 
   return (
-    <main className="min-h-screen bg-[var(--render-bg,#FAFAFA)] text-[#1F2124]">
+    <div className="min-h-screen bg-render-bg text-graphite">
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
         className="mx-auto max-w-[1140px] px-6 pt-12"
       >
-        <ol className="flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-[#54595F]">
+        <ol className="flex items-center gap-2 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-steel">
           <li>
             <Link
               href="/renders"
-              className="underline-offset-4 hover:text-[#1F2124] hover:underline"
+              className="underline-offset-4 hover:text-graphite hover:underline"
             >
               Renders
             </Link>
           </li>
           <li aria-hidden="true">/</li>
-          <li className="text-[#1F2124]">{render.title}</li>
+          <li className="text-graphite">{render.title}</li>
         </ol>
       </nav>
 
@@ -76,22 +77,20 @@ export default async function RenderDetailPage({
       <section className="mx-auto max-w-[1140px] px-6 py-16">
         <div className="grid gap-10 md:grid-cols-[1fr_2fr]">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#54595F]">
-              {render.title}
-            </p>
-            <h1 className="mt-3 font-[Manrope,sans-serif] text-3xl font-light leading-[1.15] capitalize md:text-4xl">
+            <Eyebrow>{`RENDER ${slug.toUpperCase()}`}</Eyebrow>
+            <h1 className="mt-3 font-display text-graphite text-fluid-display text-3xl font-light leading-[1.15] capitalize md:text-4xl">
               {render.productName}
             </h1>
           </div>
           <div>
-            <p className="font-[Roboto_Slab,serif] text-lg leading-relaxed text-[#1F2124]">
+            <p className="font-body text-lg leading-relaxed text-graphite">
               {render.blurb}
             </p>
             <ul className="mt-6 flex flex-wrap gap-2">
               {render.tags.map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-full bg-white px-3 py-1 text-[11px] uppercase tracking-wider text-[#54595F] ring-1 ring-black/5"
+                  className="rounded-full bg-snow px-3 py-1 font-eyebrow text-[11px] uppercase tracking-wider text-steel ring-1 ring-black/5"
                 >
                   {tag}
                 </li>
@@ -101,7 +100,7 @@ export default async function RenderDetailPage({
               <a
                 href={render.stl}
                 download
-                className="inline-flex items-center gap-2 rounded-full bg-[#1F2124] px-5 py-2 text-[11px] uppercase tracking-[0.25em] text-white transition hover:bg-[#FF5533]"
+                className="inline-flex items-center gap-2 rounded-full bg-graphite px-5 py-2 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-snow transition hover:bg-mesh"
               >
                 Download STL
                 <span aria-hidden="true">↓</span>
@@ -116,32 +115,32 @@ export default async function RenderDetailPage({
         <div className="grid grid-cols-1 gap-4 border-t border-black/10 pt-8 sm:grid-cols-2">
           <Link
             href={`/renders/${prev.slug}`}
-            className="group flex items-center justify-between rounded-md bg-white px-6 py-5 ring-1 ring-black/5 transition hover:ring-[#FF5533]/40"
+            className="group flex items-center justify-between rounded-md bg-snow px-6 py-5 ring-1 ring-black/5 transition hover:ring-mesh/40"
           >
             <span className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-[0.3em] text-[#54595F]">
+              <span className="font-eyebrow text-[10px] uppercase tracking-[0.3em] text-steel">
                 ← Previous
               </span>
-              <span className="mt-1 font-[Manrope,sans-serif] text-base text-[#1F2124]">
+              <span className="mt-1 font-display text-base text-graphite">
                 {prev.title} · {prev.productName}
               </span>
             </span>
           </Link>
           <Link
             href={`/renders/${next.slug}`}
-            className="group flex items-center justify-between rounded-md bg-white px-6 py-5 ring-1 ring-black/5 transition hover:ring-[#FF5533]/40"
+            className="group flex items-center justify-between rounded-md bg-snow px-6 py-5 ring-1 ring-black/5 transition hover:ring-mesh/40"
           >
             <span className="flex flex-col items-end text-right">
-              <span className="text-[10px] uppercase tracking-[0.3em] text-[#54595F]">
+              <span className="font-eyebrow text-[10px] uppercase tracking-[0.3em] text-steel">
                 Next →
               </span>
-              <span className="mt-1 font-[Manrope,sans-serif] text-base text-[#1F2124]">
+              <span className="mt-1 font-display text-base text-graphite">
                 {next.title} · {next.productName}
               </span>
             </span>
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

@@ -16,6 +16,7 @@ import {
 import { useReducedMotion } from "framer-motion";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { BRAND_HEX } from "@/lib/brand";
 
 type OrbitControlsHandle = React.ComponentRef<typeof OrbitControls>;
 
@@ -59,10 +60,14 @@ function StlModel({ src }: { src: string }) {
     return geom;
   }, [rawGeometry]);
 
+  // Dispose the cloned geometry on unmount / src change so we don't
+  // leak GPU buffers across navigations.
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
   return (
     <mesh geometry={geometry} castShadow receiveShadow>
       <meshStandardMaterial
-        color="#FF5533"
+        color={BRAND_HEX.mesh}
         metalness={0.7}
         roughness={0.35}
         envMapIntensity={1}
@@ -80,11 +85,11 @@ function AnvilWireframe() {
     <group>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[40, 1.2, 16, 80]} />
-        <meshBasicMaterial color="#FF5533" wireframe />
+        <meshBasicMaterial color={BRAND_HEX.mesh} wireframe />
       </mesh>
       <mesh rotation={[0, Math.PI / 2, 0]}>
         <torusGeometry args={[40, 1.2, 16, 80]} />
-        <meshBasicMaterial color="#FF5533" wireframe />
+        <meshBasicMaterial color={BRAND_HEX.mesh} wireframe />
       </mesh>
     </group>
   );
@@ -173,20 +178,24 @@ export function StlViewer({
   className,
 }: StlViewerProps) {
   const prefersReducedMotion = useReducedMotion();
-  const effectiveAutoRotate = autoRotate && !prefersReducedMotion;
-
-  const [rotating, setRotating] = useState(effectiveAutoRotate);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControlsHandle | null>(null);
 
-  // Sync rotation prop when reduced-motion preference flips.
-  useEffect(() => {
-    setRotating(effectiveAutoRotate);
-  }, [effectiveAutoRotate]);
+  // The effective auto-rotate value is derived from the prop + the user's
+  // reduced-motion preference; we never mirror this into state, which keeps
+  // us free of the `react-hooks/set-state-in-effect` rule.
+  const effectiveAutoRotate = autoRotate && !prefersReducedMotion;
+
+  // The toolbar toggle stores a manual override (`true`/`false`) that wins
+  // over the derived value. `null` means "follow the derived value", so
+  // changes to the OS reduced-motion preference flow through naturally
+  // until the user clicks the toggle for the first time.
+  const [manualRotate, setManualRotate] = useState<boolean | null>(null);
+  const rotating = manualRotate ?? effectiveAutoRotate;
 
   const downloadName = src.split("/").pop() ?? "render.stl";
 
-  const handleToggleRotate = () => setRotating((r) => !r);
+  const handleToggleRotate = () => setManualRotate(!rotating);
 
   const handleReset = () => {
     if (controlsRef.current) {
@@ -204,21 +213,23 @@ export function StlViewer({
     }
   };
 
+  const stageBackground = `radial-gradient(circle at center, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 70%)`;
+
   return (
     <div
       ref={wrapperRef}
       className={[
         "relative isolate h-full w-full overflow-hidden",
-        "bg-[radial-gradient(circle_at_center,#FFFFFF_0%,#D9D9D9_70%)]",
         className ?? "",
       ].join(" ")}
+      style={{ background: stageBackground }}
     >
       <Canvas
         dpr={[1, 2]}
         camera={{ position: [0, 0, 200], fov: 35 }}
         shadows
       >
-        <color attach="background" args={["#D9D9D9"]} />
+        <color attach="background" args={[BRAND_HEX.renderBg]} />
         <ambientLight intensity={0.7} />
         <directionalLight
           position={[10, 20, 10]}
@@ -230,7 +241,7 @@ export function StlViewer({
         <directionalLight
           position={[-15, 8, -10]}
           intensity={0.4}
-          color="#FFBC7D"
+          color={BRAND_HEX.peach}
         />
         <Suspense fallback={<AnvilWireframe />}>
           <StlModel src={src} />
@@ -271,11 +282,11 @@ export function StlViewer({
         <a
           href={src}
           download={downloadName}
-          className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/70 text-[#1F2124] shadow-sm backdrop-blur transition hover:bg-white"
+          className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-snow/70 text-graphite shadow-sm backdrop-blur transition hover:bg-snow"
           aria-label="Download STL"
         >
           <DownloadIcon />
-          <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded bg-[#1F2124] px-2 py-1 text-[10px] uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100">
+          <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded bg-graphite px-2 py-1 font-eyebrow text-[10px] uppercase tracking-wider text-snow opacity-0 transition group-hover:opacity-100">
             Download STL
           </span>
         </a>
@@ -283,17 +294,17 @@ export function StlViewer({
 
       {/* Text overlay */}
       {(title || productName) && (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-xs rounded-md bg-white/55 px-4 py-3 backdrop-blur-md">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#54595F]">
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-xs rounded-md bg-snow/55 px-4 py-3 backdrop-blur-md">
+          <div className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.2em] text-steel">
             Render
           </div>
           {title && (
-            <div className="mt-1 font-[Manrope,sans-serif] text-lg uppercase tracking-wide text-[#1F2124]">
+            <div className="mt-1 font-display text-lg uppercase tracking-wide text-graphite">
               {title}
             </div>
           )}
           {productName && (
-            <div className="font-[Manrope,sans-serif] text-sm text-[#54595F]">
+            <div className="font-display text-sm text-steel">
               {productName}
             </div>
           )}
@@ -317,10 +328,10 @@ function ToolbarButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/70 text-[#1F2124] shadow-sm backdrop-blur transition hover:bg-white"
+      className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-snow/70 text-graphite shadow-sm backdrop-blur transition hover:bg-snow"
     >
       {children}
-      <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded bg-[#1F2124] px-2 py-1 text-[10px] uppercase tracking-wider text-white opacity-0 transition group-hover:opacity-100">
+      <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded bg-graphite px-2 py-1 font-eyebrow text-[10px] uppercase tracking-wider text-snow opacity-0 transition group-hover:opacity-100">
         {label}
       </span>
     </button>

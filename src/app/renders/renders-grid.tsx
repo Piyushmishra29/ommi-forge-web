@@ -31,7 +31,7 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
         >
           <Link
             href={`/renders/${render.slug}`}
-            className="group block overflow-hidden rounded-md bg-[var(--render-bg,#D9D9D9)] ring-1 ring-black/5 transition hover:ring-[#FF5533]/40"
+            className="group block overflow-hidden rounded-md bg-render-bg ring-1 ring-black/5 transition hover:ring-mesh/40"
             data-magnetic
           >
             <StlPreview
@@ -41,10 +41,10 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
             />
             <div className="flex items-start justify-between gap-4 px-5 py-4">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#54595F]">
+                <div className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.25em] text-steel">
                   {render.title}
                 </div>
-                <div className="mt-1 font-[Manrope,sans-serif] text-lg text-[#1F2124]">
+                <div className="mt-1 font-display text-lg text-graphite">
                   {render.productName}
                 </div>
               </div>
@@ -52,7 +52,7 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
                 {render.tags.map((tag) => (
                   <li
                     key={tag}
-                    className="rounded-full bg-white px-2 py-0.5 text-[10px] uppercase tracking-wider text-[#54595F] ring-1 ring-black/5"
+                    className="rounded-full bg-snow px-2 py-0.5 font-eyebrow text-[10px] uppercase tracking-wider text-steel ring-1 ring-black/5"
                   >
                     {tag}
                   </li>

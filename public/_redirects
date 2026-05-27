@@ -3,31 +3,38 @@
 # and most static-host CDN rule engines. A client-side fallback in
 # src/components/providers/LegacyRedirects.tsx covers hosts that don't
 # read this file (e.g. plain Hostinger static).
+#
+# NOTE: `trailingSlash: true` in next.config.ts emits `/foo/index.html`,
+# so the targets below all use trailing slashes. Both with-slash and
+# without-slash source forms are included to cover any inbound style.
 
-/home/about-ommi-forge        /about        308
-/home/about-ommi-forge/       /about/       308
-/home/solutuion               /solutions    308
-/home/solutuion/              /solutions/   308
-/home/forged-products         /products     308
-/home/forged-products/        /products/    308
-/3d-renders                   /renders      308
-/3d-renders/                  /renders/     308
+/home/about-ommi-forge      /about/             308
+/home/about-ommi-forge/     /about/             308
+/home/solutuion             /solutions/         308
+/home/solutuion/            /solutions/         308
+/home/forged-products       /products/          308
+/home/forged-products/      /products/          308
+/3d-renders                 /renders/           308
+/3d-renders/                /renders/           308
 
-/render-a                     /renders/part-a    308
-/render-a/                    /renders/part-a/   308
-/render-b                     /renders/part-b    308
-/render-b/                    /renders/part-b/   308
-/render-c                     /renders/part-c    308
-/render-c/                    /renders/part-c/   308
-/render-d                     /renders/part-d    308
-/render-d/                    /renders/part-d/   308
-/render-e                     /renders/part-e    308
-/render-e/                    /renders/part-e/   308
-/render-f                     /renders/part-f    308
-/render-f/                    /renders/part-f/   308
-/render-g                     /renders/part-g    308
-/render-g/                    /renders/part-g/   308
-/render-h                     /renders/part-h    308
-/render-h/                    /renders/part-h/   308
-/render-h-2                   /renders/part-i    308
-/render-h-2/                  /renders/part-i/   308
+# Source-site slug → our render slug.
+# render-h-2 → "RENDER H" → /renders/h/
+# render-h   → "RENDER I" → /renders/i/
+/render-a                   /renders/a/         308
+/render-a/                  /renders/a/         308
+/render-b                   /renders/b/         308
+/render-b/                  /renders/b/         308
+/render-c                   /renders/c/         308
+/render-c/                  /renders/c/         308
+/render-d                   /renders/d/         308
+/render-d/                  /renders/d/         308
+/render-e                   /renders/e/         308
+/render-e/                  /renders/e/         308
+/render-f                   /renders/f/         308
+/render-f/                  /renders/f/         308
+/render-g                   /renders/g/         308
+/render-g/                  /renders/g/         308
+/render-h-2                 /renders/h/         308
+/render-h-2/                /renders/h/         308
+/render-h                   /renders/i/         308
+/render-h/                  /renders/i/         308

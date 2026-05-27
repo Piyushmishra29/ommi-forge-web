@@ -5,7 +5,7 @@ import './globals.css';
 import LenisProvider from '@/components/providers/LenisProvider';
 import LegacyRedirects from '@/components/providers/LegacyRedirects';
 import MagneticCursor from '@/components/motion/MagneticCursor';
-import PageTransition from '@/components/motion/PageTransition';
+import PageTransition, { PageWipe } from '@/components/motion/PageTransition';
 import Header from '@/components/ui/Header';
 import Footer from '@/components/ui/Footer';
 
@@ -74,6 +74,7 @@ export default function RootLayout({
           </PageTransition>
           <Footer />
         </LenisProvider>
+        <PageWipe />
       </body>
     </html>
   );

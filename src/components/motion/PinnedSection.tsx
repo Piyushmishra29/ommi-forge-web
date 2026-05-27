@@ -73,7 +73,7 @@ const PinnedSection = forwardRef<HTMLDivElement, PinnedSectionProps>(
           start: 'top top',
           end: () => `+=${window.innerHeight * length}`,
           pin: inner,
-          pinSpacing: false,
+          pinSpacing: true,
           scrub: true,
           invalidateOnRefresh: true,
           onUpdate: (self) => setProgress(self.progress),
@@ -93,7 +93,6 @@ const PinnedSection = forwardRef<HTMLDivElement, PinnedSectionProps>(
           }}
           id={id}
           className={cn('relative', className)}
-          style={{ height: `${(length + 1) * 100}vh` }}
         >
           <div ref={innerRef} className="h-screen w-full overflow-hidden">
             {children}

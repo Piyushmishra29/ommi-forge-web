@@ -2,6 +2,7 @@
 
 import {
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -11,6 +12,7 @@ import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { useReducedMotion } from "framer-motion";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { BRAND_HEX } from "@/lib/brand";
 
 export type StlPreviewProps = {
   src: string;
@@ -56,6 +58,10 @@ function SpinningModel({
     return geom;
   }, [rawGeometry]);
 
+  // Dispose the cloned BufferGeometry when the model unmounts or the
+  // underlying STL src changes, otherwise R3F keeps the GPU buffer alive.
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
   useFrame((_, delta) => {
     if (!groupRef.current || reducedMotion) return;
     const speed = hovered ? 1.2 : 0.4;
@@ -66,7 +72,7 @@ function SpinningModel({
     <group ref={groupRef}>
       <mesh geometry={geometry}>
         <meshStandardMaterial
-          color="#FF5533"
+          color={BRAND_HEX.mesh}
           metalness={0.7}
           roughness={0.4}
         />
@@ -77,15 +83,25 @@ function SpinningModel({
 
 export function StlPreview({ src, className, ariaLabel }: StlPreviewProps) {
   const reducedMotion = useReducedMotion() ?? false;
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
+  // Callback ref that wires up an IntersectionObserver the moment the host
+  // <div> mounts. By performing the `setInView(true)` from inside the
+  // observer callback (which lives outside any effect), we sidestep the
+  // `react-hooks/set-state-in-effect` rule entirely. The observer
+  // self-disconnects after the first intersection so we never re-fire.
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const setRefAndObserve = useCallback((node: HTMLDivElement | null) => {
+    // Tear down any previous observer first.
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
 
-    // Native IntersectionObserver — only load the STL once the tile scrolls in.
+    if (!node) return;
+
+    // SSR / non-browser bail-out — render immediately.
     if (typeof IntersectionObserver === "undefined") {
       setInView(true);
       return;
@@ -97,6 +113,7 @@ export function StlPreview({ src, className, ariaLabel }: StlPreviewProps) {
           if (entry.isIntersecting) {
             setInView(true);
             observer.disconnect();
+            observerRef.current = null;
             break;
           }
         }
@@ -104,22 +121,24 @@ export function StlPreview({ src, className, ariaLabel }: StlPreviewProps) {
       { rootMargin: "200px" },
     );
 
-    observer.observe(el);
-    return () => observer.disconnect();
+    observer.observe(node);
+    observerRef.current = observer;
   }, []);
+
+  const stageBackground = `radial-gradient(circle at center, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 70%)`;
 
   return (
     <div
-      ref={wrapperRef}
+      ref={setRefAndObserve}
       role={ariaLabel ? "img" : undefined}
       aria-label={ariaLabel}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={[
         "relative aspect-square w-full overflow-hidden",
-        "bg-[radial-gradient(circle_at_center,#FFFFFF_0%,#D9D9D9_70%)]",
         className ?? "",
       ].join(" ")}
+      style={{ background: stageBackground }}
     >
       {inView && (
         <Canvas
@@ -127,13 +146,13 @@ export function StlPreview({ src, className, ariaLabel }: StlPreviewProps) {
           camera={{ position: [0, 0, 200], fov: 35 }}
           gl={{ antialias: true }}
         >
-          <color attach="background" args={["#D9D9D9"]} />
+          <color attach="background" args={[BRAND_HEX.renderBg]} />
           <ambientLight intensity={0.75} />
           <directionalLight position={[10, 18, 10]} intensity={1.2} />
           <directionalLight
             position={[-12, 6, -8]}
             intensity={0.35}
-            color="#FFBC7D"
+            color={BRAND_HEX.peach}
           />
           <Suspense fallback={null}>
             <SpinningModel

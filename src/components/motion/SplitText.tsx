@@ -1,6 +1,6 @@
 'use client';
 
-import { createElement, useEffect, useRef } from 'react';
+import { createElement, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/cn';
 
 type SplitAs = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div';
@@ -33,24 +33,22 @@ export default function SplitText({
   charClassName,
   byWord = false,
 }: SplitTextProps) {
-  const ref = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    // Re-run when the source text changes so server-rendered output
-    // stays in sync with the split DOM (helps with strict mode + HMR).
-    const el = ref.current;
+  // Callback ref — captures the element in an effect-equivalent phase
+  // (post-commit) rather than during render. Forces a reflow so any
+  // consumer ScrollTrigger that reads layout post-split sees the final
+  // dimensions.
+  const setRef = useCallback((el: HTMLElement | null) => {
     if (!el) return;
-    // Force a reflow once so any consumer ScrollTrigger that reads
-    // layout post-split sees the final dimensions.
     void el.offsetHeight;
-  }, [children]);
+  }, []);
 
-  const words = children.split(/(\s+)/); // keep whitespace tokens
+  // Memoize the split so we don't re-allocate per render.
+  const words = useMemo(() => children.split(/(\s+)/), [children]); // keep whitespace tokens
 
   return createElement(
     as,
     {
-      ref,
+      ref: setRef,
       className: cn('inline-block', className),
       'data-split-text': '',
       'aria-label': children,
