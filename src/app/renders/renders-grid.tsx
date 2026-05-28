@@ -31,7 +31,7 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
         >
           <Link
             href={`/renders/${render.slug}`}
-            className="group block overflow-hidden rounded-md bg-render-bg ring-1 ring-black/5 transition hover:ring-mesh/40"
+            className="group block overflow-hidden bg-paper ring-1 ring-black/5 transition hover:ring-mesh/40"
             data-magnetic
           >
             <StlPreview
@@ -52,7 +52,7 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
                 {render.tags.map((tag) => (
                   <li
                     key={tag}
-                    className="rounded-full bg-snow px-2 py-0.5 font-eyebrow text-[10px] uppercase tracking-wider text-steel ring-1 ring-black/5"
+                    className="bg-snow px-2 py-0.5 font-eyebrow text-[10px] uppercase tracking-wider text-steel ring-1 ring-black/5"
                   >
                     {tag}
                   </li>

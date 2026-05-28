@@ -42,7 +42,7 @@ export default async function RenderDetailPage({
     index < RENDERS.length - 1 ? RENDERS[index + 1] : RENDERS[0];
 
   return (
-    <div className="min-h-screen bg-render-bg text-graphite">
+    <div className="min-h-screen bg-paper text-graphite">
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
@@ -64,7 +64,7 @@ export default async function RenderDetailPage({
 
       {/* Viewer */}
       <section className="mt-8 px-0 sm:px-6">
-        <div className="mx-auto h-[60vh] max-w-[1400px] overflow-hidden sm:rounded-md md:h-[80vh]">
+        <div className="mx-auto h-[60vh] max-w-[1400px] overflow-hidden md:h-[80vh]">
           <StlViewer
             src={render.stl}
             title={render.title}
@@ -78,7 +78,7 @@ export default async function RenderDetailPage({
         <div className="grid gap-10 md:grid-cols-[1fr_2fr]">
           <div>
             <Eyebrow>{`RENDER ${slug.toUpperCase()}`}</Eyebrow>
-            <h1 className="mt-3 font-display text-graphite text-fluid-display text-3xl font-light leading-[1.15] capitalize md:text-4xl">
+            <h1 className="mt-3 font-display font-light leading-[1.05] text-graphite text-[clamp(40px,7vw,96px)]">
               {render.productName}
             </h1>
           </div>
@@ -90,7 +90,7 @@ export default async function RenderDetailPage({
               {render.tags.map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-full bg-snow px-3 py-1 font-eyebrow text-[11px] uppercase tracking-wider text-steel ring-1 ring-black/5"
+                  className="bg-snow px-3 py-1 font-eyebrow text-[11px] uppercase tracking-wider text-steel ring-1 ring-black/5"
                 >
                   {tag}
                 </li>
@@ -100,7 +100,7 @@ export default async function RenderDetailPage({
               <a
                 href={render.stl}
                 download
-                className="inline-flex items-center gap-2 rounded-full bg-graphite px-5 py-2 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-snow transition hover:bg-mesh"
+                className="inline-flex items-center gap-2 bg-graphite px-5 py-2 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-snow transition hover:bg-mesh"
               >
                 Download STL
                 <span aria-hidden="true">↓</span>
@@ -115,7 +115,7 @@ export default async function RenderDetailPage({
         <div className="grid grid-cols-1 gap-4 border-t border-black/10 pt-8 sm:grid-cols-2">
           <Link
             href={`/renders/${prev.slug}`}
-            className="group flex items-center justify-between rounded-md bg-snow px-6 py-5 ring-1 ring-black/5 transition hover:ring-mesh/40"
+            className="group flex items-center justify-between bg-snow px-6 py-5 ring-1 ring-black/5 transition hover:ring-mesh/40"
           >
             <span className="flex flex-col">
               <span className="font-eyebrow text-[10px] uppercase tracking-[0.3em] text-steel">
@@ -128,7 +128,7 @@ export default async function RenderDetailPage({
           </Link>
           <Link
             href={`/renders/${next.slug}`}
-            className="group flex items-center justify-between rounded-md bg-snow px-6 py-5 ring-1 ring-black/5 transition hover:ring-mesh/40"
+            className="group flex items-center justify-between bg-snow px-6 py-5 ring-1 ring-black/5 transition hover:ring-mesh/40"
           >
             <span className="flex flex-col items-end text-right">
               <span className="font-eyebrow text-[10px] uppercase tracking-[0.3em] text-steel">

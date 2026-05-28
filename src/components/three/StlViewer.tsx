@@ -193,6 +193,14 @@ export function StlViewer({
   const [manualRotate, setManualRotate] = useState<boolean | null>(null);
   const rotating = manualRotate ?? effectiveAutoRotate;
 
+  // Tap-to-activate gate. On touch devices the OrbitControls drag handler
+  // would otherwise swallow vertical swipes, trapping page scroll. Until the
+  // user explicitly taps the stage we leave the canvas `pointer-events-none`,
+  // so swipes pass straight through to the page (Lenis) and the model just
+  // auto-rotates. Once active, the canvas takes pointer events, OrbitControls
+  // drives drag/zoom, and `data-lenis-prevent` keeps Lenis from fighting it.
+  const [active, setActive] = useState(false);
+
   const downloadName = src.split("/").pop() ?? "render.stl";
 
   const handleToggleRotate = () => setManualRotate(!rotating);
@@ -218,6 +226,9 @@ export function StlViewer({
   return (
     <div
       ref={wrapperRef}
+      // `data-lenis-prevent` only while active so Lenis stops intercepting
+      // wheel/touch and lets OrbitControls own the gesture during inspection.
+      {...(active ? { "data-lenis-prevent": "" } : {})}
       className={[
         "relative isolate h-full w-full overflow-hidden",
         className ?? "",
@@ -228,6 +239,11 @@ export function StlViewer({
         dpr={[1, 2]}
         camera={{ position: [0, 0, 200], fov: 35 }}
         shadows
+        // Inactive: canvas ignores pointers so vertical swipes scroll the
+        // page. Active: it captures gestures and `touch-action: none` keeps
+        // the browser from hijacking the drag for native scroll.
+        className={active ? "pointer-events-auto" : "pointer-events-none"}
+        style={{ touchAction: active ? "none" : "pan-y" }}
       >
         <color attach="background" args={[BRAND_HEX.renderBg]} />
         <ambientLight intensity={0.7} />
@@ -263,6 +279,7 @@ export function StlViewer({
         />
         <OrbitControls
           ref={controlsRef}
+          enabled={active}
           enablePan={false}
           enableZoom
           autoRotate={rotating}
@@ -271,6 +288,36 @@ export function StlViewer({
           maxDistance={350}
         />
       </Canvas>
+
+      {/* Tap-to-activate gate. While inactive this transparent button sits
+          over the (pointer-events-none) canvas; a tap flips `active` so the
+          canvas takes over. It is itself swipe-friendly via `touch-action`
+          so a vertical drag scrolls the page instead of activating. */}
+      {!active && (
+        <button
+          type="button"
+          onClick={() => setActive(true)}
+          aria-label="Tap to interact with the 3D model"
+          style={{ touchAction: "pan-y" }}
+          className="absolute inset-0 z-10 flex items-end justify-center pb-6 sm:items-center sm:pb-0"
+        >
+          <span className="pointer-events-none inline-flex items-center gap-2 bg-graphite/80 px-4 py-2 font-eyebrow text-[10px] uppercase tracking-[0.25em] text-snow backdrop-blur">
+            <RotateIcon className="h-4 w-4" />
+            Tap to interact
+          </span>
+        </button>
+      )}
+
+      {/* Exit affordance + caption while inspecting. */}
+      {active && (
+        <button
+          type="button"
+          onClick={() => setActive(false)}
+          className="pointer-events-auto absolute bottom-4 left-1/2 z-10 -translate-x-1/2 bg-graphite/80 px-4 py-2 font-eyebrow text-[10px] uppercase tracking-[0.22em] text-snow backdrop-blur transition hover:bg-graphite"
+        >
+          Drag to rotate · tap here to scroll
+        </button>
+      )}
 
       {/* Toolbar overlay */}
       <div className="pointer-events-none absolute right-4 top-4 z-10 flex flex-col gap-2">
@@ -301,7 +348,7 @@ export function StlViewer({
 
       {/* Text overlay */}
       {(title || productName) && (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-xs rounded-md bg-snow/55 px-4 py-3 backdrop-blur-md">
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-xs bg-snow/55 px-4 py-3 backdrop-blur-md">
           <div className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.2em] text-steel">
             Render
           </div>
