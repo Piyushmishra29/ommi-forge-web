@@ -70,7 +70,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.ommiforge.com'),
+  // Production defaults to ommiforge.com. For a temp preview (e.g. a
+  // Tailscale Funnel link) set NEXT_PUBLIC_SITE_URL at build time so the
+  // OG/Twitter card image + canonicals resolve to the preview host and
+  // the link-preview thumbnail renders when the URL is shared.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ommiforge.com',
+  ),
   title: {
     default: 'Ommi Forge · Forged in India since 1975',
     template: '%s · Ommi Forge',
