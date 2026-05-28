@@ -61,8 +61,7 @@ export default function ClosingCta() {
         <div data-cta-headline>
           <SplitText
             as="h2"
-            className="font-display font-light leading-[0.95] tracking-tight"
-            charClassName="text-[clamp(48px,8vw,112px)]"
+            className="font-display text-[clamp(48px,8vw,112px)] font-light leading-[0.95] tracking-tight"
           >
             {CLOSING_CTA.headline}
           </SplitText>

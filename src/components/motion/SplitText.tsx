@@ -55,7 +55,18 @@ export default function SplitText({
     },
     words.map((token, wi) => {
       if (/^\s+$/.test(token)) {
-        return token;
+        // Preserve the inter-word space AT THE CHAR FONT SIZE. When the
+        // font-size lives on `charClassName` (e.g. the closing CTAs), a
+        // bare text-node space renders at the parent's inherited base
+        // size — which between 100px chars looks like no space at all
+        // ("Let'sforge"). Wrapping it in a span that carries
+        // charClassName scales the space to match. `inline` (not
+        // inline-block) so the whitespace itself isn't collapsed.
+        return (
+          <span key={`s-${wi}`} aria-hidden className={charClassName}>
+            {token}
+          </span>
+        );
       }
       if (byWord) {
         return (

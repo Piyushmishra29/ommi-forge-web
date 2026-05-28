@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { NAV } from '@/data/nav';
 
 const FOOTER_LINKS = NAV.filter((n) => n.href !== '/');
@@ -22,10 +23,16 @@ export default function Footer() {
           <div>
             <Link
               href="/"
-              className="block font-display text-3xl font-bold uppercase leading-none tracking-[0.04em]"
+              aria-label="Ommi Forge — home"
+              className="inline-flex items-center"
             >
-              Ommi
-              <span className="ml-2 text-saffron">Forge</span>
+              <Image
+                src="/assets/brand/logo-cropped-679x140.png"
+                alt="Ommi Forge"
+                width={679}
+                height={140}
+                className="h-11 w-auto"
+              />
             </Link>
             <p className="mt-6 max-w-xs font-display text-base font-light leading-snug text-paper/80">
               Forged in India since 1975 · For all your forging needs.
