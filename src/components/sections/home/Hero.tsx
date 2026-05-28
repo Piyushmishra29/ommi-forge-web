@@ -130,17 +130,17 @@ export default function Hero() {
         end: '+=300%', // 3× viewport pin — ~1.3 s of video per viewport scrolled
         pin: true,
         pinSpacing: true,
-        // scrub: true (not a number) — Lenis already provides smooth
-        // scroll, so layering GSAP smoothing on top compounds latency
-        // and CPU. true = follow scroll position 1:1.
-        scrub: true,
+        // A small numeric scrub (0.4s catch-up) makes the video glide
+        // toward the scroll target instead of hard-snapping frame-to-
+        // frame — reads as smooth playback rather than stepping. GSAP
+        // drives onUpdate continuously as it eases, so we keep only a
+        // fine sub-frame throttle (0.02s ≈ 50fps) to avoid redundant
+        // decodes. The 720p clip keeps this cheap.
+        scrub: 0.4,
         onUpdate: (self) => {
           if (!Number.isFinite(v.duration)) return;
           const t = Math.min(self.progress * v.duration, v.duration - 0.04);
-          // Throttle: only seek when delta > 1 frame at 30fps. Each
-          // currentTime write costs a decode; skipping sub-frame deltas
-          // halves the work without visibly affecting smoothness.
-          if (Math.abs(t - lastSet) < 0.033) return;
+          if (Math.abs(t - lastSet) < 0.02) return;
           lastSet = t;
           try {
             v.currentTime = t;
