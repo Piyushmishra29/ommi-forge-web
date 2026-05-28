@@ -72,7 +72,7 @@ export default function ContactHero() {
           className="mt-8 max-w-5xl font-display font-light leading-[0.98] text-graphite"
           style={{ fontSize: 'clamp(56px, 10vw, 110px)' }}
         >
-          <SplitText as="span">{`Quote to part in two weeks.`}</SplitText>
+          <SplitText as="span">{`Quote to part in a day.`}</SplitText>
         </h1>
 
         <p
@@ -80,8 +80,8 @@ export default function ContactHero() {
           className="mt-10 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]"
         >
           Send us a drawing, a sample, or a paragraph in an email. We&apos;ll
-          come back with a method and a price — typically within two business
-          days, from a real human at the marketing desk.
+          come back with a method and a price — often within a day, from a
+          real human at the marketing desk.
         </p>
       </div>
     </section>

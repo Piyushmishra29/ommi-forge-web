@@ -83,7 +83,7 @@ export default function CareersHero() {
           className="mt-10 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]"
         >
           We hire metallurgists, machinists, and the people who keep our
-          floor humming. Forty-eight harvests in, Ommi still hires for grit,
+          floor humming. Fifty-one harvests in, Ommi still hires for grit,
           taste and metallurgical curiosity — and we don&apos;t keep a posted
           roles board.
         </p>

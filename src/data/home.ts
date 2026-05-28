@@ -11,8 +11,8 @@ export const HERO_COPY = {
   headlineLine1: 'Forged in India',
   headlineLine2: 'since nineteen seventy-five.',
   subhead: 'For all your forging needs.',
-  primaryCta: { label: 'Request a Quote', href: '/contact' },
-  secondaryCta: { label: 'See our work', href: '/renders' },
+  primaryCta: { label: 'Request a Quote', href: '/contact/' },
+  secondaryCta: { label: 'See our work', href: '/renders/' },
 } as const;
 
 export const HAMMER_INTRO_WORDS = ['Heat', 'Strike', 'Forge'] as const;
@@ -76,7 +76,7 @@ export const LOCATION = {
   street: 'Plot No 300, 301 & 302, 3rd Phase,',
   area: 'Industrial Area, Malur,',
   region: 'Karnataka 563160',
-  phone: '+91 89519 53866',
+  phone: '+91 8951953866',
   phoneHref: 'tel:+918951953866',
   email: 'marketing@ommiforge.com',
   emailHref: 'mailto:marketing@ommiforge.com',
@@ -120,6 +120,6 @@ export const PRODUCT_IMAGES: string[] = [
 export const CLOSING_CTA = {
   headline: "Let’s forge something.",
   subhead: 'Quote-to-part in as little as a day.',
-  primary: { label: 'Start a quote', href: '/contact' },
-  secondary: { label: 'Browse our 3D renders', href: '/renders' },
+  primary: { label: 'Start a quote', href: '/contact/' },
+  secondary: { label: 'Browse our 3D renders', href: '/renders/' },
 } as const;

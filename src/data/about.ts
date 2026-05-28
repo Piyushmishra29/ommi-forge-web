@@ -29,7 +29,7 @@ export const HERITAGE_CHAPTERS: ReadonlyArray<HeritageChapter> = [
   },
   {
     year: 'Today',
-    heading: 'Forty-eight harvests',
+    heading: 'Fifty-one harvests',
     body: 'A second-generation leadership team runs eight power hammers, an open-die line up to 500 kg per piece, a ring-rolling mill, and an upset-forging line. We forge for customers across India, South-East Asia, the Middle East and Europe — and a metallurgist still signs every certificate that leaves the gate.',
   },
 ];

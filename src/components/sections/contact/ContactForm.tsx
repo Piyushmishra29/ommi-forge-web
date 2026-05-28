@@ -242,7 +242,7 @@ export default function ContactForm() {
               Message sent
             </p>
             <h3 className="mt-6 max-w-xl font-display text-3xl font-light leading-tight text-paper md:text-5xl">
-              Thanks. We&apos;ll be in touch within 2 business days.
+              Thanks. We&apos;ll be in touch — often within a day.
             </h3>
             <p className="mt-6 max-w-md font-body text-base leading-relaxed text-paper/70 md:text-lg">
               Our marketing desk routes inquiries to the right metallurgist or

@@ -84,7 +84,7 @@ export default function ProductsHero() {
     >
       <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
         <Eyebrow data-fade>
-          <span className="text-mesh">Catalogue · 20+ forged parts</span>
+          <span className="text-mesh">Catalogue · 13 forged parts</span>
         </Eyebrow>
 
         <h1

@@ -84,7 +84,7 @@ export default function Footer() {
                   href="tel:+918951953866"
                   className="transition-colors hover:text-saffron"
                 >
-                  +91 89519 53866
+                  +91 8951953866
                 </a>
               </li>
               <li>

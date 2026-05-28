@@ -77,7 +77,7 @@ function BackFace({ m }: { m: Material }) {
       </div>
       <div className="mt-6">
         <Link
-          href={`/materials#${m.slug}`}
+          href={`/materials/#${m.slug}`}
           data-magnetic
           data-cursor-label="Explore"
           className="inline-flex items-center gap-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-saffron hover:text-paper transition-colors"

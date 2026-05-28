@@ -464,7 +464,7 @@ export default function ProductsGallery() {
                     data-magnetic
                     className="inline-flex items-center justify-center bg-saffron px-6 py-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
                   >
-                    Request a quote
+                    Request a Quote
                   </a>
                   <button
                     type="button"
