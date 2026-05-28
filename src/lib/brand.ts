@@ -15,6 +15,9 @@
 export const BRAND_HEX = {
   saffron: "#FF9933",
   mesh: "#FF5533",
+  // Darker mesh (~5.3:1 on paper) for small/body text on light bgs
+  // where mesh/saffron fail AA contrast. See globals.css --color-ember.
+  ember: "#C2381C",
   graphite: "#1F2124",
   steel: "#54595F",
   ash: "#7A7A7A",

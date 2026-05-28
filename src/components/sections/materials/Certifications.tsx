@@ -43,7 +43,7 @@ export default function Certifications() {
     <section id="certif" className="bg-paper py-32 md:py-40">
       <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
         <Eyebrow>
-          <span className="text-mesh">Certifications</span>
+          <span className="text-ember">Certifications</span>
         </Eyebrow>
         <h2 className="mt-6 max-w-3xl font-display text-3xl font-light leading-tight text-graphite md:text-5xl">
           Audited. Accredited. On the wall.
@@ -53,7 +53,7 @@ export default function Certifications() {
           <a
             href="mailto:marketing@ommiforge.com"
             data-magnetic
-            className="text-mesh underline-offset-4 hover:underline"
+            className="text-ember underline-offset-4 hover:underline"
           >
             marketing@ommiforge.com
           </a>{' '}
@@ -69,7 +69,7 @@ export default function Certifications() {
                 className="group relative flex h-full flex-col justify-between gap-8 bg-paper p-8 transition-colors hover:bg-graphite hover:text-paper"
               >
                 <div>
-                  <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
+                  <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-ember">
                     Available on request
                   </p>
                   <h3 className="mt-4 font-display text-2xl font-light leading-tight md:text-3xl">
@@ -82,7 +82,7 @@ export default function Certifications() {
 
                 <div className="flex items-center justify-between font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em]">
                   <span className="opacity-70">{c.validity}</span>
-                  <span className="flex items-center gap-2 text-mesh transition-transform group-hover:translate-x-1">
+                  <span className="flex items-center gap-2 text-ember transition-transform group-hover:translate-x-1">
                     Request copy <RequestIcon />
                   </span>
                 </div>

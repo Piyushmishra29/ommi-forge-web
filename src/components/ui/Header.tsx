@@ -11,9 +11,11 @@ import { cn } from '@/lib/cn';
 /**
  * Header
  *
- *  - desktop (≥ md): logo + horizontal nav + saffron Quote CTA
- *  - mobile  (< md): logo + inline "Quote" chip + hamburger that opens
- *                    a right-side graphite sheet (88vw, max 420px)
+ *  - desktop (≥ lg): logo + horizontal nav + saffron Quote CTA
+ *  - mobile/tablet (< lg): logo + inline "Quote" chip + hamburger that
+ *                    opens a right-side graphite sheet (88vw, max 420px).
+ *                    Tablets get the hamburger because 7 links + a CTA
+ *                    are too tight in the md (768px) range.
  *
  * Bar height is exposed as the CSS custom property `--header-h` (set in
  * `globals.css` with an iOS safe-area inset). `<main>` reads it for top
@@ -156,7 +158,7 @@ export default function Header() {
         {/* Desktop nav */}
         <nav
           aria-label="Primary"
-          className="hidden items-center gap-5 md:flex lg:gap-7"
+          className="hidden items-center gap-5 lg:flex lg:gap-7"
         >
           {NAV.map((item) => (
             <Link
@@ -177,8 +179,8 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* Mobile: inline Quote chip + hamburger */}
-        <div className="flex items-center gap-2 md:hidden">
+        {/* Mobile/tablet: inline Quote chip + hamburger */}
+        <div className="flex items-center gap-2 lg:hidden">
           <Link
             href={CTA.href}
             data-magnetic
@@ -193,7 +195,7 @@ export default function Header() {
             aria-expanded={open}
             aria-controls="mobile-nav"
             onClick={() => setOpen((v) => !v)}
-            className="relative flex h-9 w-9 items-center justify-center"
+            className="relative flex h-11 w-11 items-center justify-center"
           >
             <span
               className={cn(
@@ -238,7 +240,7 @@ export default function Header() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
               style={{ top: 'var(--header-h)' }}
-              className="fixed inset-0 z-[998] cursor-default bg-graphite/40 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-[998] cursor-default bg-graphite/40 backdrop-blur-sm lg:hidden"
             />
             <motion.div
               id="mobile-nav"
@@ -256,7 +258,7 @@ export default function Header() {
                 top: 'var(--header-h)',
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
               }}
-              className="fixed inset-y-0 right-0 z-[999] flex w-[88vw] max-w-[420px] flex-col bg-graphite text-paper md:hidden"
+              className="fixed inset-y-0 right-0 z-[999] flex w-[88vw] max-w-[420px] flex-col bg-graphite text-paper lg:hidden"
             >
               <nav
                 aria-label="Mobile primary"

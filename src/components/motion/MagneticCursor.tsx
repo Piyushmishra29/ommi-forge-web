@@ -7,6 +7,7 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
+import { BRAND_HEX } from '@/lib/brand';
 
 // Subscribe to (hover: hover) + (prefers-reduced-motion) media queries
 // via useSyncExternalStore — keeps support detection out of effect body
@@ -114,10 +115,14 @@ export default function MagneticCursor() {
   // OR when reduced-motion users hover, where we just scale the ring).
   const ringSize = useTransform(hover, [0, 1], [16, 48]);
   const ringOffset = useTransform(hover, [0, 1], [-8, -24]);
+  // Framer Motion can't interpolate `var(--color-…)` endpoints, so we
+  // feed it resolved hex literals from the brand source-of-truth. The
+  // idle end is transparent saffron (same hue, zero alpha) so the fade
+  // stays on-hue rather than bleeding through grey.
   const ringBg = useTransform(
     hover,
     [0, 1],
-    ['rgba(0,0,0,0)', 'var(--color-saffron)'],
+    [`${BRAND_HEX.saffron}00`, BRAND_HEX.saffron],
   );
   // For reduced-motion users, the saffron pill never appears — keep
   // ring opacity at 1. For the non-reduced path, fade the ring out as

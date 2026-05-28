@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Manrope, Work_Sans, Roboto } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
@@ -54,6 +54,20 @@ const roboto = Roboto({
   variable: '--font-body',
   display: 'swap',
 });
+
+/* ------------------------------------------------------------
+ * Viewport (Next 16 wants this as its own export, separate from
+ * `metadata`). `viewportFit: 'cover'` emits `viewport-fit=cover`
+ * in the <meta name="viewport"> tag so `env(safe-area-inset-*)`
+ * resolves to real values on notch iPhones — without it the header
+ * sits under the notch and the menu sheet collides with the home
+ * indicator.
+ * ------------------------------------------------------------ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.ommiforge.com'),
@@ -116,6 +130,7 @@ export default function RootLayout({
           <PageTransition>
             <main
               id="main"
+              tabIndex={-1}
               className="min-h-dvh"
               style={{ paddingTop: 'var(--header-h)' }}
             >

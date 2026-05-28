@@ -14,21 +14,24 @@ const ACCENTS: ReadonlyArray<{
   border: string;
 }> = [
   {
+    // Paper bg: small accent text needs the darker ember to pass AA.
     bg: 'bg-paper',
     text: 'text-graphite',
-    accent: 'text-mesh',
+    accent: 'text-ember',
     border: 'border-graphite/10',
   },
   {
+    // Graphite bg: mesh passes contrast on dark — keep it.
     bg: 'bg-graphite',
     text: 'text-paper',
     accent: 'text-mesh',
     border: 'border-paper/10',
   },
   {
+    // Peach card: mesh ≈ 2:1 on peach fails; ember reads cleanly.
     bg: 'bg-peach',
     text: 'text-graphite',
-    accent: 'text-mesh',
+    accent: 'text-ember',
     border: 'border-graphite/15',
   },
   {

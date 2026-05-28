@@ -35,20 +35,39 @@ function TimelineTrack() {
   // would otherwise have to diff every ScrollTrigger tick.
   const quickSetterRef = useRef<ReturnType<typeof gsap.quickSetter> | null>(null);
 
+  // Max leftward translate, in px: the track's full scrollWidth minus the
+  // viewport width. Measured from the DOM (not a magic vw constant) so the
+  // last milestone always lands flush at progress=1 regardless of whether
+  // cards are 80vw (mobile) or 60vw (desktop). Recomputed on resize.
+  const maxTranslateRef = useRef(0);
+
   useEffect(() => {
-    if (!trackRef.current) return;
-    quickSetterRef.current = gsap.quickSetter(trackRef.current, 'x', 'vw');
+    const track = trackRef.current;
+    if (!track) return;
+    // Bind in px so the measured pixel distance is applied verbatim.
+    quickSetterRef.current = gsap.quickSetter(track, 'x', 'px');
+
+    const measure = () => {
+      maxTranslateRef.current = Math.max(
+        0,
+        track.scrollWidth - window.innerWidth,
+      );
+    };
+    measure();
+    window.addEventListener('resize', measure, { passive: true });
+
     return () => {
+      window.removeEventListener('resize', measure);
       quickSetterRef.current = null;
     };
   }, []);
 
   const onScroll = useCallback((progress: number) => {
-    // Distance to translate: track width − viewport width, expressed in vw.
-    // With 6 milestones at ~80vw each = ~480vw total → translate by 380vw.
     const setter = quickSetterRef.current;
     if (!setter) return;
-    setter(-380 * progress);
+    // Translate by the measured distance so milestone #6 fully lands at
+    // progress=1 on every breakpoint, with no over-/under-translation.
+    setter(-maxTranslateRef.current * progress);
   }, []);
 
   useScrollSubscribe(onScroll);

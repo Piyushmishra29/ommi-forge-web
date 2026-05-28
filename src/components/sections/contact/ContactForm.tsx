@@ -17,9 +17,10 @@ import { cn } from '@/lib/cn';
  *     POSTs the payload as JSON to that endpoint. A 200/202 response
  *     flips to the success state; anything else surfaces an error
  *     banner with a "Try again" affordance.
- *   - If the env var is unset (default), the form runs in "log only"
- *     mode: a brief feigned latency, a `console.info` note for the
- *     developer, then a success flip. No network is touched.
+ *   - If the env var is unset (default), the form does NOT fake a
+ *     success flip. It surfaces an honest inline notice telling the
+ *     visitor to email us directly, and keeps their input intact. No
+ *     network is touched and no payload is logged.
  *
  * Server-side spam protection: enable reCAPTCHA inside the Formspree
  * dashboard once wired — this client never sees the captcha tokens.
@@ -42,6 +43,7 @@ type ContactValues = z.infer<typeof ContactSchema>;
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [unconfigured, setUnconfigured] = useState(false);
 
   const {
     register,
@@ -62,16 +64,13 @@ export default function ContactForm() {
 
   async function onSubmit(values: ContactValues) {
     setSubmitError(null);
+    setUnconfigured(false);
 
     if (!FORMSPREE_URL) {
-      // No endpoint configured — keep legacy behaviour. Feign latency,
-      // log the payload for the developer, then flip to success.
-      console.info(
-        '[ContactForm] NEXT_PUBLIC_FORMSPREE_URL is not set; submission was not sent.',
-        values,
-      );
-      await new Promise((r) => setTimeout(r, 600));
-      setSubmitted(true);
+      // No endpoint configured — do NOT fake success. Surface an honest
+      // inline notice and keep the visitor's input intact so nothing is
+      // silently dropped. Never log the payload (it contains PII).
+      setUnconfigured(true);
       return;
     }
 
@@ -104,6 +103,7 @@ export default function ContactForm() {
     reset();
     setSubmitted(false);
     setSubmitError(null);
+    setUnconfigured(false);
   }
 
   function handleRetry() {
@@ -177,6 +177,26 @@ export default function ContactForm() {
               error={errors.message}
               registration={register('message')}
             />
+
+            {unconfigured && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="md:col-span-2 border border-ember/40 bg-ember/5 px-5 py-4 text-graphite"
+              >
+                <p className="font-body text-sm leading-relaxed">
+                  Direct form delivery isn&apos;t enabled on this preview —
+                  please email{' '}
+                  <a
+                    href="mailto:marketing@ommiforge.com"
+                    className="text-ember underline decoration-2 underline-offset-4 transition-colors hover:text-graphite"
+                  >
+                    marketing@ommiforge.com
+                  </a>
+                  . Your message is still here, ready to copy.
+                </p>
+              </div>
+            )}
 
             {submitError && (
               <div

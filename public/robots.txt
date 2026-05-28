@@ -1,3 +1,4 @@
+# Temp preview — remove Disallow before production launch.
 User-agent: *
-Allow: /
+Disallow: /
 Sitemap: https://www.ommiforge.com/sitemap.xml
