@@ -127,21 +127,14 @@ function ProductTile({ tile }: { tile: Tile }) {
           />
         </picture>
       ) : (
+        // Fallback only when an image fails to load — no visible text,
+        // just an on-brand gradient tile so the marquee never shows a
+        // broken-image icon.
         <div
           aria-hidden
-          className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#D9D9D9_0%,#FAFAFA_100%)] text-graphite/40"
-        >
-          <span className="font-display text-3xl font-light">{tile.name}</span>
-        </div>
+          className="h-full w-full bg-[linear-gradient(135deg,#D9D9D9_0%,#FAFAFA_100%)]"
+        />
       )}
-
-      {/* Hover label */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-graphite/90 p-4 text-paper transition-transform duration-300 group-hover:translate-y-0">
-        <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.22em] text-mesh">
-          Forged product
-        </p>
-        <p className="mt-1 font-display text-lg leading-tight">{tile.name}</p>
-      </div>
     </div>
   );
 }
