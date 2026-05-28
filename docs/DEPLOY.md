@@ -203,3 +203,33 @@ the temp link, temporarily set `metadataBase` to the VPS URL and rebuild.
 `_masters/` (raw 4K video, full-res JPG originals, wp-mirror) lives
 outside `public/` and is gitignored — it never enters `out/`. Just upload
 `out/` as-is (~120 MB).
+
+---
+
+## What's actually running on pi-vps-mumbai (preview)
+
+The live preview at `https://pi-vps-mumbai.tail641fa8.ts.net` runs:
+
+- **Caddy** (`/etc/caddy/Caddyfile`) serving `/srv/ommi-forge` on
+  `127.0.0.1:8080` with: `encode zstd gzip`, HTTP Range support (videos
+  stream + seek → `206`), and `Cache-Control: immutable` on
+  `/assets/*` + `/_next/static/*`. The stock `caddy.service` is disabled
+  (it binds :443 and would fight Funnel).
+- **systemd unit** `ommi-forge.service` → `caddy run` with
+  `Restart=always` (survives reboot/crash).
+- **Tailscale Funnel** proxying public 443 → `127.0.0.1:8080`.
+
+Python `http.server` was the first cut but serves uncompressed with poor
+Range support, so media (videos/STL) struggled over the relay — Caddy
+replaced it.
+
+**Redeploy a new build** (no restart needed — Caddy serves files live):
+```bash
+NEXT_PUBLIC_SITE_URL=https://pi-vps-mumbai.tail641fa8.ts.net pnpm build
+rsync -az --delete -e ssh out/ root@pi-vps-mumbai:/srv/ommi-forge/
+```
+
+**Take it down:**
+```bash
+ssh root@pi-vps-mumbai 'tailscale funnel --https=443 off && systemctl disable --now ommi-forge.service'
+```
