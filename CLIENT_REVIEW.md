@@ -175,3 +175,63 @@ The brand-assets fetch agent is downloading the highest-resolution variants curr
 - [ ] DNS A/AAAA records updated
 - [ ] Old WordPress site backed up before swap
 - [ ] Email a "we've redesigned" note to existing client list (if any)
+
+---
+
+## 11. FACTUAL CLAIMS TO VERIFY (added 2026-05-28 from pre-client audit)
+
+A large forging client will scrutinise every number. **Every claim below is
+either invented or unverified** and must be confirmed (or corrected) before
+the site goes out. Grouped by file.
+
+### Certifications — HIGHEST PRIORITY (legal/credibility risk)
+`src/data/certifications.ts` presents these as **held**, with specific
+issuers and expiry dates. Confirm each is actually held, the issuer is
+correct, and the date is right — or remove/soften:
+- ISO 9001:2015 — TÜV SÜD — "Valid through 2027"
+- IATF 16949:2016 — TÜV SÜD — "Valid through 2026"
+- ISO 14001:2015 — TÜV SÜD — "Valid through 2027"
+- ISO 45001:2018 — TÜV SÜD — "Valid through 2027"
+- PED 2014/68/EU — Lloyd's Register — "Valid through 2028"
+- NABL Accreditation — in-house metallurgical lab — "Valid through 2026"
+
+### Heritage milestones (`src/data/home.ts` + `src/data/about.ts`)
+- 1985 — closed-die expansion / second hammer line *(invented)*
+- 2000 — move to current Malur plant, Plot 300–302 *(invented)*
+- 2015 — in-house metallurgy lab *(invented; about.ts also dates the lab to the 1980s — reconcile)*
+- 2022 — "crossed a million pieces", "European drivetrain customers", "second metallurgist joined" *(invented)*
+- 2026 — electric-forging pilot / grid-electric induction *(invented — confirm or remove)*
+
+### Stats (`src/data/home.ts` STATS)
+- 8 power hammers · 1000+ metric tons/year · 100+ parts developed · 1-day quote-to-part — confirm each.
+
+### Forging-method specs (`src/data/solutions.ts`)
+- Closed die: 0.5–50 kg/piece · 8 power hammers
+- Open die: up to 500 kg/piece · shafts to 2000 mm
+- Ring rolling: 150–1500 mm dia · seamless
+- Upset: up to 6" dia · shafts to 1000 mm
+
+### Material grades (`src/data/materials.ts`)
+- Carbon (C10–C70, EN-2A/3A/8/9/42/43), Alloy (40Cr4, 42CrMo4, EN-18/19/24/25, 4140/4340/8620, SCr420), Stainless (304/304L/316/316L/321/410/420/440C, SAF 2205/2507), Custom (D2/D3/H11/H13/M2, 38MnVS6, 27MnCrB5). A metallurgist will spot any grade Ommi doesn't run.
+
+### Render part names (`src/data/renders.ts`) — guessed slug→part mapping
+a=Link, b=Shifter Fork, c=Carrier, d=Steam Manifold, e=Lever, f=Crank, g=Forged Sprocket, h=Hub, i=Connecting Rod. Confirm names + confirm OK to publish downloadable STL geometry (each detail page has a "Download STL" button).
+
+### Named product blurbs (`src/data/products.ts`)
+Specific material/treatment claims per part (e.g. Fan Hub Shaft "42CrMo4", BM 140 RH Link "EN24 — case-hardened, shot-peened, MPI"). Confirm part names, codes, materials, treatments.
+
+### Other claims
+- "Customers across India, South-East Asia, the Middle East and Europe" (`about.ts`) — confirm export markets.
+- "Three acres of forge floor" / "3-acre plant" — confirm acreage.
+- Founder quote "Quality is not a slogan — it is a process." — BG Ashwath — confirm it's a real quote, not invented.
+- Sustainability claims (rainwater systems, vegetable gardens, white lubricants, moving off furnace oil/LDO to electric) — confirm still accurate.
+- `about/page.tsx` caption "Strike 04 of 11" — confirm it means something or replace.
+
+---
+
+## 12. DEPLOY-CONFIG for the temp VPS preview (see docs/DEPLOY.md)
+- robots.txt set to `Disallow: /` for preview (revert before production).
+- nginx needs `error_page 404 /404.html;` + the 13 legacy `return 308` rules (old `/render-a` bookmarks 404 otherwise).
+- `metadataBase` = production domain → OG link-preview card may be wrong on the temp link unless temporarily pointed at the VPS URL.
+- Set `NEXT_PUBLIC_FORMSPREE_URL` at build time or the contact form can't deliver email (it now shows an honest "email us" note instead of faking success).
+- Upload only `out/` (~120 MB); `_masters/` is local-only.

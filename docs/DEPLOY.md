@@ -134,3 +134,72 @@ in `package.json`.
   file; verify network and decompression).
 - Browser devtools → Network — `plausible.io` should only appear if
   `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` was set at build time.
+
+---
+
+## Temporary VPS client-preview link
+
+For sending a preview to the client on a plain VPS (nginx/Apache serving
+`out/`), the audit surfaced a few host-config items. The static files are
+correct; these are server-side settings the host needs.
+
+### 1. Block search indexing (important)
+`public/robots.txt` is set to `Disallow: /` for the preview phase so a
+large client's unfinished site isn't indexed. **Revert to `Allow: /`
+before production launch.** Also recommended on the VPS: add an
+`X-Robots-Tag: noindex` response header for the preview host.
+
+nginx:
+```nginx
+add_header X-Robots-Tag "noindex, nofollow" always;
+```
+
+### 2. Serve the branded 404 + make legacy redirects work
+`public/_redirects` is Netlify-only and `public/.htaccess` carries only
+security headers — neither runs on plain nginx. Two things to configure:
+
+```nginx
+# Branded 404 (also lets the client-side legacy-redirect script fire)
+error_page 404 /404.html;
+
+# Real redirects for old WordPress bookmarks (otherwise they 404)
+location = /home/about-ommi-forge/ { return 308 /about/; }
+location = /home/solutuion/        { return 308 /solutions/; }
+location = /home/forged-products/  { return 308 /products/; }
+location = /3d-renders/            { return 308 /renders/; }
+location ~ ^/render-a/?$ { return 308 /renders/a/; }
+location ~ ^/render-b/?$ { return 308 /renders/b/; }
+location ~ ^/render-c/?$ { return 308 /renders/c/; }
+location ~ ^/render-d/?$ { return 308 /renders/d/; }
+location ~ ^/render-e/?$ { return 308 /renders/e/; }
+location ~ ^/render-f/?$ { return 308 /renders/f/; }
+location ~ ^/render-g/?$ { return 308 /renders/g/; }
+location ~ ^/render-h-2/?$ { return 308 /renders/h/; }
+location ~ ^/render-h/?$  { return 308 /renders/i/; }
+```
+(On Apache, add equivalent `RewriteRule`s + `ErrorDocument 404 /404.html`.)
+
+### 3. Security headers on nginx
+`vercel.json` / `_headers` / `.htaccess` don't apply on nginx. Replicate
+the CSP/HSTS/X-Frame-Options from `public/.htaccess` in the nginx server
+block if headers matter on the preview.
+
+### 4. Contact form
+The form is wired to Formspree but **does nothing useful unless
+`NEXT_PUBLIC_FORMSPREE_URL` is set at build time**. On the preview build,
+either set it (so test submissions actually arrive at
+marketing@ommiforge.com) or leave it unset — the form now shows an
+honest "email us directly" note instead of faking success.
+
+### 5. OG link-preview card
+`metadataBase` is `https://www.ommiforge.com`, so OG/Twitter card images
+and canonicals resolve to the production domain. If `ommiforge.com` isn't
+serving this build yet, the link-preview thumbnail (when the client
+pastes the temp link in WhatsApp/Slack) may be wrong or blank — the
+title/description text still render. To make the preview card correct on
+the temp link, temporarily set `metadataBase` to the VPS URL and rebuild.
+
+### 6. Don't upload the master assets
+`_masters/` (raw 4K video, full-res JPG originals, wp-mirror) lives
+outside `public/` and is gitignored — it never enters `out/`. Just upload
+`out/` as-is (~120 MB).

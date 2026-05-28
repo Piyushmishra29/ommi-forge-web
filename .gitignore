@@ -47,3 +47,6 @@ next-env.d.ts
 # Master JPG originals from client — too large to commit. Optimized
 # scaled/AVIF/WebP siblings are generated into the parent folder.
 /public/assets/images/originals/
+
+# Local master assets — kept on disk, never shipped or committed
+/_masters/
