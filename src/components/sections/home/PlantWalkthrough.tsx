@@ -1,44 +1,53 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import Eyebrow from '@/components/ui/Eyebrow';
+import { useScrollImageSequence } from '@/components/motion/useScrollImageSequence';
 
 /**
  * PlantWalkthrough (Act 03)
  *
- * Full-bleed plant footage that AUTOPLAYS + LOOPS. The long (~49s) clip
- * isn't worth frame-sequencing for a scrub, so it plays reliably on every
- * device (muted + playsInline + explicit play() for iOS) while the hero
- * carries the scroll-scrub "crawl to play" interaction.
+ * Full-bleed plant footage scroll-scrubbed as a JPG image sequence drawn
+ * onto a <canvas> (the Apple technique, same as the Hero) — a reliable
+ * "crawl to play" walk through the Malur floor on mobile + desktop, where
+ * MP4 currentTime seeking paints white on iOS. The section pins while the
+ * frames advance with scroll; OS reduced-motion → a single static frame.
+ *
+ * Frames live in /public/assets/frames/plant/ (f-001 … f-090), decoded from
+ * the first ~9s of the walkthrough clip at 10fps.
  */
-const PLANT_CLIP_SRC = '/assets/video/walkthrough-scrub.mp4';
+const PLANT_FRAME_COUNT = 90;
+const plantFrame = (i: number) =>
+  `/assets/frames/plant/f-${String(i + 1).padStart(3, '0')}.jpg`;
 
 export default function PlantWalkthrough() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const root = useRef<HTMLElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const v = videoRef.current;
-    if (!v) return;
-    const tryPlay = () => v.play().catch(() => {});
-    if (v.readyState >= 2) tryPlay();
-    else v.addEventListener('canplay', tryPlay, { once: true });
-    return () => v.removeEventListener('canplay', tryPlay);
-  }, []);
+  useScrollImageSequence({
+    canvasRef,
+    sectionRef: root,
+    count: PLANT_FRAME_COUNT,
+    src: plantFrame,
+    end: '+=220%',
+  });
 
   return (
-    <section className="relative h-[80vh] w-full overflow-hidden bg-graphite">
-      <video
-        ref={videoRef}
-        src={PLANT_CLIP_SRC}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        poster="/assets/video/hero-poster.jpg"
-        className="absolute inset-0 h-full w-full object-cover"
+    <section
+      ref={root}
+      className="relative h-[100dvh] w-full overflow-hidden bg-graphite"
+    >
+      {/* First frame as a cover-fit background so there's no blank flash
+          before the canvas decodes its first frame. */}
+      <div
         aria-hidden
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url('${plantFrame(0)}')` }}
+      />
+      <canvas
+        ref={canvasRef}
+        aria-hidden
+        className="absolute inset-0 h-full w-full"
       />
       <div className="absolute inset-0 bg-graphite/30" aria-hidden />
 
