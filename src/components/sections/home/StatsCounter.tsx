@@ -28,23 +28,23 @@ export default function StatsCounter() {
           Which is why our numbers speak for themselves.
         </p>
 
-        <ul className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-10 xl:grid-cols-4 xl:gap-8">
+        <ul className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-12 xl:grid-cols-4 xl:gap-12">
           {STATS.map((stat) => (
             <li
               key={stat.label}
-              className="flex min-w-0 flex-col gap-4 border-t border-paper/15 pt-6"
+              className="flex min-w-0 flex-col gap-4 border-t border-paper/15 pt-6 pr-4"
             >
-              {/* Fluid font sizing tuned so the widest stat ("1,000+") fits
-                  every breakpoint without clipping. Grid drops to 2-up at
-                  sm/lg and only expands to 4-up at xl (≥1280px) where each
-                  cell is ~276px wide. Clamp cap of 96px keeps "1,000+"
-                  inside that cell while the single-digit stats still feel
-                  dramatic. overflow-hidden removed — no longer needed. */}
+              {/* Fluid font sizing tuned so the widest stat ("1,000+",
+                  ~3.1em wide in Manrope bold) fits a 4-up xl cell
+                  (≈249px at gap-12) WITH breathing room. 96px overflowed
+                  into the next column — capped at 72px so "1,000+" lands
+                  ~221px wide, leaving a comfortable gutter. Single-digit
+                  stats still read large. gap-12 everywhere for air. */}
               <span
                 className="block font-display font-bold leading-[0.92] text-saffron tabular-nums"
                 style={{
-                  fontSize: 'clamp(56px, 8vw, 96px)',
-                  letterSpacing: '-0.04em',
+                  fontSize: 'clamp(52px, 5.5vw, 72px)',
+                  letterSpacing: '-0.03em',
                   textShadow: '0 0 36px rgba(255,153,51,0.18)',
                 }}
               >

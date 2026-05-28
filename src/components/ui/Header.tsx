@@ -138,7 +138,7 @@ export default function Header() {
           aria-label="Ommi Forge — home"
           data-magnetic
           data-cursor-label="Home"
-          className="inline-flex items-center"
+          className="mr-6 inline-flex items-center md:mr-10 lg:mr-16"
         >
           {/* Real brand wordmark (Ommi italic + Forge block + tricolor bar).
               Outlined strokes — designed for dark backgrounds. Sized to the
