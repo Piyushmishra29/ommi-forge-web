@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Manrope, Work_Sans, Roboto } from 'next/font/google';
 import Script from 'next/script';
+import { MotionConfig } from 'framer-motion';
 import './globals.css';
 
 import LenisProvider from '@/components/providers/LenisProvider';
@@ -129,22 +130,35 @@ export default function RootLayout({
           Skip to content
         </a>
         <LegacyRedirects />
-        <LenisProvider>
-          <RouteResetEffects />
-          <MagneticCursor />
-          <Header />
-          <PageTransition>
-            <main
-              id="main"
-              tabIndex={-1}
-              className="min-h-dvh"
-              style={{ paddingTop: 'var(--header-h)' }}
-            >
-              {children}
-            </main>
-          </PageTransition>
-          <Footer />
-        </LenisProvider>
+        {/* CALM_MODE (NEXT_PUBLIC_CALM_MODE=1 at build time) forces every
+            Framer-`useReducedMotion()` consumer — PageTransition + all
+            section components — into its tested static path: no page-wipe
+            flash, no scroll-scrubbed video, no GSAP-pinned section jumps.
+            Lenis + the magnetic cursor read the flag directly (they use
+            matchMedia, which MotionConfig doesn't reach). Set to the
+            user's OS preference otherwise. */}
+        <MotionConfig
+          reducedMotion={
+            process.env.NEXT_PUBLIC_CALM_MODE === '1' ? 'always' : 'user'
+          }
+        >
+          <LenisProvider>
+            <RouteResetEffects />
+            <MagneticCursor />
+            <Header />
+            <PageTransition>
+              <main
+                id="main"
+                tabIndex={-1}
+                className="min-h-dvh"
+                style={{ paddingTop: 'var(--header-h)' }}
+              >
+                {children}
+              </main>
+            </PageTransition>
+            <Footer />
+          </LenisProvider>
+        </MotionConfig>
         {PLAUSIBLE_DOMAIN ? (
           <Script
             src={PLAUSIBLE_SRC}

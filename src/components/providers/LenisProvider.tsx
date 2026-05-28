@@ -30,6 +30,9 @@ export default function LenisProvider({ children }: LenisProviderProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // CALM_MODE: skip Lenis entirely → native scroll (rock-solid, no
+    // smooth-scroll stutter). Also bail for OS reduced-motion.
+    if (process.env.NEXT_PUBLIC_CALM_MODE === '1') return;
     const reduceMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches;

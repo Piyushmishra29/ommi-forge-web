@@ -26,6 +26,8 @@ function subscribeMQ(callback: () => void) {
 
 function getSnapshot() {
   if (typeof window === 'undefined') return false;
+  // CALM_MODE: no custom cursor — native pointer only.
+  if (process.env.NEXT_PUBLIC_CALM_MODE === '1') return false;
   return (
     window.matchMedia('(hover: hover)').matches &&
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches
