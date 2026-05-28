@@ -167,7 +167,12 @@ export default function Hero() {
     if (!el) return;
 
     const ctx = gsap.context(() => {
-      const chars = el.querySelectorAll('[data-hero-headline] [data-char]');
+      // Line 1 splits per-char; the italic line 2 splits per-WORD (italic
+      // glyphs slant past their box, so per-char inline-block spans mangle
+      // thin letters). Animate both char and word spans.
+      const chars = el.querySelectorAll(
+        '[data-hero-headline] [data-char], [data-hero-headline] [data-word]',
+      );
       const subhead = el.querySelector('[data-hero-subhead]');
       const ctaRow = el.querySelector('[data-hero-ctas]');
       const cue = el.querySelector('[data-hero-cue]');
@@ -246,6 +251,7 @@ export default function Hero() {
           </SplitText>
           <SplitText
             as="span"
+            byWord
             className="mt-3 block text-[clamp(28px,5vw,52px)] italic text-paper/90"
           >
             {HERO_COPY.headlineLine2}

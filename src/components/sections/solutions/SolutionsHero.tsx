@@ -32,7 +32,12 @@ export default function SolutionsHero() {
     if (!el) return;
 
     const ctx = gsap.context(() => {
-      const chars = el.querySelectorAll('[data-hero-headline] [data-char]');
+      // Line 1 animates per-char; the italic line 2 is split per-WORD
+      // (italic glyphs slant past their box, so per-char inline-block
+      // spans mangle thin letters like "ill" in "billet"). Animate both.
+      const chars = el.querySelectorAll(
+        '[data-hero-headline] [data-char], [data-hero-headline] [data-word]',
+      );
       const fades = el.querySelectorAll('[data-hero-fade]');
 
       // Mount-in stagger.
@@ -99,6 +104,7 @@ export default function SolutionsHero() {
           </SplitText>
           <SplitText
             as="span"
+            byWord
             className="block text-[clamp(56px,10vw,110px)] italic text-mesh"
           >
             {SOLUTIONS_HERO.headlineLine2}
