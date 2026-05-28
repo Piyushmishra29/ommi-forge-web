@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { gsap, ScrollTrigger } from '@/lib/gsap';
+import { gsap } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
 import { HERO_COPY } from '@/data/home';
@@ -106,60 +106,25 @@ export default function Hero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reduced = useReducedMotion() ?? false;
 
-  // Scroll-locked playback: the hero PINS at top of viewport while the
-  // user scrolls through a 150% spacer, during which video.currentTime
-  // tweens 0 → end. Once the spacer is consumed, the hero unpins and the
-  // page scrolls normally. No autoplay. The 3.8 s clip has a keyframe
-  // every 6 frames so the scrub never stalls on inter-frames.
+  // The hero video AUTOPLAYS + LOOPS — always, for everyone. The footage
+  // is the centrepiece, so it must just play (no scroll-scrub mechanic,
+  // which was fragile over slow connections and froze without scroll).
+  // Belt-and-braces: some browsers won't honour the autoplay attribute on
+  // a muted background video after hydration, so we also call play()
+  // explicitly once the element can play.
   useEffect(() => {
-    if (reduced) return;
     if (typeof window === 'undefined') return;
     const v = videoRef.current;
-    const el = root.current;
-    if (!v || !el) return;
-
-    let st: ScrollTrigger | null = null;
-    let lastSet = -1;
-
-    const setup = () => {
-      if (!Number.isFinite(v.duration) || v.duration <= 0) return;
-      st?.kill();
-      st = ScrollTrigger.create({
-        trigger: el,
-        start: 'top top',
-        end: '+=300%', // 3× viewport pin — ~1.3 s of video per viewport scrolled
-        pin: true,
-        pinSpacing: true,
-        // A small numeric scrub (0.4s catch-up) makes the video glide
-        // toward the scroll target instead of hard-snapping frame-to-
-        // frame — reads as smooth playback rather than stepping. GSAP
-        // drives onUpdate continuously as it eases, so we keep only a
-        // fine sub-frame throttle (0.02s ≈ 50fps) to avoid redundant
-        // decodes. The 720p clip keeps this cheap.
-        scrub: 0.4,
-        onUpdate: (self) => {
-          if (!Number.isFinite(v.duration)) return;
-          const t = Math.min(self.progress * v.duration, v.duration - 0.04);
-          if (Math.abs(t - lastSet) < 0.02) return;
-          lastSet = t;
-          try {
-            v.currentTime = t;
-          } catch {
-            /* Safari sometimes throws if metadata isn't ready. */
-          }
-        },
+    if (!v) return;
+    const tryPlay = () => {
+      v.play().catch(() => {
+        /* Autoplay can be refused; the poster stays visible. */
       });
     };
-
-    if (v.readyState >= 1) setup();
-    else v.addEventListener('loadedmetadata', setup, { once: true });
-
-    return () => {
-      st?.kill();
-      st = null;
-      v.removeEventListener('loadedmetadata', setup);
-    };
-  }, [reduced]);
+    if (v.readyState >= 2) tryPlay();
+    else v.addEventListener('canplay', tryPlay, { once: true });
+    return () => v.removeEventListener('canplay', tryPlay);
+  }, []);
 
   useEffect(() => {
     if (reduced) return;
@@ -213,16 +178,15 @@ export default function Hero() {
       style={{ marginTop: 'calc(-1 * var(--header-h))' }}
       className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden"
     >
-      {/* Background video — scroll-scrubbed (no autoplay). The effect
-          above sets currentTime from the section's scroll position so
-          the 3.8 s first-shot clip advances frame-by-frame as the user
-          scrolls down through the hero. preload="auto" because the clip
-          is tiny (5.6 MB) and seek needs to be instant. */}
+      {/* Background hero video — autoplay + loop, always. Muted +
+          playsInline so mobile/iOS allow autoplay. */}
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
         src="/assets/video/hero-firstshot.mp4"
         poster="/assets/video/hero-poster.jpg"
+        autoPlay
+        loop
         muted
         playsInline
         preload="auto"
