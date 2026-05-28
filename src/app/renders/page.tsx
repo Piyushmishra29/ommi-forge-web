@@ -3,7 +3,7 @@ import Eyebrow from "@/components/ui/Eyebrow";
 import { RendersGrid } from "./renders-grid";
 
 export const metadata = {
-  title: "3D Renders · Ommi Forge",
+  title: "3D Renders — Forged parts in motion",
   description:
     "Engineered in metal, explored in motion — interactive 3D renders of forged industrial parts.",
 };

@@ -148,7 +148,7 @@ function PinnedHeritage() {
                   <p
                     className={cn(
                       'font-display text-2xl font-light leading-tight transition-colors duration-500 md:text-3xl',
-                      i === activeIndex ? 'text-graphite' : 'text-steel/65',
+                      i === activeIndex ? 'text-graphite' : 'text-steel',
                     )}
                   >
                     {c.year}

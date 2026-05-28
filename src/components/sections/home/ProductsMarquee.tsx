@@ -83,6 +83,8 @@ function MarqueeRow({ tiles, direction, duration, reduced }: MarqueeRowProps) {
       className="relative overflow-hidden"
       onMouseEnter={pause}
       onMouseLeave={resume}
+      onTouchStart={pause}
+      onTouchEnd={resume}
     >
       <div
         ref={trackRef}

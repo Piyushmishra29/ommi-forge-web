@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Hero from '@/components/sections/home/Hero';
 import HammerStrikeIntro from '@/components/sections/home/HammerStrikeIntro';
 import MaterialsGrid from '@/components/sections/home/MaterialsGrid';
@@ -27,6 +28,15 @@ import ClosingCta from '@/components/sections/home/ClosingCta';
  *  8. Location            — Malur address + Maps iframe
  *  9. ClosingCta          — saffron slab, quote CTA
  */
+export const metadata: Metadata = {
+  // Absolute title so the root `%s · Ommi Forge` template doesn't double
+  // the brand name, and so the home tab matches the em-dash style used
+  // by every other route.
+  title: { absolute: 'Ommi Forge — Forged in India since 1975' },
+  description:
+    'Indian steel-forging company since 1975 — closed die, open die, ring rolling and upset forging. Plant in Malur, Karnataka.',
+};
+
 export default function HomePage() {
   return (
     <>
