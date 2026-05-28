@@ -1,50 +1,61 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Eyebrow from '@/components/ui/Eyebrow';
+import { useVideoScrub } from '@/components/motion/useVideoScrub';
 
 /**
  * PlantWalkthrough (Act 03)
  *
- * Full-bleed plant footage that AUTOPLAYS + LOOPS — always, for everyone.
- * Previously this was a scroll-scrubbed pinned section, but scrubbing an
- * MP4 over a slow connection was fragile and could freeze; the footage
- * is too important to gamble on. Now it's a simple, reliable background
- * video with the "Inside the wonderworld" overlay.
+ * Scroll-scrubbed plant footage — the "Inside the wonderworld" crawl. The
+ * section pins and the video advances frame-by-frame with scroll, via the
+ * shared `useVideoScrub` hook (which carries the mobile-Safari fixes:
+ * loadedmetadata bind, touch-prime, fastSeek).
  *
- * Muted + playsInline so mobile/iOS permit autoplay. We also call play()
- * explicitly once it can play, in case the browser ignores the autoplay
- * attribute on a backgrounded element.
+ * OS reduced-motion users get a plain autoplay loop instead (no pin, no
+ * scrub) — `osReduced` swaps both the attributes and skips the hook.
  */
 const PLANT_CLIP_SRC = '/assets/video/walkthrough-scrub.mp4';
 
 export default function PlantWalkthrough() {
+  const sectionRef = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [osReduced, setOsReduced] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const v = videoRef.current;
-    if (!v) return;
-    const tryPlay = () => {
-      v.play().catch(() => {
-        /* Autoplay refused — poster/frame stays visible. */
-      });
-    };
-    if (v.readyState >= 2) tryPlay();
-    else v.addEventListener('canplay', tryPlay, { once: true });
-    return () => v.removeEventListener('canplay', tryPlay);
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const on = () => setOsReduced(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
   }, []);
 
+  // Scrub (no-op when OS reduced-motion is set — the hook bails internally).
+  useVideoScrub({ videoRef, sectionRef, end: '+=250%' });
+
+  // Reduced-motion fallback: make sure the autoplay loop actually starts.
+  useEffect(() => {
+    if (!osReduced) return;
+    const v = videoRef.current;
+    if (!v) return;
+    v.play().catch(() => {});
+  }, [osReduced]);
+
   return (
-    <section className="relative h-[80vh] w-full overflow-hidden bg-graphite">
+    <section
+      ref={sectionRef}
+      className="relative h-screen w-full overflow-hidden bg-graphite"
+    >
       <video
         ref={videoRef}
         src={PLANT_CLIP_SRC}
-        autoPlay
+        autoPlay={osReduced}
+        loop={osReduced}
         muted
-        loop
         playsInline
         preload="auto"
+        poster="/assets/video/hero-poster.jpg"
         className="absolute inset-0 h-full w-full object-cover"
         aria-hidden
       />
@@ -57,8 +68,8 @@ export default function PlantWalkthrough() {
           Inside the wonderworld.
         </h2>
         <p className="mt-4 font-body text-sm text-paper/80 md:text-base">
-          A pass through the Malur plant — hammers, anvils, and the floor
-          that turns spec sheets into steel.
+          A scroll-driven pass through the Malur plant — hammers, anvils,
+          and the floor that turns spec sheets into steel.
         </p>
       </div>
     </section>

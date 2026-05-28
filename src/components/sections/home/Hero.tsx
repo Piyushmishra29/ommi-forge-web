@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { gsap, ScrollTrigger } from '@/lib/gsap';
+import { gsap } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
+import { useVideoScrub } from '@/components/motion/useVideoScrub';
 import { HERO_COPY } from '@/data/home';
 import { BRAND_HEX } from '@/lib/brand';
 
@@ -119,61 +120,11 @@ export default function Hero() {
     return () => mq.removeEventListener('change', on);
   }, []);
 
-  // Scroll-scrub: the hero pins for 300vh and video.currentTime tracks
-  // scroll position so the footage advances as you scroll. The fragility
-  // before was scrubbing an UNBUFFERED clip over a slow link — so we wait
-  // for `canplaythrough` (the 2.6 MB / 720p clip buffers fast behind
-  // Caddy's range support) and only THEN bind the scrub. Works on native
-  // scroll, so it's smooth in calm mode (no Lenis lag) too.
-  useEffect(() => {
-    if (osReduced) return;
-    if (typeof window === 'undefined') return;
-    const v = videoRef.current;
-    const el = root.current;
-    if (!v || !el) return;
-
-    let st: ScrollTrigger | null = null;
-    let lastSet = -1;
-
-    const bind = () => {
-      if (st || !Number.isFinite(v.duration) || v.duration <= 0) return;
-      st = ScrollTrigger.create({
-        trigger: el,
-        start: 'top top',
-        end: '+=300%',
-        pin: true,
-        pinSpacing: true,
-        scrub: 0.5,
-        onUpdate: (self) => {
-          const t = Math.min(self.progress * v.duration, v.duration - 0.05);
-          if (Math.abs(t - lastSet) < 0.02) return;
-          lastSet = t;
-          try {
-            v.currentTime = t;
-          } catch {
-            /* Safari throws if metadata isn't ready — retry next tick. */
-          }
-        },
-      });
-      ScrollTrigger.refresh();
-    };
-
-    // Bind once the clip is buffered enough to seek without stalling.
-    if (v.readyState >= 3) bind();
-    else {
-      v.addEventListener('canplaythrough', bind, { once: true });
-      // Fallback: if canplaythrough is slow, bind on loadeddata so the
-      // scrub still works (it'll just buffer-on-demand the first pass).
-      v.addEventListener('loadeddata', bind, { once: true });
-    }
-
-    return () => {
-      st?.kill();
-      st = null;
-      v.removeEventListener('canplaythrough', bind);
-      v.removeEventListener('loadeddata', bind);
-    };
-  }, [osReduced]);
+  // Scroll-scrub the hero footage (the "crawl to play" interaction). The
+  // shared hook handles the mobile-Safari fixes (loadedmetadata bind,
+  // touch-prime, fastSeek) and gates itself on OS reduced-motion. The
+  // video element below autoplay-loops as the reduced-motion fallback.
+  useVideoScrub({ videoRef, sectionRef: root, end: '+=300%' });
 
   useEffect(() => {
     if (reduced) return;

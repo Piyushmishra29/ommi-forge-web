@@ -236,7 +236,7 @@ export function StlViewer({
       style={{ background: stageBackground }}
     >
       <Canvas
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         camera={{ position: [0, 0, 200], fov: 35 }}
         shadows
         // Inactive: canvas ignores pointers so vertical swipes scroll the

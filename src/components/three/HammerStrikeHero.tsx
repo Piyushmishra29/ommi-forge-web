@@ -161,7 +161,7 @@ export function HammerStrikeHero({
       ].join(" ")}
     >
       <Canvas
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         camera={{ position: [0, 10, 90], fov: 38 }}
         shadows
       >
