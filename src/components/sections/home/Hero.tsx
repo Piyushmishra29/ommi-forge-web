@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { gsap } from '@/lib/gsap';
+import { gsap, ScrollTrigger } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
 import { HERO_COPY } from '@/data/home';
@@ -105,26 +105,75 @@ export default function Hero() {
   const root = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reduced = useReducedMotion() ?? false;
-
-  // The hero video AUTOPLAYS + LOOPS — always, for everyone. The footage
-  // is the centrepiece, so it must just play (no scroll-scrub mechanic,
-  // which was fragile over slow connections and froze without scroll).
-  // Belt-and-braces: some browsers won't honour the autoplay attribute on
-  // a muted background video after hydration, so we also call play()
-  // explicitly once the element can play.
+  // OS-level reduced-motion ONLY (not useReducedMotion, which CALM_MODE
+  // forces true). The scroll-scrub is the centrepiece of the hero — it
+  // must run even in calm mode; only a genuine accessibility preference
+  // falls back to a plain autoplay loop.
+  const [osReduced, setOsReduced] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const v = videoRef.current;
-    if (!v) return;
-    const tryPlay = () => {
-      v.play().catch(() => {
-        /* Autoplay can be refused; the poster stays visible. */
-      });
-    };
-    if (v.readyState >= 2) tryPlay();
-    else v.addEventListener('canplay', tryPlay, { once: true });
-    return () => v.removeEventListener('canplay', tryPlay);
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const on = () => setOsReduced(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
   }, []);
+
+  // Scroll-scrub: the hero pins for 300vh and video.currentTime tracks
+  // scroll position so the footage advances as you scroll. The fragility
+  // before was scrubbing an UNBUFFERED clip over a slow link — so we wait
+  // for `canplaythrough` (the 2.6 MB / 720p clip buffers fast behind
+  // Caddy's range support) and only THEN bind the scrub. Works on native
+  // scroll, so it's smooth in calm mode (no Lenis lag) too.
+  useEffect(() => {
+    if (osReduced) return;
+    if (typeof window === 'undefined') return;
+    const v = videoRef.current;
+    const el = root.current;
+    if (!v || !el) return;
+
+    let st: ScrollTrigger | null = null;
+    let lastSet = -1;
+
+    const bind = () => {
+      if (st || !Number.isFinite(v.duration) || v.duration <= 0) return;
+      st = ScrollTrigger.create({
+        trigger: el,
+        start: 'top top',
+        end: '+=300%',
+        pin: true,
+        pinSpacing: true,
+        scrub: 0.5,
+        onUpdate: (self) => {
+          const t = Math.min(self.progress * v.duration, v.duration - 0.05);
+          if (Math.abs(t - lastSet) < 0.02) return;
+          lastSet = t;
+          try {
+            v.currentTime = t;
+          } catch {
+            /* Safari throws if metadata isn't ready — retry next tick. */
+          }
+        },
+      });
+      ScrollTrigger.refresh();
+    };
+
+    // Bind once the clip is buffered enough to seek without stalling.
+    if (v.readyState >= 3) bind();
+    else {
+      v.addEventListener('canplaythrough', bind, { once: true });
+      // Fallback: if canplaythrough is slow, bind on loadeddata so the
+      // scrub still works (it'll just buffer-on-demand the first pass).
+      v.addEventListener('loadeddata', bind, { once: true });
+    }
+
+    return () => {
+      st?.kill();
+      st = null;
+      v.removeEventListener('canplaythrough', bind);
+      v.removeEventListener('loadeddata', bind);
+    };
+  }, [osReduced]);
 
   useEffect(() => {
     if (reduced) return;
@@ -178,15 +227,17 @@ export default function Hero() {
       style={{ marginTop: 'calc(-1 * var(--header-h))' }}
       className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden"
     >
-      {/* Background hero video — autoplay + loop, always. Muted +
-          playsInline so mobile/iOS allow autoplay. */}
+      {/* Background hero video. Default: scroll-scrubbed (the effect above
+          drives currentTime from scroll). Accessibility fallback only
+          (OS reduced-motion): plain autoplay loop. preload="auto" so the
+          scrub has the clip buffered. */}
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
         src="/assets/video/hero-firstshot.mp4"
         poster="/assets/video/hero-poster.jpg"
-        autoPlay
-        loop
+        autoPlay={osReduced}
+        loop={osReduced}
         muted
         playsInline
         preload="auto"
