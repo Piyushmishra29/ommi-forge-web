@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
-import { useVideoScrub } from '@/components/motion/useVideoScrub';
+import { useScrollImageSequence } from '@/components/motion/useScrollImageSequence';
+
+/** Hero footage decoded to a JPG image sequence in /public/assets/frames/hero/. */
+const HERO_FRAME_COUNT = 46;
 import { HERO_COPY } from '@/data/home';
 import { BRAND_HEX } from '@/lib/brand';
 
@@ -104,27 +107,21 @@ function AudioPulseBars({ reduced }: { reduced: boolean }) {
 
 export default function Hero() {
   const root = useRef<HTMLElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reduced = useReducedMotion() ?? false;
-  // OS-level reduced-motion ONLY (not useReducedMotion, which CALM_MODE
-  // forces true). The scroll-scrub is the centrepiece of the hero — it
-  // must run even in calm mode; only a genuine accessibility preference
-  // falls back to a plain autoplay loop.
-  const [osReduced, setOsReduced] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const on = () => setOsReduced(mq.matches);
-    on();
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, []);
 
-  // Scroll-scrub the hero footage (the "crawl to play" interaction). The
-  // shared hook handles the mobile-Safari fixes (loadedmetadata bind,
-  // touch-prime, fastSeek) and gates itself on OS reduced-motion. The
-  // video element below autoplay-loops as the reduced-motion fallback.
-  useVideoScrub({ videoRef, sectionRef: root, end: '+=300%' });
+  // Scroll-scrub the hero footage as an image sequence drawn to a canvas
+  // (the Apple technique) — reliable "crawl to play" on mobile + desktop,
+  // unlike MP4 currentTime seeking. The hook pins the section and draws
+  // the frame for the current scroll position; reduced-motion → static.
+  useScrollImageSequence({
+    canvasRef,
+    sectionRef: root,
+    count: HERO_FRAME_COUNT,
+    src: (i) =>
+      `/assets/frames/hero/f-${String(i + 1).padStart(3, '0')}.jpg`,
+    end: '+=220%',
+  });
 
   useEffect(() => {
     if (reduced) return;
@@ -178,21 +175,19 @@ export default function Hero() {
       style={{ marginTop: 'calc(-1 * var(--header-h))' }}
       className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden"
     >
-      {/* Background hero video. Default: scroll-scrubbed (the effect above
-          drives currentTime from scroll). Accessibility fallback only
-          (OS reduced-motion): plain autoplay loop. preload="auto" so the
-          scrub has the clip buffered. */}
-      <video
-        ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover"
-        src="/assets/video/hero-firstshot.mp4"
-        poster="/assets/video/hero-poster.jpg"
-        autoPlay={osReduced}
-        loop={osReduced}
-        muted
-        playsInline
-        preload="auto"
+      {/* Background hero footage as a scroll-scrubbed image sequence drawn
+          onto this canvas (the hook owns it). The poster sits behind as a
+          cover-fit background so there's no blank flash before the first
+          frame decodes. */}
+      <div
         aria-hidden
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/assets/video/hero-poster.jpg')" }}
+      />
+      <canvas
+        ref={canvasRef}
+        aria-hidden
+        className="absolute inset-0 h-full w-full"
       />
       {/* Layered overlay: darker top-to-bottom gradient so headline + subhead
           read on bright midday footage. */}

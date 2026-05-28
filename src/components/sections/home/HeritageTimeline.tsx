@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
 import PinnedSection, {
   useScrollSubscribe,
 } from '@/components/motion/PinnedSection';
+import { useStaticPins } from '@/components/motion/useStaticPins';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { MILESTONES } from '@/data/home';
 
@@ -161,8 +161,9 @@ function StaticList() {
 }
 
 export default function HeritageTimeline() {
-  const reduced = useReducedMotion() ?? false;
-  if (reduced) return <StaticList />;
+  // Static on mobile + reduced-motion — stacked pins are janky on phones.
+  const staticMode = useStaticPins();
+  if (staticMode) return <StaticList />;
   return (
     <PinnedSection length={4}>
       <TimelineTrack />

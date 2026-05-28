@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'framer-motion';
 import { gsap } from '@/lib/gsap';
 import PinnedSection, {
   useScrollSubscribe,
   useScrollProgressRef,
 } from '@/components/motion/PinnedSection';
+import { useStaticPins } from '@/components/motion/useStaticPins';
 import { HammerStrikeHero } from '@/components/three/lazy';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { HAMMER_INTRO_WORDS } from '@/data/home';
@@ -240,8 +240,9 @@ function HammerStatic() {
 }
 
 export default function HammerStrikeIntro() {
-  const reduced = useReducedMotion() ?? false;
-  if (reduced) return <HammerStatic />;
+  // Static on mobile + reduced-motion — stacked pins are janky on phones.
+  const staticMode = useStaticPins();
+  if (staticMode) return <HammerStatic />;
   return (
     <PinnedSection length={2.5}>
       <HammerInner />
