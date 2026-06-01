@@ -679,8 +679,8 @@ visibly jump mid-scroll.
 
 | Sequence | Frames | Size on disk | Width | Source clip | Extraction |
 | --- | --- | --- | --- | --- | --- |
-| **Hero** (`HERO_FRAME_COUNT = 46`) | 46 (`f-001..046.jpg`) | ~4.7 MB | 1100 px | `hero.mp4` | ~10–12 fps, JPG q5–6 |
-| **Plant** (`PLANT_FRAME_COUNT = 90`) | 90 (`f-001..090.jpg`) | ~6.9 MB on server (5.1 MB source) | 1000 px | `walkthrough-scrub.mp4`, first ~9 s @ 10 fps | JPG q5–6 |
+| **Hero** (`HERO_FRAME_COUNT = 46`) | 46 (`f-001..046.jpg`) | ~8.2 MB | 1280×720 (native) | `hero-firstshot.mp4` | 12 fps, JPG `-q:v 3` |
+| **Plant** (`PLANT_FRAME_COUNT = 90`) | 90 (`f-001..090.jpg`) | ~10 MB | 1280×720 (native) | `walkthrough-scrub.mp4`, first ~9 s @ 10 fps | JPG `-q:v 3` |
 
 Hero frames live in `/public/assets/frames/hero/`, Plant frames in
 `/public/assets/frames/plant/`; both are referenced 1-based on disk
@@ -916,8 +916,8 @@ The hammer-strike hero is the R3F scene; the plant section is pure 2D canvas.
 
 | Asset | Location | Count | Total size | Per-file / notes |
 | --- | --- | --- | --- | --- |
-| Hero frame sequence | `public/assets/frames/hero/` | 46 JPGs (`f-001`…`f-046`) | 4.7 MB | 1100×618 baseline JPG; driven by `HERO_FRAME_COUNT = 46` |
-| Plant frame sequence | `public/assets/frames/plant/` | 90 JPGs (`f-001`…`f-090`) | 5.1 MB | 1000×562 baseline JPG; `PLANT_FRAME_COUNT = 90`, ~9s @ 10fps |
+| Hero frame sequence | `public/assets/frames/hero/` | 46 JPGs (`f-001`…`f-046`) | 8.2 MB | 1280×720 native JPG (`-q:v 3`); driven by `HERO_FRAME_COUNT = 46` |
+| Plant frame sequence | `public/assets/frames/plant/` | 90 JPGs (`f-001`…`f-090`) | 10 MB | 1280×720 native JPG (`-q:v 3`); `PLANT_FRAME_COUNT = 90`, ~9s @ 10fps |
 | Numbered render STLs | `public/assets/stl/` | 9 (`part-a`…`part-i`) | 59 MB | binary STL; largest `part-b.stl` 5.1 MB, smallest `part-g.stl` 1.2 MB |
 | Named-product STLs | `public/assets/stl/named/` | 11 | 64 MB | mirrors of the numbered meshes under product filenames (9 byte-identical to a `part-*`) for `/forged-products` |
 | HDRI | `public/assets/hdr/` | 1 | 1.6 MB | `empty_warehouse_01_1k.hdr` (CC0, Poly Haven) — env map for StlViewer |
@@ -944,12 +944,12 @@ The image sequences were extracted from the source clips with ffmpeg. The plant
 sequence is decoded at ~10 fps from the first ~9 s of the walkthrough clip:
 
 ```sh
-# Hero sequence (-> public/assets/frames/hero/f-001.jpg …)
-ffmpeg -i hero.mp4 -vf "scale=1100:-1" -q:v 4 \
+# Hero sequence — native 1280x720, 12fps (-> public/assets/frames/hero/f-001.jpg …)
+ffmpeg -y -i public/assets/video/hero-firstshot.mp4 -vf "fps=12" -q:v 3 \
   public/assets/frames/hero/f-%03d.jpg
 
-# Plant walkthrough sequence, ~10fps, first ~9s (-> frames/plant/f-001.jpg …)
-ffmpeg -i plant-walkthrough.mp4 -t 9 -vf "fps=10,scale=1000:-1" -q:v 4 \
+# Plant walkthrough sequence — native 1280x720, 10fps, first ~9s
+ffmpeg -y -i public/assets/video/walkthrough-scrub.mp4 -t 9 -vf "fps=10" -q:v 3 \
   public/assets/frames/plant/f-%03d.jpg
 ```
 

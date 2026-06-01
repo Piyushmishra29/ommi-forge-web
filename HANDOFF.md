@@ -41,14 +41,20 @@ instead — reliable + identical on mobile and desktop.
   - `{ canvasRef, sectionRef, count, src:(i)=>url, end='+=220%', scrub=0.5 }`.
   - Preloads frames (0-based), pins the section, draws the frame for scroll
     progress cover-fit onto a `<canvas>`. OS reduced-motion → one static frame, no pin.
-- **Hero** (`Hero.tsx`): 46 frames `/assets/frames/hero/f-001..046.jpg` (~4.7MB).
+- **Hero** (`Hero.tsx`): 46 frames `/assets/frames/hero/f-001..046.jpg`
+  (~8.2MB), 1280×720 native, 12fps, JPG `-q:v 3`.
 - **Plant walkthrough / Act 03** (`PlantWalkthrough.tsx`): 90 frames
-  `/assets/frames/plant/f-001..090.jpg` (~6.9MB on server / 5.1MB source),
-  decoded from the first ~9s of `walkthrough-scrub.mp4` at 10fps, 1000px wide.
+  `/assets/frames/plant/f-001..090.jpg` (~10MB), 1280×720 native,
+  first ~9s of `walkthrough-scrub.mp4` at 10fps, JPG `-q:v 3`.
 
-Frame extraction recipe (system ffmpeg lacks libwebp → use JPG):
+Frame extraction recipe (system ffmpeg lacks libwebp → use JPG). Extract at
+**native source resolution** — downsampling visibly softens the canvas on
+retina displays:
 ```bash
-ffmpeg -y -i SRC.mp4 -t 9 -vf "fps=10,scale=1000:-2" -q:v 6 out/f-%03d.jpg
+ffmpeg -y -i public/assets/video/hero-firstshot.mp4 -vf "fps=12" -q:v 3 \
+  public/assets/frames/hero/f-%03d.jpg
+ffmpeg -y -i public/assets/video/walkthrough-scrub.mp4 -t 9 -vf "fps=10" -q:v 3 \
+  public/assets/frames/plant/f-%03d.jpg
 ```
 
 ## Mobile pin policy
