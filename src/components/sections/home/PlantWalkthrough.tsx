@@ -80,7 +80,15 @@ export default function PlantWalkthrough() {
       { rootMargin: '600px' },
     );
     io.observe(el);
-    return () => io.disconnect();
+    // Defensive fallback: if the observer hasn't fired by 2.5 s — which
+    // can happen on fast momentum scroll or deep-link landings that skip
+    // the rootMargin window in some browsers — force the canvas to mount
+    // so the section is never permanently blank.
+    const fallback = window.setTimeout(() => setActive(true), 2500);
+    return () => {
+      io.disconnect();
+      window.clearTimeout(fallback);
+    };
   }, []);
 
   return (

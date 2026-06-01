@@ -215,6 +215,9 @@ export function useScrollImageSequence({
       window.removeEventListener('resize', onResize);
       ro?.disconnect();
     };
+    // `src` is part of the deps so consumers that swap frame sources
+    // (e.g. responsive variants) get a clean re-mount. canvasRef /
+    // sectionRef are stable React refs and don't need listing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, end, scrub]);
+  }, [count, end, scrub, src]);
 }

@@ -241,11 +241,12 @@ const PinnedSection = forwardRef<HTMLDivElement, PinnedSectionProps>(
             else if (ref) ref.current = node;
           }}
           id={id}
-          // `contain: layout style paint` isolates the pinned section
-          // so its layout/paint cost stops propagating to the rest of
-          // the page on every scroll tick. Each pin gets its own
-          // containing block.
-          style={{ contain: 'layout style paint' }}
+          // NB: `contain: layout|paint` is intentionally NOT applied here.
+          // Both establish an independent containing block for fixed-
+          // positioned descendants — and ScrollTrigger pins by setting
+          // `position: fixed` on `innerRef`. With contain on the outer,
+          // the "pinned" inner becomes fixed relative to the outer (not
+          // the viewport) and scrolls away with it. See issue #11.
           className={cn('relative', className)}
         >
           <div ref={innerRef} className="h-screen w-full overflow-hidden">

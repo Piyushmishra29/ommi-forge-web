@@ -209,6 +209,13 @@ export default function MagneticCursor() {
           backgroundColor: reduced ? 'rgba(0,0,0,0)' : ringBg,
           borderColor: 'var(--color-mesh)',
           opacity: reduced ? 1 : ringOpacity,
+          // Drop-shadow replaces the previous `mix-blend-difference` —
+          // gives the mesh-orange ring enough contrast to read against
+          // bg-paper (#FAFAFA) pages without compositing against the
+          // hero/plant canvases on every spring tick (the blend mode's
+          // perf cost). 1 px dark halo at low alpha is invisible on
+          // dark backgrounds, pops on light.
+          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.45))',
         }}
         className="rounded-full border-2"
       />
