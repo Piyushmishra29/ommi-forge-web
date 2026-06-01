@@ -8,6 +8,7 @@ import PlantWalkthrough from '@/components/sections/home/PlantWalkthrough';
 import HeritageTimeline from '@/components/sections/home/HeritageTimeline';
 import Location from '@/components/sections/home/Location';
 import ClosingCta from '@/components/sections/home/ClosingCta';
+import BgBridge from '@/components/sections/home/BgBridge';
 
 /**
  * Ommi Forge — home page.
@@ -41,13 +42,23 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      {/* Bridge dark hero footage → light Hammer act. Softens the
+          previously-jarring graphite→paper slam at pin handoff. */}
+      <BgBridge from="graphite" to="paper" />
       <HammerStrikeIntro />
       <MaterialsGrid />
+      {/* Bridge light MaterialsGrid → dark Plant act. */}
+      <BgBridge from="paper" to="graphite" />
       <PlantWalkthrough />
       <StatsCounter />
+      {/* Bridge dark Stats → light Products. */}
+      <BgBridge from="graphite" to="paper" />
       <ProductsMarquee />
       <HeritageTimeline />
       <Location />
+      {/* Bridge light Location → saffron ClosingCta (intentional brand
+          moment — keep slightly taller for the final "warming up"). */}
+      <BgBridge from="paper" to="saffron" heightPx={140} />
       <ClosingCta />
     </>
   );

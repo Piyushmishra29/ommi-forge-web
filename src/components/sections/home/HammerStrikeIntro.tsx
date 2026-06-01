@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { gsap } from '@/lib/gsap';
+import { useCallback, useRef, useState } from 'react';
 import PinnedSection, {
   useScrollSubscribe,
   useScrollProgressRef,
@@ -96,8 +95,6 @@ function GatedHammerHero({
 function HammerInner() {
   const progressRef = useScrollProgressRef();
   const sectionRef = useRef<HTMLDivElement | null>(null);
-  const struckRef = useRef(false);
-  const flashTlRef = useRef<gsap.core.Timeline | null>(null);
 
   // Refs into each cross-fading word so we can write opacity / transform
   // straight to the DOM from the scroll subscription — no React render.
@@ -116,37 +113,15 @@ function HammerInner() {
     return 1 - (progress - mid) / (end - mid);
   };
 
-  // Build the impact-flash timeline ONCE on mount. We pause it and
-  // `restart()` on each trigger so the saffron always lands back on
-  // paper — no risk of getting "stuck" on saffron if the user
-  // scroll-oscillates near 0.95.
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-
-    const tl = gsap.timeline({ paused: true });
-    tl.to(el, {
-      backgroundColor: 'var(--color-saffron)',
-      duration: 0.2,
-      ease: 'power2.out',
-    }).to(el, {
-      backgroundColor: 'var(--color-paper)',
-      duration: 0.4,
-      ease: 'power2.out',
-    });
-    flashTlRef.current = tl;
-
-    return () => {
-      tl.kill();
-      flashTlRef.current = null;
-      // Reset inline style so HMR doesn't leave us mid-tween.
-      gsap.set(el, { clearProps: 'backgroundColor,transition' });
-    };
-  }, []);
+  // Note: this section used to fire a full-page saffron strobe at
+  // progress > 0.95 (bg paper → saffron → paper over 0.6 s). Removed:
+  // the strobe read as an unwanted "flash" on every approach. The
+  // word cross-fade (Heat → Strike → Forge) already carries the
+  // impact narrative without flashing the whole viewport.
 
   // Single subscription — runs every scroll tick, writes directly into
-  // the word elements and (debounced) restarts the flash timeline.
-  // Stable callback identity so we don't re-subscribe on every render.
+  // the word elements. Stable callback identity so we don't re-subscribe
+  // on every render.
   const onScroll = useCallback((p: number) => {
     const heat = op(p, 0, 0.0, 0.33);
     const strike = op(p, 0.2, 0.45, 0.66);
@@ -158,16 +133,6 @@ function HammerInner() {
       if (!node) continue;
       node.style.opacity = String(opacity);
       node.style.transform = `translateY(${(1 - opacity) * 20}px)`;
-    }
-
-    const tl = flashTlRef.current;
-    if (tl) {
-      if (p > 0.95 && !struckRef.current) {
-        struckRef.current = true;
-        tl.restart();
-      } else if (p < 0.5) {
-        struckRef.current = false;
-      }
     }
   }, []);
 

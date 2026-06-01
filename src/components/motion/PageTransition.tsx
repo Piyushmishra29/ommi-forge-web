@@ -39,13 +39,19 @@ export default function PageTransition({ children }: PageTransitionProps) {
   }
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    // No `mode="wait"` — wait creates a blank gap because exit must
+    // complete before enter starts; on the default overlap mode the old
+    // page fades out while the new fades in, no visible blank. Opacity-
+    // only (no y-translate) reads as a soft dissolve rather than a
+    // mechanical slide. Short duration (0.22 s) so it feels like a quiet
+    // beat, not a transition slab.
+    <AnimatePresence initial={false}>
       <motion.div
         key={pathname}
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -16 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
         {children}
       </motion.div>
