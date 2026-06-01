@@ -71,18 +71,25 @@ export function useScrollImageSequence({
 
     let lastDrawn = -1;
 
+    // Size the backing buffer only — DO NOT set inline style.width/height,
+    // because that would override the CSS `h-full w-full` that keeps the
+    // canvas filling the section. Stale inline pixel widths from an early
+    // measurement (hydration, font load, pin wrap, browser zoom) used to
+    // shrink the canvas and leave the poster bg-div leaking through as a
+    // hard vertical seam. Reading the canvas's own client box (governed by
+    // CSS) is always consistent with what's actually rendered.
     const sizeCanvas = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = section.clientWidth;
-      const h = section.clientHeight;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (w <= 0 || h <= 0) return;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    // Cover-fit draw (object-cover semantics).
+    // Cover-fit draw (object-cover semantics). Uses the canvas's own client
+    // box so sizing and drawing stay in lockstep regardless of section state.
     const draw = (index: number) => {
       const i = Math.max(0, Math.min(count - 1, index));
       let img = images[i];
@@ -94,8 +101,9 @@ export function useScrollImageSequence({
       } else {
         lastDrawn = i;
       }
-      const cw = section.clientWidth;
-      const ch = section.clientHeight;
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      if (cw <= 0 || ch <= 0) return;
       const ir = img.naturalWidth / img.naturalHeight;
       const cr = cw / ch;
       let dw: number, dh: number, dx: number, dy: number;
@@ -123,6 +131,15 @@ export function useScrollImageSequence({
     };
     window.addEventListener('resize', onResize);
 
+    // ResizeObserver catches size changes that don't trigger window resize:
+    // ScrollTrigger pin-spacer wrapping, layout shifts from font loading,
+    // browser zoom, devtools opening/closing, dvh recompute, etc.
+    const ro =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(onResize)
+        : null;
+    ro?.observe(canvas);
+
     let st: ScrollTrigger | null = null;
     if (!reduced) {
       st = ScrollTrigger.create({
@@ -142,6 +159,7 @@ export function useScrollImageSequence({
     return () => {
       st?.kill();
       window.removeEventListener('resize', onResize);
+      ro?.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count, end, scrub]);
