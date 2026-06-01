@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
-import { useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { gsap } from '@/lib/gsap';
 import SplitText from '@/components/motion/SplitText';
 import { CLOSING_CTA } from '@/data/home';

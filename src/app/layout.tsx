@@ -125,6 +125,19 @@ export default function RootLayout({
       lang="en-IN"
       className={`${manrope.variable} ${workSans.variable} ${roboto.variable} antialiased`}
     >
+      <head>
+        {/* The very first hero frame is the LCP candidate on `/`. Preload
+            it with high priority so the canvas can paint without
+            waiting for the bounded-concurrency queue to dequeue it. */}
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/frames/hero/f-001.webp"
+          type="image/webp"
+          // @ts-expect-error — React 19 typings don't include fetchPriority yet
+          fetchpriority="high"
+        />
+      </head>
       <body className="min-h-dvh bg-paper text-graphite">
         <a href="#main" className="skip-link">
           Skip to content

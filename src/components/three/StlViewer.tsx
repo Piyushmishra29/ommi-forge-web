@@ -8,12 +8,8 @@ import {
   useState,
 } from "react";
 import { Canvas, useLoader } from "@react-three/fiber";
-import {
-  ContactShadows,
-  Environment,
-  OrbitControls,
-} from "@react-three/drei";
-import { useReducedMotion } from "framer-motion";
+import { ContactShadows, OrbitControls } from "@react-three/drei";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { BRAND_HEX } from "@/lib/brand";
@@ -246,29 +242,35 @@ export function StlViewer({
         style={{ touchAction: active ? "none" : "pan-y" }}
       >
         <color attach="background" args={[BRAND_HEX.renderBg]} />
-        <ambientLight intensity={0.7} />
+        {/*
+          Hand-rolled three-point lighting (was: HDRI Environment). The
+          previous `<Environment files="/assets/hdr/empty_warehouse_01_1k.hdr">`
+          added ~1.6 MB to every /renders/[slug] mount just for image-
+          based lighting on the metalness shader. Three explicit lights
+          give the model a clean, slightly more dramatic read — a strong
+          key from upper-right, a peach warm fill from front-left, and a
+          cool rim from behind — without the HDR payload.
+        */}
+        <ambientLight intensity={0.85} />
         <directionalLight
           position={[10, 20, 10]}
-          intensity={1.4}
+          intensity={1.6}
           castShadow
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
         />
         <directionalLight
-          position={[-15, 8, -10]}
-          intensity={0.4}
+          position={[-15, 8, 8]}
+          intensity={0.55}
           color={BRAND_HEX.peach}
+        />
+        <directionalLight
+          position={[0, 6, -18]}
+          intensity={0.35}
+          color="#A8C0D6"
         />
         <Suspense fallback={<AnvilWireframe />}>
           <StlModel src={src} />
-          {/*
-            Self-hosted HDRI (CC0 from polyhaven, originally bundled by
-            drei). Using `preset` would force a runtime fetch from
-            raw.githack.com — leaking referer and adding ~1.5 MB to every
-            render-detail page. Serving it from /public/assets/hdr keeps
-            the request same-origin and cacheable.
-          */}
-          <Environment files="/assets/hdr/empty_warehouse_01_1k.hdr" />
         </Suspense>
         <ContactShadows
           position={[0, -50, 0]}

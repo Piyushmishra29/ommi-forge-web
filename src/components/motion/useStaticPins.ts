@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 
 /**
  * useStaticPins — true when the section should render its STATIC fallback

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { gsap, ScrollTrigger } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';

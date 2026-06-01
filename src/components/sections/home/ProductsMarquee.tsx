@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { PRODUCT_IMAGES } from '@/data/home';
 import { gsap } from '@/lib/gsap';

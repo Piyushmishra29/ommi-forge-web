@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef } from 'react';
-import { useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { gsap } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';

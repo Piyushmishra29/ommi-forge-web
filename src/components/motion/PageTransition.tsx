@@ -1,12 +1,9 @@
 'use client';
 
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-} from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { type ReactNode } from 'react';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 
 interface PageTransitionProps {
   children: ReactNode;

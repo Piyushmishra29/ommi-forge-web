@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { MATERIALS, MATERIALS_INTRO } from '@/data/materials';
 import type { Material } from '@/data/materials';

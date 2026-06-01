@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { BRAND_HEX } from "@/lib/brand";
