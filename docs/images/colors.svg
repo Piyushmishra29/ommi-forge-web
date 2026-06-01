@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 120" width="960" height="120" role="img" aria-label="Ommi Forge brand color tokens">
+  <style>
+    .label { font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+    .hex   { font: 400 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.02em; }
+    .dark  { fill: #1F2124; }
+    .light { fill: #FAFAFA; }
+    .frame { fill: #FAFAFA; stroke: #E5E5E5; stroke-width: 1; }
+  </style>
+
+  <rect class="frame" x="0" y="0" width="960" height="120"/>
+
+  <!-- 10 swatches, 96px wide each -->
+  <!-- saffron -->
+  <g transform="translate(0,0)">
+    <rect width="96" height="80" fill="#FF9933"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">saffron</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#FF9933</text>
+  </g>
+  <!-- mesh -->
+  <g transform="translate(96,0)">
+    <rect width="96" height="80" fill="#FF5533"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">mesh</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#FF5533</text>
+  </g>
+  <!-- ember -->
+  <g transform="translate(192,0)">
+    <rect width="96" height="80" fill="#C2381C"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">ember</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#C2381C</text>
+  </g>
+  <!-- graphite -->
+  <g transform="translate(288,0)">
+    <rect width="96" height="80" fill="#1F2124"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">graphite</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#1F2124</text>
+  </g>
+  <!-- steel -->
+  <g transform="translate(384,0)">
+    <rect width="96" height="80" fill="#54595F"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">steel</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#54595F</text>
+  </g>
+  <!-- ash -->
+  <g transform="translate(480,0)">
+    <rect width="96" height="80" fill="#7A7A7A"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">ash</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#7A7A7A</text>
+  </g>
+  <!-- peach -->
+  <g transform="translate(576,0)">
+    <rect width="96" height="80" fill="#FFBC7D"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">peach</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#FFBC7D</text>
+  </g>
+  <!-- paper -->
+  <g transform="translate(672,0)">
+    <rect width="96" height="80" fill="#FAFAFA" stroke="#E5E5E5"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">paper</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#FAFAFA</text>
+  </g>
+  <!-- snow -->
+  <g transform="translate(768,0)">
+    <rect width="96" height="80" fill="#FFFFFF" stroke="#E5E5E5"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">snow</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#FFFFFF</text>
+  </g>
+  <!-- render-bg -->
+  <g transform="translate(864,0)">
+    <rect width="96" height="80" fill="#D9D9D9"/>
+    <text class="label dark" x="48" y="98" text-anchor="middle">render-bg</text>
+    <text class="hex dark"   x="48" y="112" text-anchor="middle">#D9D9D9</text>
+  </g>
+</svg>

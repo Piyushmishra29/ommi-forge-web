@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" width="960" height="280" role="img" aria-label="Ommi Forge typography specimen">
+  <defs>
+    <style type="text/css"><![CDATA[
+      /* GitHub sanitizes <style> in SVG: remote @import is blocked, so these
+         families fall back to the platform sans/serif stack. The specimen still
+         shows the weight, scale, and role of each face used in the app. */
+      @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;700&family=Work+Sans:wght@600;800&family=Roboto:wght@400;700&display=swap');
+      .display { font-family: 'Manrope', system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-weight: 300; letter-spacing: -0.01em; }
+      .eyebrow { font-family: 'Work Sans', system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; }
+      .body    { font-family: 'Roboto', system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-weight: 400; }
+      .caption { font: 600 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase; fill: #7A7A7A; }
+      .role    { font: 400 11px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; fill: #54595F; }
+      .rule    { stroke: #E5E5E5; stroke-width: 1; }
+    ]]></style>
+  </defs>
+
+  <rect width="960" height="280" fill="#FAFAFA"/>
+
+  <!-- Row 1: Eyebrow / Work Sans -->
+  <text class="caption" x="32" y="38">01 · Eyebrow · Work Sans · 600 / 800</text>
+  <text class="eyebrow" x="32" y="68" font-size="20" fill="#1F2124">Forged in India since 1975</text>
+  <text class="role"    x="32" y="88">Used for section labels, micro-headers, the skip-link, and uppercase chips.</text>
+  <line class="rule" x1="32" y1="100" x2="928" y2="100"/>
+
+  <!-- Row 2: Display / Manrope -->
+  <text class="caption" x="32" y="128">02 · Display · Manrope · 300 / 400 / 500 / 700</text>
+  <text class="display" x="32" y="172" font-size="48" fill="#1F2124">Heat. Pressure. Steel.</text>
+  <text class="role"    x="32" y="192">Headings h1–h6, hero numerals, render titles. Light weight (300) by default.</text>
+  <line class="rule" x1="32" y1="204" x2="928" y2="204"/>
+
+  <!-- Row 3: Body / Roboto -->
+  <text class="caption" x="32" y="228">03 · Body · Roboto · 400 / 700</text>
+  <text class="body" x="32" y="252" font-size="16" fill="#1F2124">Closed-die, open-die, ring rolling and upset forging for the world.</text>
+  <text class="role" x="32" y="270">Paragraphs, captions, and all running prose; line-height 1.55.</text>
+</svg>

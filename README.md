@@ -18,10 +18,14 @@ A scroll-driven **Next.js 16 static rebuild** of [ommiforge.com](https://www.omm
 ## Table of contents
 
 - [Screenshots](#screenshots)
+- [Visual tour](#visual-tour)
+- [The visual system](#the-visual-system)
 - [The site this replaces (legacy WordPress)](#the-site-this-replaces-legacy-wordpress)
 - [Architecture](#architecture)
+- [Deep diagrams](#deep-diagrams)
 - [The scroll-scrub engine](#the-scroll-scrub-engine)
 - [3D renders & the asset pipeline](#3d-renders--the-asset-pipeline)
+- [Component reference](#component-reference)
 - [Performance & accessibility](#performance--accessibility)
 - [Build & deploy](#build--deploy)
 - [Local development](#local-development)
@@ -75,6 +79,176 @@ Captured at 1440x900.
 ![Desktop Act 03 walkthrough — "Inside the wonderworld" plant flythrough](docs/images/desktop-plant.png)
 
 ![Desktop 3D renders gallery — interactive STL grid](docs/images/desktop-renders.png)
+
+## Visual tour
+
+A clickable record of every page in the static build, captured at three real device sizes against the production `out/` artefact. Mobile is iPhone 14 Pro (393x852 @3x), tablet is iPad Pro 11" (834x1194 @2x), desktop is 1440x900 @2x.
+
+### Every route, every viewport
+
+<table>
+  <thead>
+    <tr>
+      <th align="left">Route</th>
+      <th align="center">Mobile · iPhone 14 Pro</th>
+      <th align="center">Tablet · iPad Pro 11"</th>
+      <th align="center">Desktop · 1440 @2x</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/</code><br/>home, full cinematic stack</td>
+      <td align="center"><img src="docs/images/mobile-home.png" width="220" alt="Mobile home hero" /></td>
+      <td align="center"><img src="docs/images/tablet-home.png" width="220" alt="Tablet home hero" /></td>
+      <td align="center"><img src="docs/images/desktop-home.png" width="220" alt="Desktop home hero" /></td>
+    </tr>
+    <tr>
+      <td><code>/about/</code><br/>heritage, founder voice</td>
+      <td align="center"><img src="docs/images/mobile-about.png" width="220" alt="Mobile about" /></td>
+      <td align="center">—</td>
+      <td align="center"><img src="docs/images/desktop-about.png" width="220" alt="Desktop about" /></td>
+    </tr>
+    <tr>
+      <td><code>/solutions/</code><br/>capability breakdown</td>
+      <td align="center"><img src="docs/images/mobile-solutions.png" width="220" alt="Mobile solutions" /></td>
+      <td align="center">—</td>
+      <td align="center"><img src="docs/images/desktop-solutions.png" width="220" alt="Desktop solutions" /></td>
+    </tr>
+    <tr>
+      <td><code>/products/</code><br/>part families</td>
+      <td align="center"><img src="docs/images/mobile-products.png" width="220" alt="Mobile products" /></td>
+      <td align="center">—</td>
+      <td align="center"><img src="docs/images/desktop-products.png" width="220" alt="Desktop products" /></td>
+    </tr>
+    <tr>
+      <td><code>/materials/</code><br/>alloy library</td>
+      <td align="center"><img src="docs/images/mobile-materials-v2.png" width="220" alt="Mobile materials" /></td>
+      <td align="center"><img src="docs/images/tablet-materials.png" width="220" alt="Tablet materials" /></td>
+      <td align="center"><img src="docs/images/desktop-materials.png" width="220" alt="Desktop materials" /></td>
+    </tr>
+    <tr>
+      <td><code>/renders/</code><br/>STL gallery index</td>
+      <td align="center"><img src="docs/images/mobile-renders-grid.png" width="220" alt="Mobile renders grid" /></td>
+      <td align="center"><img src="docs/images/tablet-renders.png" width="220" alt="Tablet renders" /></td>
+      <td align="center"><img src="docs/images/desktop-renders-grid.png" width="220" alt="Desktop renders grid" /></td>
+    </tr>
+    <tr>
+      <td><code>/renders/a/</code><br/>three.js STL viewer</td>
+      <td align="center"><img src="docs/images/mobile-render-a.png" width="220" alt="Mobile render A" /></td>
+      <td align="center"><img src="docs/images/tablet-render-a.png" width="220" alt="Tablet render A" /></td>
+      <td align="center"><img src="docs/images/desktop-render-a.png" width="220" alt="Desktop render A" /></td>
+    </tr>
+    <tr>
+      <td><code>/renders/b/</code><br/>second STL slug</td>
+      <td align="center"><img src="docs/images/mobile-render-b.png" width="220" alt="Mobile render B" /></td>
+      <td align="center">—</td>
+      <td align="center"><img src="docs/images/desktop-render-b.png" width="220" alt="Desktop render B" /></td>
+    </tr>
+    <tr>
+      <td><code>/renders/c/</code><br/>third STL slug</td>
+      <td align="center"><img src="docs/images/mobile-render-c.png" width="220" alt="Mobile render C" /></td>
+      <td align="center">—</td>
+      <td align="center">—</td>
+    </tr>
+    <tr>
+      <td><code>/careers/</code><br/>hiring + culture</td>
+      <td align="center"><img src="docs/images/mobile-careers.png" width="220" alt="Mobile careers" /></td>
+      <td align="center">—</td>
+      <td align="center"><img src="docs/images/desktop-careers.png" width="220" alt="Desktop careers" /></td>
+    </tr>
+    <tr>
+      <td><code>/contact/</code><br/>quote-to-part form</td>
+      <td align="center"><img src="docs/images/mobile-contact-v2.png" width="220" alt="Mobile contact" /></td>
+      <td align="center"><img src="docs/images/tablet-contact.png" width="220" alt="Tablet contact" /></td>
+      <td align="center"><img src="docs/images/desktop-contact.png" width="220" alt="Desktop contact" /></td>
+    </tr>
+  </tbody>
+</table>
+
+### Home page scroll choreography (mobile)
+
+The home page is a five-act scroll-scrub timeline. Each frame below is the same `/` URL on the same iPhone — only the scroll position changes. The hammer and plant acts are canvas image-sequences driven by `scrollY`; the heritage and footer acts are document-flow layouts.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/mobile-home-hero.png" width="180" alt="Hero" /><br/><sub><b>1 · Hero</b><br/><i>Forged in India</i></sub></td>
+    <td align="center"><img src="docs/images/mobile-home-hammer.png" width="180" alt="Hammer act" /><br/><sub><b>2 · Act 01 Impact</b><br/>hammer scrub</sub></td>
+    <td align="center"><img src="docs/images/mobile-home-plant.png" width="180" alt="Plant walkthrough" /><br/><sub><b>3 · Plant walkthrough</b><br/>image sequence</sub></td>
+    <td align="center"><img src="docs/images/mobile-home-heritage.png" width="180" alt="Heritage" /><br/><sub><b>4 · Heritage</b><br/>since 1975</sub></td>
+    <td align="center"><img src="docs/images/mobile-home-footer.png" width="180" alt="Footer" /><br/><sub><b>5 · Footer</b><br/>quote CTA</sub></td>
+  </tr>
+</table>
+
+> Want to see the tablet experience pin the plant walkthrough mid-scroll? Here it is in the wild: <img src="docs/images/tablet-home-plant.png" width="320" alt="Tablet plant walkthrough" />
+
+## The visual system
+
+> Brand tokens, type, asset filmstrips, and the 9 forged parts at a glance — so a reader can SEE the design system without leaving the doc.
+
+### Brand tokens
+
+Single source of truth lives in [`src/app/globals.css`](src/app/globals.css) as a Tailwind v4 `@theme` block; [`src/lib/brand.ts`](src/lib/brand.ts) mirrors the hexes for R3F / three.js consumers that can't read CSS vars.
+
+![Brand colors](docs/images/colors.svg)
+
+| Token | Hex | Use case |
+| --- | --- | --- |
+| `saffron` | `#FF9933` | Primary accent — CTAs, focus rings, selection background |
+| `mesh` | `#FF5533` | Heat / hero accent (3:1 — large display only on paper) |
+| `ember` | `#C2381C` | AA-safe mesh substitute for small/body text on light bgs (≈5.3:1) |
+| `graphite` | `#1F2124` | Body text, dark surfaces, R3F default material |
+| `steel` | `#54595F` | Secondary text, rules, captions |
+| `ash` | `#7A7A7A` | Muted text, micro-captions |
+| `peach` | `#FFBC7D` | Tertiary accent, render-detail highlights |
+| `paper` | `#FAFAFA` | Page background |
+| `snow` | `#FFFFFF` | Cards, surfaces above paper |
+| `render-bg` | `#D9D9D9` | Canvas background behind 3D / STL viewers |
+
+### Typography
+
+Three self-hosted Google fonts wired through `next/font` in [`src/app/layout.tsx`](src/app/layout.tsx); each exposes a CSS variable (`--font-display`, `--font-eyebrow`, `--font-body`) that Tailwind v4 promotes to `font-display` / `font-eyebrow` / `font-body` utilities via the `@theme` block.
+
+![Typography specimen](docs/images/typography.svg)
+
+> Note: GitHub strips remote `@import` from inline SVG `<style>`, so the specimen above renders in the platform sans/serif fallback rather than the live Manrope / Work Sans / Roboto faces. The weights, scale, and role for each track are accurate; for the real type, see the running site or load the SVG in a browser locally.
+
+| Family | Variable | Weights | Role |
+| --- | --- | --- | --- |
+| Manrope | `--font-display` | 300 / 400 / 500 / 700 | All headings (`h1`–`h6`), hero numerals, render titles. Default 300. |
+| Work Sans | `--font-eyebrow` | 600 / 800 | Eyebrows, section labels, skip-link, uppercase chips. |
+| Roboto | `--font-body` | 400 / 600 | Body copy, captions, running prose. Line-height 1.55. |
+
+### Hero frame strip — 46 frames @ 12fps, ~3.8s
+
+The hero scrubs through `public/assets/frames/hero/f-001.jpg` … `f-046.jpg` as the user scrolls. Sheet below tiles every 3rd frame (16 thumbnails) to convey the arc.
+
+![Hero frame strip](docs/images/hero-strip.png)
+
+### Plant frame strip — 90 frames @ 10fps, ~9s
+
+The plant section scrubs through `public/assets/frames/plant/f-001.jpg` … `f-090.jpg`. Sheet below tiles every 5th frame (18 thumbnails).
+
+![Plant frame strip](docs/images/plant-strip.png)
+
+### The 9 forged parts
+
+The `/renders` hub surfaces 9 closed-die / open-die parts, keyed by single-letter slug (legacy URL parity) and paired with the real product name from the Ommi Forge dropdown nav. Data lives in [`src/data/renders.ts`](src/data/renders.ts); STL geometry lives in `public/assets/stl/`.
+
+![STL parts contact sheet](docs/images/stl-parts.png)
+
+> The contact sheet above is a synthetic graphite-card layout (slug + product name + filename) rather than rendered STL geometry — full meshes are loaded client-side by the R3F viewer on each detail route.
+
+| Slug | Title | Product | STL |
+| --- | --- | --- | --- |
+| `a` | RENDER A | Link | `/assets/stl/part-a.stl` |
+| `b` | RENDER B | Shifter Fork | `/assets/stl/part-b.stl` |
+| `c` | RENDER C | Carrier | `/assets/stl/part-c.stl` |
+| `d` | RENDER D | Steam Manifold | `/assets/stl/part-d.stl` |
+| `e` | RENDER E | Lever | `/assets/stl/part-e.stl` |
+| `f` | RENDER F | Crank | `/assets/stl/part-f.stl` |
+| `g` | RENDER G | Forged Sprocket | `/assets/stl/part-g.stl` |
+| `h` | RENDER H | Hub | `/assets/stl/part-h.stl` |
+| `i` | RENDER I | Connecting Rod | `/assets/stl/part-i.stl` |
 
 ## The site this replaces (legacy WordPress)
 
@@ -418,6 +592,322 @@ Tailwind v4 reads tokens CSS-first from the `@theme` block in `src/app/globals.c
 | `--container-page` | `container-page` | `1140px` | Max content width |
 
 Additional CSS-only variables in `globals.css` (outside `@theme`, so not Tailwind utilities): `--header-h` (`calc(60px + safe-area-inset-top)`, `76px` ≥768px) shared by `<main>` top padding, the Hero offset, and the mobile menu sheet; plus base styles, focus ring (saffron, 2px), `::selection` (saffron), the `.skip-link`, the Lenis CSS contract, `[data-split-text]` primitives, the magnetic-cursor `cursor:none` rules, and a global `prefers-reduced-motion` hard override.
+
+## Deep diagrams
+
+A second pass on the architecture — angles the top-of-README diagrams don't cover. These look at the URL surface, the data spine, the lifecycle of the cinematic primitives, and the brand-token graph that ties Tailwind, R3F materials, and motion together.
+
+### 1. Site map + legacy WordPress redirect map
+
+Every public route in the App Router, plus the `LegacyRedirects` pre-hydration script that catches the old WordPress URLs (`/home/about-ommi-forge/`, `/home/solutuion/`, `/home/forged-products/`, `/3d-renders/`, and `/render-{a..h-2}/`) and rewrites them client-side via `location.replace` before React mounts. The 9 `/renders/[slug]/` leaves are statically generated from `RENDERS` in `src/data/renders.ts`.
+
+```mermaid
+graph LR
+  subgraph Legacy["Legacy WordPress URLs (LegacyRedirects.tsx)"]
+    L1["/home/about-ommi-forge/"]
+    L2["/home/solutuion/"]
+    L3["/home/forged-products/"]
+    L4["/3d-renders/"]
+    L5["/render-a/ ... /render-g/"]
+    L6["/render-h-2/"]
+    L7["/render-h/"]
+  end
+
+  subgraph New["App Router routes (trailingSlash: true)"]
+    R0["/"]
+    R1["/about/"]
+    R2["/solutions/"]
+    R3["/products/"]
+    R4["/materials/"]
+    R5["/renders/"]
+    R6["/careers/"]
+    R7["/contact/"]
+  end
+
+  subgraph Leaves["/renders/[slug]/ (generateStaticParams x 9)"]
+    A["/renders/a/ — Link"]
+    B["/renders/b/ — Shifter Fork"]
+    C["/renders/c/ — Carrier"]
+    D["/renders/d/ — Steam Manifold"]
+    E["/renders/e/ — Lever"]
+    F["/renders/f/ — Crank"]
+    G["/renders/g/ — Forged Sprocket"]
+    H["/renders/h/ — Hub"]
+    I["/renders/i/ — Connecting Rod"]
+  end
+
+  L1 --> R1
+  L2 --> R2
+  L3 --> R3
+  L4 --> R5
+  L5 --> A
+  L5 --> B
+  L5 --> C
+  L5 --> D
+  L5 --> E
+  L5 --> F
+  L5 --> G
+  L6 --> H
+  L7 --> I
+
+  R5 --> A
+  R5 --> B
+  R5 --> C
+  R5 --> D
+  R5 --> E
+  R5 --> F
+  R5 --> G
+  R5 --> H
+  R5 --> I
+```
+
+### 2. Data → component flow
+
+Every file under `src/data/` is the single source of truth for one slice of copy/structure. This shows which components actually import which file (grepped from `src/`). `home.ts` is the busiest — it fans out to every Act on the home page. `renders.ts` feeds both `/renders/` and the dynamic detail route, and also gets cross-referenced by `MethodsPinned` on `/solutions/`.
+
+```mermaid
+flowchart LR
+  nav["src/data/nav.ts"]
+  home["src/data/home.ts"]
+  renders["src/data/renders.ts"]
+  materials["src/data/materials.ts"]
+  products["src/data/products.ts"]
+  about["src/data/about.ts"]
+  solutions["src/data/solutions.ts"]
+  careers["src/data/careers.ts"]
+  certifications["src/data/certifications.ts"]
+
+  nav --> Header["ui/Header.tsx"]
+  nav --> Footer["ui/Footer.tsx"]
+
+  home --> Hero["home/Hero.tsx"]
+  home --> Hammer["home/HammerStrikeIntro.tsx"]
+  home --> Marquee["home/ProductsMarquee.tsx"]
+  home --> Stats["home/StatsCounter.tsx"]
+  home --> Heritage["home/HeritageTimeline.tsx"]
+  home --> Loc["home/Location.tsx"]
+  home --> Closing["home/ClosingCta.tsx"]
+
+  renders --> RendersHub["app/renders/page.tsx"]
+  renders --> RendersGrid["app/renders/renders-grid.tsx"]
+  renders --> RenderDetail["app/renders/[slug]/page.tsx"]
+  renders --> MethodsPinned["solutions/MethodsPinned.tsx"]
+
+  materials --> MGrid["home/MaterialsGrid.tsx"]
+  materials --> MHero["materials/MaterialsHero.tsx"]
+  materials --> MTable["materials/MaterialsTable.tsx"]
+
+  products --> PGallery["products/ProductsGallery.tsx"]
+
+  about --> AHero["about/AboutHero.tsx"]
+  about --> AEssay["about/HeritageEssay.tsx"]
+  about --> AValues["about/Values3Up.tsx"]
+  about --> ASustain["about/Sustainability.tsx"]
+
+  solutions --> SHero["solutions/SolutionsHero.tsx"]
+  solutions --> SMethods["solutions/MethodsPinned.tsx"]
+  solutions --> SIllus["solutions/MethodIllustration.tsx"]
+  solutions --> SClose["solutions/SolutionsClosingCta.tsx"]
+
+  careers --> CList["careers/CareersListings.tsx"]
+
+  certifications --> CertCards["materials/Certifications.tsx"]
+```
+
+### 3. Page-transition state machine
+
+`PageTransition.tsx` wraps `{children}` in a Framer Motion `AnimatePresence mode="wait"` keyed on `usePathname()`. Each route is one `motion.div` that enters from `{opacity:0, y:16}` and exits to `{opacity:0, y:-16}` over 350ms with a cubic ease. `prefers-reduced-motion` short-circuits the whole tree to a plain `<>{children}</>`.
+
+```mermaid
+stateDiagram-v2
+  [*] --> ReducedCheck
+  ReducedCheck --> Static : prefers-reduced-motion
+  ReducedCheck --> Idle : motion ok
+
+  Static --> Static : pathname change (no animation)
+
+  Idle --> Entering : mount on first paint
+  Entering --> Mounted : 350ms (0.22, 1, 0.36, 1)
+  Mounted --> Exiting : pathname change
+  Exiting --> Entering : new pathname mounts after old exits ("wait" mode)
+  Mounted --> [*] : unmount
+```
+
+### 4. STL load + interaction sequence on `/renders/[slug]/`
+
+The viewer is split in two: `StlPreview` (grid tile) gates its `<Canvas>` behind an `IntersectionObserver` with `rootMargin: 200px`, while `StlViewer` (detail page) mounts the canvas immediately but keeps it `pointer-events-none` until the user taps the "Tap to interact" affordance. Both lazy-load the three.js chunk via `dynamic(..., { ssr: false })` in `src/components/three/lazy.tsx`. `STLLoader` returns a `BufferGeometry` that gets centered + scaled into a ~100-unit viewbox, then disposed on unmount to free GPU buffers.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant P as /renders/[slug]/page.tsx
+  participant LZ as three/lazy.tsx
+  participant SV as StlViewer
+  participant TJ as three.js chunk
+  participant GL as WebGL ctx
+  participant OC as OrbitControls
+  participant LN as Lenis (page scroll)
+
+  P->>LZ: render <StlViewer src=.../part-x.stl/>
+  LZ->>LZ: render StlViewerSkeleton (no Canvas)
+  LZ-->>TJ: dynamic import('./StlViewer')
+  TJ-->>LZ: chunk ready
+  LZ->>SV: mount real component
+  SV->>GL: <Canvas dpr=[1,1.5] camera={pos:[0,0,200],fov:35} shadows/>
+  SV->>TJ: useLoader(STLLoader, src)
+  TJ-->>SV: BufferGeometry
+  SV->>SV: center + scale to viewbox 100, computeVertexNormals
+  SV->>GL: mount mesh + Environment(empty_warehouse_01_1k.hdr) + ContactShadows
+  GL-->>U: scene visible, autoRotate on (1.2 deg/sec)
+
+  Note over SV,LN: Canvas is pointer-events-none here.<br/>Swipes pass to Lenis -> page scroll.
+
+  U->>SV: tap "Tap to interact"
+  SV->>SV: setActive(true) -> canvas takes pointers,<br/>data-lenis-prevent attribute set
+  U->>OC: drag / pinch
+  OC->>GL: rotate camera, zoom 80..350
+
+  U->>SV: tap "Drag to rotate · tap to scroll"
+  SV->>SV: setActive(false) -> swipes return to Lenis
+```
+
+### 5. Hammer-strike scene timeline (scroll progress 0 → 1)
+
+`HammerStrikeIntro` pins for ~250vh and drives the section's R3F `<Scene>` via a progress ref. `HammerInner` writes opacity + Y-translate directly to three layered word spans (Heat / Strike / Forge), and at `p > 0.95` restarts a one-shot GSAP background flash. Inside `HammerStrikeHero.tsx`, the hammer Y lerps from 80 → 0, the key light brightens from 1.4 → 2.2 on strike, and a 350ms decay envelope tilts the camera ~1.5° on the rising edge of `struck`.
+
+```mermaid
+flowchart TD
+  Scroll["ScrollTrigger scrub<br/>progress 0 -> 1"]
+  Sub["useScrollSubscribe -> onScroll(p)"]
+  Words["3 absolutely-positioned word spans<br/>(direct DOM writes, no React render)"]
+  Flash["GSAP timeline:<br/>bg paper -> saffron 200ms -> paper 400ms"]
+  Ref["progressRef.current = p"]
+  Scene["HammerStrikeHero <Scene>"]
+
+  Scroll --> Sub
+  Sub --> Words
+  Sub --> Ref
+  Sub --> FlashCheck{"p > 0.95 ?"}
+  FlashCheck -- "rising edge" --> Flash
+  FlashCheck -- "p < 0.5" --> Reset["struckRef = false (re-arm latch)"]
+
+  Words --> Heat["p in 0..0.33 -> Heat fades in/out"]
+  Words --> Strike["p in 0.2..0.66 -> Strike fades in/out"]
+  Words --> Forge["p in 0.55..1.0 -> Forge fades in"]
+
+  Ref --> Scene
+  Scene --> Hammer["hammer.position.y lerps 80 -> 0<br/>(linear in progress)"]
+  Scene --> StruckLight{"clamped > 0.95 ?"}
+  StruckLight -- "yes" --> KeyHi["keyLight.intensity = 2.2"]
+  StruckLight -- "no" --> KeyLo["keyLight.intensity = 1.4"]
+  Scene --> Tilt["impactPulse on rising edge<br/>cameraTilt -> 1.5deg over 350ms decay"]
+```
+
+### 6. Magnetic cursor state machine
+
+`MagneticCursor.tsx` only mounts visible output when `(hover: hover)` is true AND `prefers-reduced-motion` is false (and `NEXT_PUBLIC_CALM_MODE !== '1'`). On any `[data-magnetic]` hover it sets a hover motion value to 1 (ring fades out, saffron pill fades in with a contextual label resolved from `data-cursor-label` / `<a>` / `<button>`). The 35% blend between pointer position and target center is the "magnetic" pull. Touch / coarse-pointer devices and CALM mode bail before any DOM listeners attach.
+
+```mermaid
+stateDiagram-v2
+  [*] --> CapabilityCheck
+
+  CapabilityCheck --> Disabled : (hover:none) OR reduce OR CALM_MODE=1
+  CapabilityCheck --> Idle : hover ok, motion ok
+
+  Disabled --> [*] : component returns null
+
+  Idle --> Hovering : mouseover [data-magnetic]<br/>hover.set(1), label resolved
+  Hovering --> Idle : mouseout (not into descendant)<br/>hover.set(0), label cleared after 200ms
+  Hovering --> Hovering : mousemove<br/>position = lerp(pointer, target.center, 0.35)
+  Idle --> Idle : mousemove -> spring(pointer)
+
+  state ReducedMotionBranch {
+    note right of ReducedMotionBranch
+      reduced=true but hover=true:
+      ring scales 16 -> 48 only,
+      no pill, no color tween
+    end note
+  }
+
+  Hovering --> ReducedMotionBranch : if reduced
+```
+
+### 7. Lenis ↔ GSAP ticker bridge
+
+`LenisProvider` is the single place a `Lenis` instance is created. Rather than letting Lenis run its own RAF, it hands every frame to GSAP's ticker — so smooth scroll, ScrollTrigger updates, and any GSAP timelines share one frame budget. `prefers-reduced-motion` and `NEXT_PUBLIC_CALM_MODE=1` both short-circuit the entire setup so native scroll takes over. Two `CustomEvent` channels (`lenis:setpaused`, `lenis:scrollto`) let unrelated components (Header mobile sheet, `RouteResetEffects`) talk to Lenis without holding a reference to the singleton.
+
+```mermaid
+sequenceDiagram
+  participant ENV as Capability check
+  participant LP as LenisProvider
+  participant L as Lenis instance
+  participant G as gsap.ticker
+  participant ST as ScrollTrigger
+  participant W as <html> classList
+  participant EV as CustomEvent bus
+
+  ENV->>LP: matchMedia(reduce) OR CALM_MODE -> bail
+  Note over LP: returns <>{children}</>, no Lenis at all
+
+  ENV->>LP: motion ok
+  LP->>L: new Lenis({lerp:0.08, smoothWheel:true, ...})
+  LP->>W: add classes "lenis", "lenis-smooth"
+  LP->>L: lenis.on('scroll', ScrollTrigger.update)
+  LP->>G: gsap.ticker.add((time) => lenis.raf(time*1000))
+  LP->>G: gsap.ticker.lagSmoothing(0)
+  LP->>ST: ScrollTrigger.refresh()
+
+  loop every animation frame
+    G->>L: tick(time) -> lenis.raf
+    L->>L: lerp scroll position
+    L-->>ST: 'scroll' event -> ScrollTrigger.update()
+  end
+
+  EV-->>LP: lenis:setpaused {paused:true}
+  LP->>L: lenis.stop()
+  EV-->>LP: lenis:scrollto {target:0, immediate:true}
+  LP->>L: lenis.scrollTo(0, {immediate:true})
+
+  Note over LP,G: cleanup: ticker.remove(tick), lenis.destroy(),<br/>remove lenis-* classes from <html>
+```
+
+### 8. Brand-token relationships
+
+`src/lib/brand.ts` mirrors the `@theme` tokens declared in `src/app/globals.css`. Tailwind utilities (`bg-mesh`, `text-graphite`, `bg-saffron`) read the CSS variables; R3F materials, `<color attach="background">`, and any Framer Motion interpolation between colors all read the hex literals from `BRAND_HEX` because they can't consume `var(--color-...)`. The tokens cluster by role rather than by hue.
+
+```mermaid
+graph TD
+  ROOT["Ommi Forge brand tokens"]
+
+  ROOT --> Primary["Primary / interaction"]
+  ROOT --> Surface["Surfaces"]
+  ROOT --> Text["Text + neutrals"]
+  ROOT --> Accent["Accent / lighting"]
+
+  Primary --> Saffron["saffron #FF9933<br/>(CTAs, page-flash, magnetic pill)"]
+  Primary --> Mesh["mesh #FF5533<br/>(idle cursor ring, STL material, links)"]
+  Primary --> Ember["ember #C2381C<br/>(AA-safe body text on light bg)"]
+
+  Surface --> Paper["paper #FAFAFA<br/>(default body bg)"]
+  Surface --> Snow["snow #FFFFFF<br/>(card / overlay bg)"]
+  Surface --> RenderBg["renderBg / render-bg #D9D9D9<br/>(STL stage radial gradient outer)"]
+
+  Text --> Graphite["graphite #1F2124<br/>(default text, dark surfaces)"]
+  Text --> Steel["steel #54595F<br/>(secondary body copy)"]
+  Text --> Ash["ash #7A7A7A<br/>(captions, muted)"]
+
+  Accent --> Peach["peach #FFBC7D<br/>(warm rim light in R3F scenes)"]
+
+  Saffron -.consumed by.-> CSS["globals.css @theme<br/>--color-saffron"]
+  Mesh -.consumed by.-> CSS
+  Graphite -.consumed by.-> CSS
+
+  Saffron -.consumed by.-> TS["lib/brand.ts BRAND_HEX<br/>(R3F + Framer interpolation)"]
+  Mesh -.consumed by.-> TS
+  Peach -.consumed by.-> TS
+  RenderBg -.consumed by.-> TS
+  Snow -.consumed by.-> TS
+```
 
 ## The scroll-scrub engine
 
@@ -966,6 +1456,443 @@ ffmpeg -y -i public/assets/video/walkthrough-scrub.mp4 -t 9 \
 > the original scrub source before the plant section moved to the
 > `frames/plant/` JPG sequence. It is **no longer referenced anywhere in `src/`**
 > and can be deleted to reclaim space.
+
+## Component reference
+
+> A field guide to every component in `src/components/`. Each card lists what
+> it does, its public API, and the key file paths so you can jump straight in.
+
+### UI primitives
+
+#### `Header`
+**File:** `src/components/ui/Header.tsx` · **Imports:** `next/link`, `next/image`, `framer-motion`, `@/data/nav`
+
+Fixed top bar — desktop horizontal nav + saffron Quote CTA; tablet/mobile collapses into a graphite right-side sheet (88vw, max 420px) with focus trap.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| _(none)_ | — | — | Reads nav from `@/data/nav` |
+
+**Behaviour:**
+- Flips transparent → graphite once `scrollY > 100`; flips graphite-immediately on routes other than `/` (white logo needs a dark backing).
+- Closes mobile sheet on route change via React 19 derived-state-from-prop pattern.
+- While sheet is open: pauses Lenis (`lenis:setpaused` CustomEvent), locks body scroll, traps focus on Tab/Shift+Tab, restores focus to trigger on close.
+- Renders a 2 px mesh-orange scroll-progress hairline at the bottom of the bar via `scaleX(progress)`.
+
+---
+
+#### `Footer`
+**File:** `src/components/ui/Footer.tsx` · **Imports:** `next/link`, `next/image`, `@/data/nav`
+
+Graphite slab with three columns (brand+tagline / quick links / contact). Bottom strip carries the mesh-orange hairline + colophon.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| _(none)_ | — | — | Nav links derived from `NAV` minus `/` |
+
+**Behaviour:**
+- Pure server component (no `'use client'`); no effects.
+- Phone/email/maps links carry tap-to-call / mailto / hover-to-saffron transitions.
+
+---
+
+#### `Eyebrow`
+**File:** `src/components/ui/Eyebrow.tsx` · **Imports:** `@/lib/cn`
+
+Small uppercase Work Sans 600 label with a leading mesh-orange dash — used above every section headline.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | — | Label text |
+| `className` | `string` | — | Forwarded to root |
+| `as` | `'p' \| 'span' \| 'div'` | `'p'` | Semantic tag |
+
+**Behaviour:** Pure presentational, no effects. The leading dash is an `aria-hidden` 8 px mesh-orange span.
+
+---
+
+#### `NumberCounter`
+**File:** `src/components/ui/NumberCounter.tsx` · **Imports:** `framer-motion` (`useInView`, `useMotionValue`, `useTransform`, `animate`)
+
+Counts 0 → `to` once the element enters the viewport. Pipes the motion value through `useTransform` so updates bypass React reconciliation.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `to` | `number` | — | Final value |
+| `suffix` | `string` | `''` | e.g. `'+'`, `'MT'` |
+| `prefix` | `string` | `''` | e.g. `'₹'` |
+| `duration` | `number` | `1.6` | Tween seconds |
+| `decimals` | `number` | `0` | Fixed-precision digits |
+| `className` | `string` | — | Forwarded to root span |
+| `ariaLabel` | `string` | derived | Accessible label override |
+
+**Behaviour:**
+- `useInView({ once: true, margin: '0px 0px -10% 0px' })` gates the tween.
+- `Intl.NumberFormat('en-IN')` for thousands grouping.
+- Honours `prefers-reduced-motion` — jumps straight to `to`.
+
+### Motion / interaction
+
+#### `PinnedSection`
+**File:** `src/components/motion/PinnedSection.tsx` · **Imports:** `@/lib/gsap` (gsap + ScrollTrigger)
+
+A ScrollTrigger-pinned wrapper that exposes scroll progress (0..1) to descendants via context. Progress lives in a ref-backed store with a manual listener Set — zero React renders on the per-frame scroll path.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | — | |
+| `length` | `number` | `1` | Pin distance in viewport heights |
+| `className` | `string` | — | Outer wrapper class |
+| `id` | `string` | — | Anchor id for deep-links |
+
+**Exports (hooks):** `useScrollSubscribe(cb)` — side-effect, no re-render. `useScrollProgressRef()` — readonly ref. `useScroll()` — legacy, re-renders via `useSyncExternalStore`.
+
+**Behaviour:**
+- Pins the INNER child for `length * 100vh` of scroll; outer wrapper holds the layout space.
+- `gsap.context` scope + `ctx.revert()` cleanup so HMR/route changes don't leak triggers.
+- Reduced-motion: bails entirely — section renders as a normal stacked block.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Mounted
+    Mounted --> Pinned: ScrollTrigger.create()
+    Pinned --> Pinned: onUpdate → store.progress + listeners
+    Pinned --> [*]: ctx.revert()
+```
+
+---
+
+#### `SplitText`
+**File:** `src/components/motion/SplitText.tsx` · **Imports:** `@/lib/cn`
+
+Splits text into `[data-char]` (or `[data-word]` when `byWord`) spans so GSAP timelines can stagger over them. Whitespace is preserved as spaced spans so `Let'sforge` doesn't happen at huge sizes.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `string` | — | Source string (also surfaced as `aria-label`) |
+| `as` | `'h1'…'h6' \| 'p' \| 'span' \| 'div'` | `'span'` | Root tag |
+| `className` | `string` | — | Root class |
+| `charClassName` | `string` | — | Per-char/word class (e.g. font-size for whitespace too) |
+| `byWord` | `boolean` | `false` | Split per-word instead of per-char |
+
+**Behaviour:** Callback-ref forces a reflow post-split so any consumer ScrollTrigger sees the final dimensions. Each char/word span is `inline-block` so transforms compose.
+
+---
+
+#### `MagneticCursor`
+**File:** `src/components/motion/MagneticCursor.tsx` · **Imports:** `framer-motion`, `@/lib/brand`
+
+16 px mesh-orange ring tracking the pointer with spring easing. Morphs into a saffron labelled pill over any `[data-magnetic]` target (label resolved from `data-cursor-label` / `<a>` / `<button>`).
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| _(none)_ | — | — | Singleton, mounted in root layout |
+
+**Behaviour:**
+- Enablement via `useSyncExternalStore` over `(hover: hover)` + `(prefers-reduced-motion)` media queries — no `setState`-in-effect.
+- Disabled on touch / coarse-pointer and when `NEXT_PUBLIC_CALM_MODE=1`.
+- Reduced-motion: ring scales only, no pill morph, no label.
+- Toggles `html[data-magnetic-cursor="on"]` so `globals.css` hides the native cursor.
+- 35% magnetic pull blend between pointer and target centre on hover.
+
+---
+
+#### `PageTransition`
+**File:** `src/components/motion/PageTransition.tsx` · **Imports:** `framer-motion`, `next/navigation`
+
+Wraps children in `AnimatePresence mode="wait"` keyed on `pathname` for a 350 ms y+opacity crossfade between routes.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | — | Route content |
+
+**Behaviour:**
+- `useReducedMotion()` → renders children directly, no animation.
+- Replaces an earlier `<PageWipe />` saffron slab that got stuck at full opacity (single-key `AnimatePresence` couldn't run enter→hold→exit on one path change).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Exiting: pathname change
+    Exiting --> Entering: old child unmounted
+    Entering --> Idle: new child mounted
+    Idle --> Idle: reduced motion (skip)
+```
+
+---
+
+#### `useScrollImageSequence` (hook)
+**File:** `src/components/motion/useScrollImageSequence.ts` · **Imports:** `@/lib/gsap` (ScrollTrigger)
+
+Apple-style scroll-scrub: preload an image sequence and draw the correct frame onto a canvas for the current ScrollTrigger progress. See [The scroll-scrub engine](#the-scroll-scrub-engine) for the deep dive.
+
+| Option | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `canvasRef` | `RefObject<HTMLCanvasElement \| null>` | — | Target canvas (CSS-sized) |
+| `sectionRef` | `RefObject<HTMLElement \| null>` | — | Pinned section |
+| `count` | `number` | — | Number of frames |
+| `src` | `(i: number) => string` | — | Frame URL builder (0-based) |
+| `end` | `string` | `'+=220%'` | ScrollTrigger pin length |
+| `scrub` | `number` | `0.5` | Scrub smoothing (s) |
+
+**Behaviour:** Preloads all frames up front · sizes backing buffer (DPR ≤ 2) from the canvas client box only — never inline style.width/height · object-cover draw with last-frame fallback · ResizeObserver + window resize handlers · reduced-motion → single frame, no pin.
+
+---
+
+#### `useStaticPins` (hook)
+**File:** `src/components/motion/useStaticPins.ts` · **Imports:** `framer-motion`
+
+Returns `true` when the section should render its static fallback instead of a GSAP-pinned scroll: either OS reduced-motion OR viewport ≤ 767 px.
+
+| Option | Type | Default | Notes |
+| --- | --- | --- | --- |
+| _(none)_ | — | — | Reads `useReducedMotion()` + a `matchMedia` subscription |
+
+**Behaviour:** SSR-safe — returns `false` on server and first client render to match SSR markup, then flips after mount on mobile. Used by `HammerStrikeIntro` and `HeritageTimeline` to skip stacked-pin jank on phones.
+
+### Three / R3F
+
+#### `StlViewer`
+**File:** `src/components/three/StlViewer.tsx` · **Imports:** `@react-three/fiber`, `@react-three/drei`, `three`, `STLLoader`, `framer-motion`, `@/lib/brand`
+
+Full-bleed 3D inspector for an STL part. Auto-frames the geometry into a ~100-unit viewbox, lights it with a key + warm peach rim, renders a brand-radial-gradient stage, and exposes Rotate / Reset / Fullscreen / Download toolbar buttons.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `src` | `string` | — | STL URL |
+| `title` | `string` | — | Bottom-left text overlay heading |
+| `productName` | `string` | — | Subtitle in the overlay |
+| `autoRotate` | `boolean` | `true` | Initial rotation state |
+| `className` | `string` | — | Forwarded to wrapper |
+
+**Behaviour:**
+- Tap-to-activate gate: while inactive the canvas is `pointer-events-none` so vertical swipes scroll the page (Lenis owns the gesture); on tap, canvas takes over and `data-lenis-prevent` is applied.
+- Self-hosted HDRI from `/assets/hdr/empty_warehouse_01_1k.hdr` — avoids the drei default raw.githack.com fetch.
+- Reduced-motion auto-rotate falls back to off (overridable manually).
+- Geometry cloned + disposed on src change to prevent GPU buffer leaks.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Inactive
+    Inactive --> Active: tap
+    Active --> Inactive: tap "Drag · tap to scroll"
+    Active --> Active: OrbitControls drag/zoom
+    Inactive --> Inactive: auto-rotate (if !reduced)
+```
+
+---
+
+#### `StlPreview`
+**File:** `src/components/three/StlPreview.tsx` · **Imports:** `@react-three/fiber`, `three`, `STLLoader`, `framer-motion`, `@/lib/brand`
+
+Square gently-spinning STL tile for grid/marquee use. Slow rotation idle, ~3× speed on hover.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `src` | `string` | — | STL URL |
+| `className` | `string` | — | Forwarded to wrapper |
+| `ariaLabel` | `string` | — | Sets `role="img"` + label |
+
+**Behaviour:**
+- IntersectionObserver-gated mount (200 px rootMargin) — Canvas only mounts when tile nears the viewport, then observer self-disconnects.
+- DPR clamped to `[1, 1]` — marquee tiles don't justify super-sampling.
+- Geometry cloned + disposed on src change.
+- Reduced-motion: stops spinning (geometry still rendered).
+
+---
+
+#### `HammerStrikeHero`
+**File:** `src/components/three/HammerStrikeHero.tsx` · **Imports:** `@react-three/fiber`, `@react-three/drei`, `three`
+
+R3F scene used inside `HammerStrikeIntro` — box anvil + box-head/cylinder-handle hammer that descends as scroll progress rises. On strike (`progress > 0.95`) the key light brightens 1.4 → 2.2 and the camera tilts ~1.5° on a 350 ms decay envelope.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `progress` | `number \| { readonly current: number }` | — | 0..1; the ref form lets the parent mutate per frame without re-rendering |
+| `className` | `string` | — | Wrapper class |
+
+**Behaviour:**
+- Reads `progress.current` inside `useFrame` so scroll updates skip React entirely.
+- Rising-edge latch (`wasStruck`) prevents the impact pulse from re-firing once scroll bottoms out.
+- Delta capped at `1/30 s` so background-tab unfreezes don't snap the scene.
+
+---
+
+#### `lazy.tsx` (lazy wrappers)
+**File:** `src/components/three/lazy.tsx` · **Imports:** `next/dynamic`
+
+Re-exports `StlViewer`, `StlPreview`, `HammerStrikeHero` wrapped in `next/dynamic({ ssr: false })` with on-brand skeletons. Without this, Turbopack ships three.js (~876 KB) once per route that statically imports a 3D component.
+
+| Export | Skeleton | Notes |
+| --- | --- | --- |
+| `StlViewer` | `StlViewerSkeleton` (radial gradient + animated anvil SVG) | |
+| `StlPreview` | `StlPreviewSkeleton` (square radial gradient) | |
+| `HammerStrikeHero` | `HammerStrikeHeroSkeleton` (paper block) | |
+
+**Behaviour:** All importers should use this file — single source of truth for on-demand three.js loading.
+
+### Providers
+
+#### `LenisProvider`
+**File:** `src/components/providers/LenisProvider.tsx` · **Imports:** `lenis`, `@/lib/gsap`
+
+Mounts a single Lenis instance, drives its RAF through `gsap.ticker` (one frame budget), and pipes scroll events into `ScrollTrigger.update` so scrubbed animations track smoothed scroll position.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | — | |
+
+**Behaviour:**
+- Skips entirely under `NEXT_PUBLIC_CALM_MODE=1` or `prefers-reduced-motion`.
+- Adds/removes `lenis lenis-smooth` classes on `<html>` (Lenis 1.3+ no longer does this).
+- Listens for two CustomEvents on `document`:
+  - `lenis:setpaused` — toggles `lenis.stop/start` (used by mobile menu).
+  - `lenis:scrollto` — drives `lenis.scrollTo(target, { immediate })` (used by `RouteResetEffects`).
+- `gsap.ticker.lagSmoothing(0)` so heavy frames don't deform the scroll mapping.
+
+---
+
+#### `RouteResetEffects`
+**File:** `src/components/providers/RouteResetEffects.tsx` · **Imports:** `next/navigation`, `@/lib/gsap`
+
+Mounts inside the Lenis tree. On every pathname change: snaps scroll to top via `lenis:scrollto` (Lenis owns scroll position so `window.scrollTo` no-ops), kills any orphaned ScrollTriggers whose trigger DOM node is detached, then `ScrollTrigger.refresh()` on the next RAF.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| _(none)_ | — | — | Renders `null` |
+
+**Behaviour:** Belt-and-braces for `AnimatePresence mode="wait"` — exiting route's triggers can outlive their DOM while new route's triggers come online. Reduced-motion users still get a `window.scrollTo({ top: 0 })` fallback.
+
+---
+
+#### `LegacyRedirects`
+**File:** `src/components/providers/LegacyRedirects.tsx` · **Imports:** `next/script`
+
+Inline pre-hydration script (Script `strategy="beforeInteractive"`) that maps legacy WordPress slugs (`/home/about-ommi-forge/`, `/render-h-2/`, etc.) to their App Router successors before React mounts — no flash of wrong page.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| _(none)_ | — | — | Map is inline in the script |
+
+**Behaviour:** Needed because `next.config.ts redirects()` is a no-op under `output: 'export'`. Map kept in sync with `public/_redirects` (Netlify-style). All URLs canonicalised to trailing-slash.
+
+### Home page sections
+
+#### `Hero`
+**File:** `src/components/sections/home/Hero.tsx` · **Imports:** `framer-motion`, `@/lib/gsap`, `SplitText`, `Eyebrow`, `useScrollImageSequence`, `HERO_COPY`
+
+100dvh opener. Background is the hero footage played as a scroll-scrubbed 46-frame JPG image sequence drawn onto a canvas (`useScrollImageSequence`, `end: '+=220%'`). Foreground: eyebrow → split-char/word headline → subhead → CTA row, with an `AudioPulseBars` SVG visualiser in the scroll cue.
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `HERO_COPY` | `@/data/home` | Eyebrow, two headline lines, subhead, two CTAs |
+| Frames | `/public/assets/frames/hero/f-001…f-046.jpg` | Poster fallback at `/assets/video/hero-poster.jpg` |
+
+**Behaviour:** GSAP timeline staggers chars + words on mount (`power3.out`, 15 ms stagger), then subhead → CTAs → scroll cue. Negative `marginTop: calc(-1 * var(--header-h))` so the fixed header overlays. Reduced-motion: timeline skipped; pulse bars rest at 50%.
+
+---
+
+#### `HammerStrikeIntro`
+**File:** `src/components/sections/home/HammerStrikeIntro.tsx` · **Imports:** `@/lib/gsap`, `PinnedSection`, `useStaticPins`, `HammerStrikeHero` (lazy), `HAMMER_INTRO_WORDS`
+
+Act 01. `<PinnedSection length={2.5}>` holds 250vh. Left column cross-fades three layered huge words (Heat → Strike → Forge) by mutating DOM opacity from `useScrollSubscribe`; right column renders the R3F `HammerStrikeHero` gated by an IntersectionObserver (600 px rootMargin) so three.js boots only when nearby. At `progress > 0.95` a saffron flash timeline fires once (rising-edge latch).
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `HAMMER_INTRO_WORDS` | `@/data/home` | `['Heat', 'Strike', 'Forge']` |
+
+**Behaviour:** Per-frame path writes opacity/transform directly to refs — no React renders. `useStaticPins` swaps in a stacked `HammerStatic` fallback (single "Forge." + a `progress={1}` scene) on mobile + reduced-motion.
+
+---
+
+#### `MaterialsGrid`
+**File:** `src/components/sections/home/MaterialsGrid.tsx` · **Imports:** `framer-motion`, `Eyebrow`, `@/data/materials`
+
+Act 02. Four flip cards (Carbon / Alloy / Stainless / Custom) — desktop ≥ lg is a horizontal scroll-snap row, mobile a vertical stack. Front face shows the number + name + blurb; back face lists the de-duped grade families.
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `MATERIALS`, `MATERIALS_INTRO` | `@/data/materials` | |
+
+**Behaviour:** Flip is CSS 3D (`transformStyle: preserve-3d`, `backfaceVisibility: hidden`) driven by `rotateY: flipped ? 180 : 0`. Reduced-motion: crossfade with AnimatePresence instead of rotateY. Hover, focus, AND click all toggle flip for pointer-type parity.
+
+---
+
+#### `PlantWalkthrough`
+**File:** `src/components/sections/home/PlantWalkthrough.tsx` · **Imports:** `Eyebrow`, `useScrollImageSequence`
+
+Act 03. Full-bleed 100dvh scroll-scrubbed walkthrough of the Malur floor — same image-sequence engine as Hero, 90 JPG frames at 10 fps from `/public/assets/frames/plant/`. A graphite/55 caption card sits top-right.
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| Frames | `/public/assets/frames/plant/f-001…f-090.jpg` | First frame doubles as cover-fit poster |
+
+**Behaviour:** Reduced-motion → single static frame (the hook handles it). Background `bg-graphite` so the canvas fade-in stays quiet.
+
+---
+
+#### `ProductsMarquee`
+**File:** `src/components/sections/home/ProductsMarquee.tsx` · **Imports:** `framer-motion`, `@/lib/gsap`, `@/lib/image-formats`, `PRODUCT_IMAGES`
+
+Act 04. Two infinite horizontal marquees of forged-product photos (top row left, bottom row right, asymmetric splits so they don't mirror). Each tile is a native `<picture>` with AVIF/WebP/JPG fallbacks (cheaper than `next/image` under `output: 'export'`).
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `PRODUCT_IMAGES` | `@/data/home` | First 14 images split 7/7 |
+
+**Behaviour:** GSAP linear `xPercent` tween (`repeat: -1`, durations 40 s / 55 s). Pauses on `mouseenter` + `touchstart`, resumes on leave/end. Image errors swap to an on-brand gradient tile so a missing photo never shows a broken-image icon. No live STLs in the marquee — that bottleneck moved to `/renders/`.
+
+---
+
+#### `StatsCounter`
+**File:** `src/components/sections/home/StatsCounter.tsx` · **Imports:** `Eyebrow`, `NumberCounter`, `STATS`
+
+Graphite slab with four `<NumberCounter>` tiles in mesh-orange Manrope bold. Font size tuned via `clamp(52px, 5.5vw, 72px)` so the widest stat (`1,000+`) fits a 4-up xl cell at gap-12 without spilling.
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `STATS` | `@/data/home` | Each: `{ value, suffix, label }` |
+
+**Behaviour:** Each counter is independently in-view-gated by `NumberCounter`. Reduced-motion handled inside the counter.
+
+---
+
+#### `HeritageTimeline`
+**File:** `src/components/sections/home/HeritageTimeline.tsx` · **Imports:** `@/lib/gsap`, `PinnedSection`, `useScrollSubscribe`, `useStaticPins`, `Eyebrow`, `MILESTONES`
+
+Act 05. `<PinnedSection length={4}>` (400vh hold). The horizontal track translates leftward by a measured `scrollWidth - innerWidth` distance proportional to progress — so milestone #6 always lands flush at `progress=1` regardless of card width breakpoint.
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `MILESTONES` | `@/data/home` | `[{ year, title, body, inProgress? }, …]` |
+
+**Behaviour:** Per-frame path uses `gsap.quickSetter(track, 'x', 'px')` — memoised setter, no inline-style React diffing. `useStaticPins` swaps in a stacked `StaticList` on mobile + reduced-motion.
+
+---
+
+#### `ClosingCta`
+**File:** `src/components/sections/home/ClosingCta.tsx` · **Imports:** `@/lib/gsap`, `SplitText`, `CLOSING_CTA`
+
+Full-viewport saffron slab. `SplitText` headline; on viewport entry GSAP sweeps chars in from `y: 80, opacity: 0` with 50 ms stagger. Two CTAs underneath.
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `CLOSING_CTA` | `@/data/home` | Headline, subhead, primary + secondary CTA |
+
+**Behaviour:** `scrollTrigger: { start: 'top 70%', once: true }` — fires once, no re-trigger on scroll back. Top/bottom graphite vignette gradients soften the saffron wall into a band. Reduced-motion skips the timeline.
+
+---
+
+#### `Location`
+**File:** `src/components/sections/home/Location.tsx` · **Imports:** `Eyebrow`, `LOCATION`
+
+Two-column section: address / phone / email / hours / GPS on the left, embedded Google Maps iframe on the right with an "Open in Maps" deep link beneath.
+
+| Data dep | Source | Notes |
+| --- | --- | --- |
+| `LOCATION` | `@/data/home` | `street`, `area`, `region`, `phone(Href)`, `email(Href)`, `hours`, `lat/lng`, `embed`, `openInMaps` |
+
+**Behaviour:** Pure server component (no `'use client'`). Iframe is `loading="lazy"` with `referrerPolicy="no-referrer-when-downgrade"`.
 
 ## Performance & accessibility
 
