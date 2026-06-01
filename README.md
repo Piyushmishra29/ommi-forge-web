@@ -679,8 +679,8 @@ visibly jump mid-scroll.
 
 | Sequence | Frames | Size on disk | Width | Source clip | Extraction |
 | --- | --- | --- | --- | --- | --- |
-| **Hero** (`HERO_FRAME_COUNT = 46`) | 46 (`f-001..046.jpg`) | ~8.2 MB | 1280×720 (native) | `hero-firstshot.mp4` | 12 fps, JPG `-q:v 3` |
-| **Plant** (`PLANT_FRAME_COUNT = 90`) | 90 (`f-001..090.jpg`) | ~10 MB | 1280×720 (native) | `walkthrough-scrub.mp4`, first ~9 s @ 10 fps | JPG `-q:v 3` |
+| **Hero** (`HERO_FRAME_COUNT = 46`) | 46 (`f-001..046.jpg`) | ~18 MB | **1920×1080** | `hero-firstshot.mp4` (1080p YouTube source) | 12 fps, JPG `-q:v 2` |
+| **Plant** (`PLANT_FRAME_COUNT = 90`) | 90 (`f-001..090.jpg`) | ~16 MB | 1280×720 (native) | `walkthrough-scrub.mp4`, first ~9 s @ 10 fps | JPG `-q:v 2` + luma `unsharp` |
 
 Hero frames live in `/public/assets/frames/hero/`, Plant frames in
 `/public/assets/frames/plant/`; both are referenced 1-based on disk
@@ -916,8 +916,8 @@ The hammer-strike hero is the R3F scene; the plant section is pure 2D canvas.
 
 | Asset | Location | Count | Total size | Per-file / notes |
 | --- | --- | --- | --- | --- |
-| Hero frame sequence | `public/assets/frames/hero/` | 46 JPGs (`f-001`…`f-046`) | 8.2 MB | 1280×720 native JPG (`-q:v 3`); driven by `HERO_FRAME_COUNT = 46` |
-| Plant frame sequence | `public/assets/frames/plant/` | 90 JPGs (`f-001`…`f-090`) | 10 MB | 1280×720 native JPG (`-q:v 3`); `PLANT_FRAME_COUNT = 90`, ~9s @ 10fps |
+| Hero frame sequence | `public/assets/frames/hero/` | 46 JPGs (`f-001`…`f-046`) | 18 MB | **1920×1080** JPG (`-q:v 2`); driven by `HERO_FRAME_COUNT = 46` |
+| Plant frame sequence | `public/assets/frames/plant/` | 90 JPGs (`f-001`…`f-090`) | 16 MB | 1280×720 JPG (`-q:v 2`) + luma `unsharp`; `PLANT_FRAME_COUNT = 90`, ~9s @ 10fps |
 | Numbered render STLs | `public/assets/stl/` | 9 (`part-a`…`part-i`) | 59 MB | binary STL; largest `part-b.stl` 5.1 MB, smallest `part-g.stl` 1.2 MB |
 | Named-product STLs | `public/assets/stl/named/` | 11 | 64 MB | mirrors of the numbered meshes under product filenames (9 byte-identical to a `part-*`) for `/forged-products` |
 | HDRI | `public/assets/hdr/` | 1 | 1.6 MB | `empty_warehouse_01_1k.hdr` (CC0, Poly Haven) — env map for StlViewer |
@@ -927,11 +927,11 @@ The hammer-strike hero is the R3F scene; the plant section is pure 2D canvas.
 
 | File | Size | Status |
 | --- | --- | --- |
-| `hero-firstshot.mp4` | 3.0 MB | hero footage (the YouTube `NBCDb4opv-M` source) |
+| `hero-firstshot.mp4` | 27 MB | hero footage **at 1920×1080** (YouTube `NBCDb4opv-M`, fetched via `yt-dlp -f 'bestvideo[height<=1080]'`) |
 | `hero-poster.jpg` | 320 KB | hero poster frame |
 | `plant-pan-1080.mp4` | 1.0 MB | plant panning shot |
-| `plant-walkthrough.mp4` | 192 KB | short plant loop (source for the plant frame sequence) |
-| `walkthrough-scrub.mp4` | 9.0 MB | **unreferenced legacy artifact** |
+| `plant-walkthrough.mp4` | 192 KB | short plant loop |
+| `walkthrough-scrub.mp4` | 8.1 MB | source for the plant frame sequence (~49 s @ 720p) |
 
 > `public/assets/MEDIA_MANIFEST.md` documents the original source URLs and the
 > STL deduplication (the 9 `part-{a..i}.stl` files and 9 of the 11 named-product
@@ -944,12 +944,16 @@ The image sequences were extracted from the source clips with ffmpeg. The plant
 sequence is decoded at ~10 fps from the first ~9 s of the walkthrough clip:
 
 ```sh
-# Hero sequence — native 1280x720, 12fps (-> public/assets/frames/hero/f-001.jpg …)
-ffmpeg -y -i public/assets/video/hero-firstshot.mp4 -vf "fps=12" -q:v 3 \
+# Hero source comes from YouTube at 1080p — `hero-firstshot.mp4` is the
+# yt-dlp output. Extract 46 frames at native 1920x1080, 12fps, JPG q:v 2:
+ffmpeg -y -i public/assets/video/hero-firstshot.mp4 -t 3.83 -vf "fps=12" -q:v 2 \
   public/assets/frames/hero/f-%03d.jpg
 
-# Plant walkthrough sequence — native 1280x720, 10fps, first ~9s
-ffmpeg -y -i public/assets/video/walkthrough-scrub.mp4 -t 9 -vf "fps=10" -q:v 3 \
+# Plant source is 720p only (the high-res original is gone from Hostinger).
+# Extract at native 1280x720 with a subtle luma `unsharp` to recover the
+# perceived sharpness lost to the source's low (1.4 Mbps) bitrate. JPG q:v 2.
+ffmpeg -y -i public/assets/video/walkthrough-scrub.mp4 -t 9 \
+  -vf "fps=10,unsharp=lx=5:ly=5:la=0.7:cx=5:cy=5:ca=0.0" -q:v 2 \
   public/assets/frames/plant/f-%03d.jpg
 ```
 

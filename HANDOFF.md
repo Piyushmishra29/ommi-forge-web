@@ -42,18 +42,24 @@ instead — reliable + identical on mobile and desktop.
   - Preloads frames (0-based), pins the section, draws the frame for scroll
     progress cover-fit onto a `<canvas>`. OS reduced-motion → one static frame, no pin.
 - **Hero** (`Hero.tsx`): 46 frames `/assets/frames/hero/f-001..046.jpg`
-  (~8.2MB), 1280×720 native, 12fps, JPG `-q:v 3`.
+  (~18MB), **1920×1080** native, 12fps, JPG `-q:v 2`. Source is
+  `hero-firstshot.mp4` fetched from YouTube `NBCDb4opv-M` at 1080p via
+  `yt-dlp -f 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]'`.
 - **Plant walkthrough / Act 03** (`PlantWalkthrough.tsx`): 90 frames
-  `/assets/frames/plant/f-001..090.jpg` (~10MB), 1280×720 native,
-  first ~9s of `walkthrough-scrub.mp4` at 10fps, JPG `-q:v 3`.
+  `/assets/frames/plant/f-001..090.jpg` (~16MB), 1280×720 native (the
+  high-res original is gone from Hostinger), first ~9s of
+  `walkthrough-scrub.mp4` at 10fps, JPG `-q:v 2` + subtle luma `unsharp`
+  to recover sharpness lost to the source's 1.4 Mbps bitrate.
 
-Frame extraction recipe (system ffmpeg lacks libwebp → use JPG). Extract at
-**native source resolution** — downsampling visibly softens the canvas on
-retina displays:
+Frame extraction recipe (system ffmpeg lacks libwebp → use JPG):
 ```bash
-ffmpeg -y -i public/assets/video/hero-firstshot.mp4 -vf "fps=12" -q:v 3 \
+# Hero @ 1920x1080
+ffmpeg -y -i public/assets/video/hero-firstshot.mp4 -t 3.83 -vf "fps=12" -q:v 2 \
   public/assets/frames/hero/f-%03d.jpg
-ffmpeg -y -i public/assets/video/walkthrough-scrub.mp4 -t 9 -vf "fps=10" -q:v 3 \
+
+# Plant @ 1280x720 + luma unsharp
+ffmpeg -y -i public/assets/video/walkthrough-scrub.mp4 -t 9 \
+  -vf "fps=10,unsharp=lx=5:ly=5:la=0.7:cx=5:cy=5:ca=0.0" -q:v 2 \
   public/assets/frames/plant/f-%03d.jpg
 ```
 
