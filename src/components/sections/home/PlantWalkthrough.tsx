@@ -1,44 +1,48 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { useScrollImageSequence } from '@/components/motion/useScrollImageSequence';
 
 /**
  * PlantWalkthrough (Act 03)
  *
- * Full-bleed plant footage scroll-scrubbed as a JPG image sequence drawn
- * onto a <canvas> (the Apple technique, same as the Hero) — a reliable
- * "crawl to play" walk through the Malur floor on mobile + desktop, where
- * MP4 currentTime seeking paints white on iOS. The section pins while the
- * frames advance with scroll; OS reduced-motion → a single static frame.
+ * Scroll-scrubbed plant-floor walkthrough rendered as a WebP image
+ * sequence drawn onto a <canvas> (the Apple AirPods technique, same as
+ * the Hero) — reliable "crawl to play" on iOS Safari, where MP4
+ * currentTime seeking paints white.
  *
- * Frames live in /public/assets/frames/plant/ (f-001 … f-090), decoded from
- * the first ~9s of the walkthrough clip at 10fps.
+ * Lazy mounted: the canvas + the 90-frame preload don't fire until the
+ * section is within ~600 px of the viewport (IntersectionObserver). Saves
+ * ~8 MB of network on first paint for users who never scroll past Act 01.
+ *
+ * Frames live in /public/assets/frames/plant/ (f-001 … f-090), decoded
+ * from the first ~9 s of the walkthrough clip at 10 fps as WebP q80.
  */
 const PLANT_FRAME_COUNT = 90;
 const plantFrame = (i: number) =>
-  `/assets/frames/plant/f-${String(i + 1).padStart(3, '0')}.jpg`;
+  `/assets/frames/plant/f-${String(i + 1).padStart(3, '0')}.webp`;
 
-export default function PlantWalkthrough() {
-  const root = useRef<HTMLElement | null>(null);
+/**
+ * PlantCanvas mounts only after the parent section enters the lazy-load
+ * window. The scroll-image-sequence hook needs to pin the OUTER <section>
+ * (normal-flow element) — we pass its ref in via props rather than
+ * creating our own, otherwise ScrollTrigger would try to pin an
+ * absolutely-positioned div and the pin wouldn't anchor.
+ */
+function PlantCanvas({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useScrollImageSequence({
     canvasRef,
-    sectionRef: root,
+    sectionRef,
     count: PLANT_FRAME_COUNT,
     src: plantFrame,
     end: '+=220%',
   });
 
   return (
-    <section
-      ref={root}
-      className="relative h-[100dvh] w-full overflow-hidden bg-graphite"
-    >
-      {/* First frame as a cover-fit background so there's no blank flash
-          before the canvas decodes its first frame. */}
+    <>
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center"
@@ -49,9 +53,46 @@ export default function PlantWalkthrough() {
         aria-hidden
         className="absolute inset-0 h-full w-full"
       />
+    </>
+  );
+}
+
+export default function PlantWalkthrough() {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setActive(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActive(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: '600px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      className="relative h-[100dvh] w-full overflow-hidden bg-graphite"
+      style={{ contain: 'layout style paint' }}
+    >
+      {active ? <PlantCanvas sectionRef={sectionRef} /> : null}
       <div className="absolute inset-0 bg-graphite/30" aria-hidden />
 
-      <div className="absolute right-6 top-24 z-10 max-w-sm bg-graphite/55 p-6 backdrop-blur-md md:right-10 md:top-32 md:p-8">
+      <div className="absolute right-6 top-24 z-10 max-w-sm bg-graphite/75 p-6 md:right-10 md:top-32 md:p-8">
         <Eyebrow className="text-paper">ACT 03 · WALKTHROUGH</Eyebrow>
         <h2 className="mt-4 font-display text-3xl font-light leading-tight text-paper md:text-5xl">
           Inside the wonderworld.

@@ -52,22 +52,71 @@ export function useScrollImageSequence({
 
     const reduced = prefersReducedMotion();
 
-    // --- preload frames ---
-    const images: HTMLImageElement[] = [];
-    let firstLoaded = false;
-    for (let i = 0; i < count; i += 1) {
+    // --- preload frames with bounded concurrency ---
+    // Why bounded? Unbounded `for (i=0..N) new Image().src = ...` fires N
+    // parallel HTTP requests at once. With 46-90 frames that saturates
+    // the connection during hero LCP, starving the critical CSS / JS /
+    // fonts. We cap parallel decodes at 8 and march through the queue.
+    //
+    // We also explicitly `decode()` each image (off the main thread) so
+    // the first paint draw doesn't trigger a sync raster on the UI
+    // thread when we call drawImage().
+    const PARALLEL = 8;
+    const images: HTMLImageElement[] = new Array(count);
+    let cancelled = false;
+
+    const makeImage = (i: number): HTMLImageElement => {
       const img = new Image();
       img.decoding = 'async';
-      img.src = src(i);
+      // Bias the very first frame so it lands ahead of non-critical
+      // assets — that frame is the LCP candidate.
       if (i === 0) {
-        img.onload = () => {
-          firstLoaded = true;
-          draw(0);
-        };
+        try {
+          (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority =
+            'high';
+        } catch {
+          // older browsers — best-effort
+        }
       }
-      images.push(img);
+      img.src = src(i);
+      return img;
+    };
+
+    const loadOne = async (i: number) => {
+      const img = makeImage(i);
+      images[i] = img;
+      try {
+        if (typeof img.decode === 'function') {
+          await img.decode();
+        }
+      } catch {
+        // Decode failed — drawImage will handle the missing frame via
+        // the lastDrawn fallback. Don't abort the queue.
+      }
+      if (cancelled) return;
+      if (i === 0) draw(0);
+    };
+
+    // Kick off the first PARALLEL loads, then a tiny worker queue
+    // marches through the rest as each one completes. This keeps
+    // exactly PARALLEL in flight at any time.
+    let next = 0;
+    const claim = () => {
+      const i = next;
+      next += 1;
+      return i;
+    };
+    const worker = async () => {
+      while (!cancelled) {
+        const i = claim();
+        if (i >= count) return;
+        await loadOne(i);
+      }
+    };
+    const initial = Math.min(PARALLEL, count);
+    for (let w = 0; w < initial; w += 1) {
+      void worker();
     }
-    void firstLoaded;
 
     let lastDrawn = -1;
 
@@ -142,6 +191,11 @@ export function useScrollImageSequence({
 
     let st: ScrollTrigger | null = null;
     if (!reduced) {
+      // `ScrollTrigger.create` already measures the trigger and runs
+      // onUpdate(0) immediately. We don't need a separate `refresh()`
+      // call here — refresh is a global remeasure of EVERY pinned
+      // trigger on the page, so calling it per-hook compounds badly
+      // when both the hero and plant scrubs mount in quick succession.
       st = ScrollTrigger.create({
         trigger: section,
         start: 'top top',
@@ -153,10 +207,10 @@ export function useScrollImageSequence({
           draw(Math.round(self.progress * (count - 1)));
         },
       });
-      ScrollTrigger.refresh();
     }
 
     return () => {
+      cancelled = true;
       st?.kill();
       window.removeEventListener('resize', onResize);
       ro?.disconnect();

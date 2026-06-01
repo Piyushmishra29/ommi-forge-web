@@ -210,7 +210,7 @@ export default function MagneticCursor() {
           borderColor: 'var(--color-mesh)',
           opacity: reduced ? 1 : ringOpacity,
         }}
-        className="rounded-full border-2 mix-blend-difference"
+        className="rounded-full border-2"
       />
       {/* Labelled pill — only renders when label is non-empty AND
           reduced-motion is off. Centered on the pointer; animates

@@ -26,6 +26,16 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // Tree-shake heavy packages that ship lots of named exports but get
+  // imported piecemeal. Without this, an `import { useReducedMotion }`
+  // from framer-motion pulls in the whole package on every route.
+  experimental: {
+    optimizePackageImports: [
+      'framer-motion',
+      '@react-three/drei',
+      'lucide-react',
+    ],
+  },
 };
 
 export default nextConfig;

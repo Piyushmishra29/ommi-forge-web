@@ -241,6 +241,11 @@ const PinnedSection = forwardRef<HTMLDivElement, PinnedSectionProps>(
             else if (ref) ref.current = node;
           }}
           id={id}
+          // `contain: layout style paint` isolates the pinned section
+          // so its layout/paint cost stops propagating to the rest of
+          // the page on every scroll tick. Each pin gets its own
+          // containing block.
+          style={{ contain: 'layout style paint' }}
           className={cn('relative', className)}
         >
           <div ref={innerRef} className="h-screen w-full overflow-hidden">

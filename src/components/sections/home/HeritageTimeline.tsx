@@ -165,7 +165,7 @@ export default function HeritageTimeline() {
   const staticMode = useStaticPins();
   if (staticMode) return <StaticList />;
   return (
-    <PinnedSection length={4}>
+    <PinnedSection length={2.5}>
       <TimelineTrack />
     </PinnedSection>
   );

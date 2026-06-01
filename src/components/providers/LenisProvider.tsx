@@ -39,7 +39,10 @@ export default function LenisProvider({ children }: LenisProviderProps) {
     if (reduceMotion) return;
 
     const lenis = new Lenis({
-      lerp: 0.08,
+      // lerp 0.12 (was 0.08) — bumped because 0.08 added perceptible lag
+      // on 120 Hz trackpads (MacBook). 0.12 is still smoothed enough to
+      // soften wheel-tick jumps but feels snappier on high-refresh input.
+      lerp: 0.12,
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 1.2,

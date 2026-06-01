@@ -119,7 +119,7 @@ export default function Hero() {
     sectionRef: root,
     count: HERO_FRAME_COUNT,
     src: (i) =>
-      `/assets/frames/hero/f-${String(i + 1).padStart(3, '0')}.jpg`,
+      `/assets/frames/hero/f-${String(i + 1).padStart(3, '0')}.webp`,
     end: '+=220%',
   });
 
