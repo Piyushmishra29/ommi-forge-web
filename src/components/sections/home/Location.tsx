@@ -1,4 +1,5 @@
 import Eyebrow from '@/components/ui/Eyebrow';
+import RevealHeading from '@/components/motion/RevealHeading';
 import { LOCATION } from '@/data/home';
 
 /**
@@ -17,9 +18,12 @@ export default function Location() {
     <section className="bg-paper py-32 md:py-40">
       <div className="mx-auto max-w-[1140px] px-6 md:px-10">
         <Eyebrow>FIND US</Eyebrow>
-        <h2 className="mt-4 max-w-3xl font-display text-4xl font-light leading-[1.1] text-graphite md:text-6xl">
+        <RevealHeading
+          as="h2"
+          className="mt-4 max-w-3xl font-display text-4xl font-light leading-[1.1] text-graphite md:text-6xl"
+        >
           Malur, Karnataka — three acres of forge floor.
-        </h2>
+        </RevealHeading>
 
         <div className="mt-16 grid gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Address block */}

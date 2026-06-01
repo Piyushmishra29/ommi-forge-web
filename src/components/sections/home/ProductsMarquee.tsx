@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
 import Eyebrow from '@/components/ui/Eyebrow';
+import RevealHeading from '@/components/motion/RevealHeading';
 import { PRODUCT_IMAGES } from '@/data/home';
 import { gsap } from '@/lib/gsap';
 import { withExt } from '@/lib/image-formats';
@@ -147,9 +148,12 @@ export default function ProductsMarquee() {
     <section className="bg-paper py-32 md:py-40">
       <div className="mx-auto max-w-[1140px] px-6 md:px-10">
         <Eyebrow>ACT 04 · CATALOGUE</Eyebrow>
-        <h2 className="mt-6 max-w-3xl font-display text-4xl font-light leading-[1.1] text-graphite md:text-6xl">
+        <RevealHeading
+          as="h2"
+          className="mt-6 max-w-3xl font-display text-4xl font-light leading-[1.1] text-graphite md:text-6xl"
+        >
           Forged products to meet your expectations.
-        </h2>
+        </RevealHeading>
       </div>
 
       <div className="mt-16 flex flex-col gap-6">

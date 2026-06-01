@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
 import Eyebrow from '@/components/ui/Eyebrow';
+import RevealHeading from '@/components/motion/RevealHeading';
 import { MATERIALS, MATERIALS_INTRO } from '@/data/materials';
 import type { Material } from '@/data/materials';
 
@@ -181,9 +182,12 @@ export default function MaterialsGrid() {
     <section className="bg-paper py-32 md:py-40">
       <div className="mx-auto max-w-[1140px] px-6 md:px-10">
         <Eyebrow>ACT 02 · MATERIALS</Eyebrow>
-        <h2 className="mt-6 max-w-3xl font-display text-4xl font-light leading-[1.1] text-graphite md:text-6xl">
+        <RevealHeading
+          as="h2"
+          className="mt-6 max-w-3xl font-display text-4xl font-light leading-[1.1] text-graphite md:text-6xl"
+        >
           From four families, infinitely combined.
-        </h2>
+        </RevealHeading>
         <p className="mt-6 max-w-2xl font-body text-base text-steel md:text-lg">
           {MATERIALS_INTRO}
         </p>

@@ -2,6 +2,7 @@
 
 import Eyebrow from '@/components/ui/Eyebrow';
 import NumberCounter from '@/components/ui/NumberCounter';
+import RevealHeading from '@/components/motion/RevealHeading';
 import { STATS } from '@/data/home';
 
 /**
@@ -21,9 +22,12 @@ export default function StatsCounter() {
     <section className="bg-graphite py-32 text-paper md:py-40">
       <div className="mx-auto max-w-[1140px] px-6 md:px-10">
         <Eyebrow className="text-paper">OUR POWER IS NUMBERS</Eyebrow>
-        <h2 className="mt-6 max-w-3xl font-display text-4xl font-light leading-[1.1] text-paper md:text-6xl">
+        <RevealHeading
+          as="h2"
+          className="mt-6 max-w-3xl font-display text-4xl font-light leading-[1.1] text-paper md:text-6xl"
+        >
           Words can only mean so much.
-        </h2>
+        </RevealHeading>
         <p className="mt-6 max-w-xl font-body text-base text-paper/70 md:text-lg">
           Which is why our numbers speak for themselves.
         </p>
