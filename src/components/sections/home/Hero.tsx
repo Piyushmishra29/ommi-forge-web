@@ -8,8 +8,11 @@ import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
 import { useScrollImageSequence } from '@/components/motion/useScrollImageSequence';
 
-/** Hero footage decoded to a JPG image sequence in /public/assets/frames/hero/. */
-const HERO_FRAME_COUNT = 46;
+/** Hero footage decoded to a WebP image sequence in /public/assets/frames/hero/.
+ *  30 fps × 3.83 s = 115 frames. Higher density = visibly smoother
+ *  scroll-scrub (~1 new frame every 20 px of mouse-wheel motion at the
+ *  default `end: +=220%`). */
+const HERO_FRAME_COUNT = 115;
 import { HERO_COPY } from '@/data/home';
 import { BRAND_HEX } from '@/lib/brand';
 

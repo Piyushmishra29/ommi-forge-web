@@ -19,7 +19,13 @@ import { useScrollImageSequence } from '@/components/motion/useScrollImageSequen
  * Frames live in /public/assets/frames/plant/ (f-001 … f-090), decoded
  * from the first ~9 s of the walkthrough clip at 10 fps as WebP q80.
  */
-const PLANT_FRAME_COUNT = 90;
+/**
+ * 24 fps × 9 s = 216 frames. Bumped from 10 fps for visibly smoother
+ * scroll-scrub (~1 new frame every 11 px of mouse wheel at the default
+ * `end: +=220%`). Lazy-mounted so the ~19 MB payload only loads when
+ * the section nears viewport.
+ */
+const PLANT_FRAME_COUNT = 216;
 const plantFrame = (i: number) =>
   `/assets/frames/plant/f-${String(i + 1).padStart(3, '0')}.webp`;
 

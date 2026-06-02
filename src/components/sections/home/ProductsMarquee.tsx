@@ -107,6 +107,7 @@ function ProductTile({ tile }: { tile: Tile }) {
     <div
       className="group relative h-[360px] w-[280px] shrink-0 overflow-hidden bg-render-bg"
       data-magnetic
+      data-cursor-label={tile.name}
     >
       {imageOk ? (
         // `images.unoptimized: true` (required for `output: 'export'`)
@@ -123,7 +124,12 @@ function ProductTile({ tile }: { tile: Tile }) {
             height={360}
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover"
+            // Subtle ~5 % cover-zoom on tile hover. The marquee row
+            // pauses on enter (so the tile is held still long enough
+            // to read the move), the parent's overflow-hidden clips
+            // the overage, and a 700 ms power-out feel keeps it
+            // tactile, not bouncy.
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
             onError={() => setImageOk(false)}
           />
         </picture>
@@ -136,6 +142,20 @@ function ProductTile({ tile }: { tile: Tile }) {
           className="h-full w-full bg-[linear-gradient(135deg,#D9D9D9_0%,#FAFAFA_100%)]"
         />
       )}
+      {/* Name caption — slides up + fades in on hover. Uses a soft
+          graphite gradient backdrop so the title reads against any
+          photo. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent px-5 pb-4 pt-12 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100"
+      >
+        <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.22em] text-mesh">
+          Forged
+        </p>
+        <p className="mt-1 font-display text-base font-light leading-tight text-paper">
+          {tile.name}
+        </p>
+      </div>
     </div>
   );
 }
