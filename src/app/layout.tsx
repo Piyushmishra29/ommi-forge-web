@@ -127,13 +127,25 @@ export default function RootLayout({
     >
       <head>
         {/* The very first hero frame is the LCP candidate on `/`. Preload
-            it with high priority so the canvas can paint without
-            waiting for the bounded-concurrency queue to dequeue it. */}
+            it with high priority so the canvas can paint without waiting
+            for the bounded-concurrency queue to dequeue it. Media-scoped so
+            a phone preloads the 768-wide frame and a desktop the 1280-wide
+            one — never both — matching the variant the hook picks on mount. */}
         <link
           rel="preload"
           as="image"
-          href="/assets/frames/hero/f-001.webp"
+          href="/assets/frames/hero/1280/f-001.webp"
           type="image/webp"
+          media="(min-width: 1024px)"
+          // @ts-expect-error — React 19 typings don't include fetchPriority yet
+          fetchpriority="high"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/frames/hero/768/f-001.webp"
+          type="image/webp"
+          media="(max-width: 1023px)"
           // @ts-expect-error — React 19 typings don't include fetchPriority yet
           fetchpriority="high"
         />

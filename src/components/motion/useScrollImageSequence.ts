@@ -10,8 +10,20 @@ interface UseScrollImageSequenceOptions {
   sectionRef: RefObject<HTMLElement | null>;
   /** Number of frames. */
   count: number;
-  /** Builds the URL for frame `i` (0-based). */
+  /** Builds the URL for frame `i` (0-based) — the desktop variant. */
   src: (i: number) => string;
+  /**
+   * Builds the URL for frame `i` on the mobile variant. Chosen once on
+   * mount when `desktopQuery` does NOT match. Same frame count / numbering
+   * as `src` — only the encoded resolution differs. Omit to always use
+   * `src`.
+   */
+  srcMobile?: (i: number) => string;
+  /**
+   * Media query that selects the desktop variant. Evaluated once on mount
+   * (no resize re-fetch — the chosen set persists). Default desktop ≥1024px.
+   */
+  desktopQuery?: string;
   /** ScrollTrigger pin length, e.g. "+=220%". */
   end?: string;
   /** Scrub smoothing (seconds). Default 0.5. */
@@ -21,6 +33,31 @@ interface UseScrollImageSequenceOptions {
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Coarse-to-fine load order. On a slow, high-latency origin, loading
+ * 0,1,2,…N sequentially means the back half of the clip is unusable until
+ * the whole thing has streamed in. Instead we front-load a sparse pass
+ * spanning the entire timeline — frame 0, the last frame, then every 6th
+ * frame — before filling in the gaps. Combined with nearest-frame drawing,
+ * the scrub becomes usable (at lower temporal resolution) within the first
+ * ~20 frames' worth of bandwidth and sharpens as the fill pass lands.
+ */
+const buildLoadOrder = (count: number): number[] => {
+  const order: number[] = [];
+  const seen = new Set<number>();
+  const push = (i: number) => {
+    if (i >= 0 && i < count && !seen.has(i)) {
+      seen.add(i);
+      order.push(i);
+    }
+  };
+  push(0);
+  push(count - 1);
+  for (let i = 0; i < count; i += 6) push(i); // sparse spanning pass
+  for (let i = 0; i < count; i += 1) push(i); // fill the remaining gaps
+  return order;
+};
 
 /**
  * useScrollImageSequence — the Apple-style scroll-scrub: instead of seeking
@@ -39,6 +76,8 @@ export function useScrollImageSequence({
   sectionRef,
   count,
   src,
+  srcMobile,
+  desktopQuery = '(min-width: 1024px)',
   end = '+=220%',
   scrub = 0.5,
 }: UseScrollImageSequenceOptions) {
@@ -52,16 +91,25 @@ export function useScrollImageSequence({
 
     const reduced = prefersReducedMotion();
 
+    // Pick the resolution variant once, on mount. We deliberately don't
+    // re-fetch a different set on resize — the smaller mobile frames stay
+    // good enough if the viewport later widens (e.g. tablet rotate), and
+    // re-downloading a whole sequence mid-session would be far worse than
+    // a slightly soft canvas.
+    const frameSrc =
+      srcMobile && !window.matchMedia(desktopQuery).matches ? srcMobile : src;
+
     // --- preload frames with bounded concurrency ---
     // Why bounded? Unbounded `for (i=0..N) new Image().src = ...` fires N
-    // parallel HTTP requests at once. With 46-90 frames that saturates
+    // parallel HTTP requests at once. With 100+ frames that saturates
     // the connection during hero LCP, starving the critical CSS / JS /
-    // fonts. We cap parallel decodes at 8 and march through the queue.
+    // fonts. We cap parallel decodes and march through the queue in
+    // coarse-to-fine order (see buildLoadOrder).
     //
     // We also explicitly `decode()` each image (off the main thread) so
     // the first paint draw doesn't trigger a sync raster on the UI
     // thread when we call drawImage().
-    const PARALLEL = 8;
+    const PARALLEL = 14;
     const images: HTMLImageElement[] = new Array(count);
     let cancelled = false;
 
@@ -78,7 +126,7 @@ export function useScrollImageSequence({
           // older browsers — best-effort
         }
       }
-      img.src = src(i);
+      img.src = frameSrc(i);
       return img;
     };
 
@@ -90,30 +138,30 @@ export function useScrollImageSequence({
           await img.decode();
         }
       } catch {
-        // Decode failed — drawImage will handle the missing frame via
-        // the lastDrawn fallback. Don't abort the queue.
+        // Decode failed — draw() routes around the missing frame via its
+        // nearest-loaded-frame search. Don't abort the queue.
       }
       if (cancelled) return;
-      if (i === 0) draw(0);
+      // Redraw the current scroll target as finer frames arrive so a
+      // stationary canvas visibly sharpens through the fill pass instead
+      // of staying stuck on whatever coarse frame was nearest at scroll.
+      draw(lastDrawn < 0 ? 0 : lastDrawn);
     };
 
     // Kick off the first PARALLEL loads, then a tiny worker queue
     // marches through the rest as each one completes. This keeps
     // exactly PARALLEL in flight at any time.
+    const order = buildLoadOrder(count);
     let next = 0;
-    const claim = () => {
-      const i = next;
-      next += 1;
-      return i;
-    };
     const worker = async () => {
       while (!cancelled) {
-        const i = claim();
-        if (i >= count) return;
+        if (next >= order.length) return;
+        const i = order[next];
+        next += 1;
         await loadOne(i);
       }
     };
-    const initial = Math.min(PARALLEL, count);
+    const initial = Math.min(PARALLEL, order.length);
     for (let w = 0; w < initial; w += 1) {
       void worker();
     }
@@ -137,19 +185,38 @@ export function useScrollImageSequence({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
+    const isReady = (i: number) => {
+      const img = images[i];
+      return !!img && img.complete && img.naturalWidth > 0;
+    };
+
     // Cover-fit draw (object-cover semantics). Uses the canvas's own client
     // box so sizing and drawing stay in lockstep regardless of section state.
     const draw = (index: number) => {
-      const i = Math.max(0, Math.min(count - 1, index));
-      let img = images[i];
-      if (!img || !img.complete || img.naturalWidth === 0) {
-        // Fall back to the last successfully drawn frame to avoid a flash.
-        if (lastDrawn < 0) return;
-        img = images[lastDrawn];
-        if (!img || !img.complete) return;
+      const target = Math.max(0, Math.min(count - 1, index));
+      // Draw the exact frame if it's decoded; otherwise the NEAREST decoded
+      // frame (search downward first, then upward). During the coarse pass
+      // this trades a little temporal resolution for a live canvas instead
+      // of one frozen on a stale frame.
+      let drawIndex = -1;
+      if (isReady(target)) {
+        drawIndex = target;
       } else {
-        lastDrawn = i;
+        for (let d = 1; d < count; d += 1) {
+          if (target - d >= 0 && isReady(target - d)) {
+            drawIndex = target - d;
+            break;
+          }
+          if (target + d < count && isReady(target + d)) {
+            drawIndex = target + d;
+            break;
+          }
+        }
       }
+      // Nothing decoded yet — leave the poster background showing through.
+      if (drawIndex < 0) return;
+      lastDrawn = target;
+      const img = images[drawIndex];
       const cw = canvas.clientWidth;
       const ch = canvas.clientHeight;
       if (cw <= 0 || ch <= 0) return;
@@ -215,9 +282,9 @@ export function useScrollImageSequence({
       window.removeEventListener('resize', onResize);
       ro?.disconnect();
     };
-    // `src` is part of the deps so consumers that swap frame sources
-    // (e.g. responsive variants) get a clean re-mount. canvasRef /
-    // sectionRef are stable React refs and don't need listing.
+    // `src` / `srcMobile` are part of the deps so consumers that swap frame
+    // sources get a clean re-mount; pass stable (module-level) builders to
+    // avoid thrash. canvasRef / sectionRef are stable React refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, end, scrub, src]);
+  }, [count, end, scrub, src, srcMobile, desktopQuery]);
 }

@@ -17,10 +17,9 @@ import BgBridge from '@/components/sections/home/BgBridge';
  *  1. Hero                — full-bleed muted hero video + headline
  *  2. HammerStrikeIntro   — pinned R3F hammer + Heat/Strike/Forge
  *  3. MaterialsGrid       — Carbon / Alloy / Stainless / Custom
- *  4. PlantWalkthrough    — scroll-scrubbed Ommi-fin drone footage
- *                           (moved up from Act 06 — its hero.mp4 source
- *                           is already in browser cache from the Hero,
- *                           so it loads instantly)
+ *  4. PlantWalkthrough    — scroll-scrubbed plant-floor walkthrough as a
+ *                           WebP image sequence (lazy-mounted near
+ *                           viewport; responsive 960/640 variants)
  *  5. StatsCounter        — 8 / 1000+ / 100+ / 1 day
  *  6. ProductsMarquee     — image-only catalogue marquee (moved down
  *                           from Act 04 — lazy-loaded JPGs cost less

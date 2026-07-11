@@ -12,22 +12,23 @@ import { useScrollImageSequence } from '@/components/motion/useScrollImageSequen
  * the Hero) — reliable "crawl to play" on iOS Safari, where MP4
  * currentTime seeking paints white.
  *
- * Lazy mounted: the canvas + the 90-frame preload don't fire until the
+ * Lazy mounted: the canvas + the frame preload don't fire until the
  * section is within ~600 px of the viewport (IntersectionObserver). Saves
- * ~8 MB of network on first paint for users who never scroll past Act 01.
+ * network on first paint for users who never scroll past Act 01.
  *
- * Frames live in /public/assets/frames/plant/ (f-001 … f-090), decoded
- * from the first ~9 s of the walkthrough clip at 10 fps as WebP q80.
+ * Two responsive encodes with identical numbering (f-001 … f-108): 960-wide
+ * for desktop, 640-wide for mobile — the hook picks one on mount.
  */
 /**
- * 24 fps × 9 s = 216 frames. Bumped from 10 fps for visibly smoother
- * scroll-scrub (~1 new frame every 11 px of mouse wheel at the default
- * `end: +=220%`). Lazy-mounted so the ~19 MB payload only loads when
+ * 108 frames (decimated from 216) — halves the payload on a slow origin
+ * while the hook's nearest-frame drawing keeps the scrub visually smooth.
+ * `end: +=220%` is a share of viewport, so scroll length / feel is
+ * independent of frame count. Lazy-mounted so the payload only loads when
  * the section nears viewport.
  */
-const PLANT_FRAME_COUNT = 216;
-const plantFrame = (i: number) =>
-  `/assets/frames/plant/f-${String(i + 1).padStart(3, '0')}.webp`;
+const PLANT_FRAME_COUNT = 108;
+const plantFrame = (dir: 960 | 640) => (i: number) =>
+  `/assets/frames/plant/${dir}/f-${String(i + 1).padStart(3, '0')}.webp`;
 
 /**
  * PlantCanvas mounts only after the parent section enters the lazy-load
@@ -43,7 +44,8 @@ function PlantCanvas({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
     canvasRef,
     sectionRef,
     count: PLANT_FRAME_COUNT,
-    src: plantFrame,
+    src: plantFrame(960),
+    srcMobile: plantFrame(640),
     end: '+=220%',
   });
 
@@ -52,7 +54,7 @@ function PlantCanvas({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${plantFrame(0)}')` }}
+        style={{ backgroundImage: `url('${plantFrame(960)(0)}')` }}
       />
       <canvas
         ref={canvasRef}

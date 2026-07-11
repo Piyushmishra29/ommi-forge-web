@@ -20,11 +20,19 @@ Brand: authorized SMARK8ING client work; owner approved asset use.
 
 ## Video
 
+> The hero and plant motion now render as scroll-scrubbed WebP image sequences
+> (`public/assets/frames/hero/` and `public/assets/frames/plant/`), NOT `<video>`.
+> The source mp4s below were decoded to those frames and moved OUT of the deploy
+> to the top-level `media-src/` dir (kept as re-encode masters, never served).
+> Only `public/assets/video/hero-poster.jpg` still ships — it's the pre-decode
+> canvas fallback.
+
 | Local path | Source URL | Size | Used on page | Notes |
 | --- | --- | --- | --- | --- |
-| `public/assets/video/hero.mp4` | YouTube `NBCDb4opv-M` (pre-downloaded) | 28,201,922 B (26.9 MB) | Home (hero section) | 1920x1080 VP9, ~57s. Pre-existing before this agent ran. |
-| `public/assets/video/plant-walkthrough.mp4` | `https://www.ommiforge.com/wp-content/uploads/2022/03/IMG_1668-1.mp4` (pre-downloaded) | 184,733 B (180 KB) | Home / plant section | 1260x906 H.264, 1.8s loop. Short walkthrough clip. |
-| `public/assets/video/plant-pan-1080.mp4` | `https://www.ommiforge.com/wp-content/uploads/2022/02/pan-1080WebShareName.mp4` | 1,051,801 B (1.0 MB) | Home / plant pan | 1080p panning shot of the plant. |
+| `media-src/hero-firstshot.mp4` | YouTube `NBCDb4opv-M` (pre-downloaded) | 28,217,018 B (26.9 MB) | Decode master → hero frames | 1920x1080. Decoded to `frames/hero/`. Not deployed. |
+| `media-src/walkthrough-scrub.mp4` | (pre-downloaded) | 8,506,354 B (8.1 MB) | Decode master → plant frames | Decoded to `frames/plant/`. Not deployed. |
+| `media-src/plant-walkthrough.mp4` | `https://www.ommiforge.com/wp-content/uploads/2022/03/IMG_1668-1.mp4` (pre-downloaded) | 184,733 B (180 KB) | Decode master | 1260x906 H.264, 1.8s loop. Not deployed. |
+| `media-src/plant-pan-1080.mp4` | `https://www.ommiforge.com/wp-content/uploads/2022/02/pan-1080WebShareName.mp4` | 1,051,801 B (1.0 MB) | Decode master | 1080p panning shot of the plant. Not deployed. |
 
 ## Images
 

@@ -11,8 +11,12 @@ import { useScrollImageSequence } from '@/components/motion/useScrollImageSequen
 /** Hero footage decoded to a WebP image sequence in /public/assets/frames/hero/.
  *  30 fps × 3.83 s = 115 frames. Higher density = visibly smoother
  *  scroll-scrub (~1 new frame every 20 px of mouse-wheel motion at the
- *  default `end: +=220%`). */
+ *  default `end: +=220%`). Two responsive encodes with identical numbering
+ *  (f-001…f-115): 1280-wide for desktop, 768-wide for mobile — the hook
+ *  picks one on mount so slow origins don't ship desktop frames to phones. */
 const HERO_FRAME_COUNT = 115;
+const heroFrame = (dir: 1280 | 768) => (i: number) =>
+  `/assets/frames/hero/${dir}/f-${String(i + 1).padStart(3, '0')}.webp`;
 import { HERO_COPY } from '@/data/home';
 import { BRAND_HEX } from '@/lib/brand';
 
@@ -37,15 +41,16 @@ function buildHammerPulse(steps = 60): number[] {
  * Hero
  *
  * Full-viewport (100dvh) opening frame.
- *  - Background: muted, looping `/assets/video/hero.mp4` with a graphite
- *    overlay so headline copy stays readable.
+ *  - Background: scroll-scrubbed WebP image sequence
+ *    (/assets/frames/hero/) drawn onto a canvas, over a graphite overlay
+ *    so headline copy stays readable. hero-poster.jpg sits behind as the
+ *    pre-decode fallback.
  *  - Foreground: eyebrow → display headline (split on chars + animated
  *    in on mount) → second italic-feel line → subhead → CTA row.
  *  - A 1px mesh-orange scroll cue grows downward beneath the CTAs.
  *
- * Reduced-motion: no GSAP timeline; everything renders at rest with
- * the video still showing (the browser/OS honours reduced-motion for
- * `<video autoplay>` separately).
+ * Reduced-motion: no GSAP timeline; the section renders at rest with the
+ * first frame drawn statically (the hook skips the pin/scrub).
  */
 /**
  * AudioPulseBars
@@ -121,8 +126,8 @@ export default function Hero() {
     canvasRef,
     sectionRef: root,
     count: HERO_FRAME_COUNT,
-    src: (i) =>
-      `/assets/frames/hero/f-${String(i + 1).padStart(3, '0')}.webp`,
+    src: heroFrame(1280),
+    srcMobile: heroFrame(768),
     end: '+=220%',
   });
 
