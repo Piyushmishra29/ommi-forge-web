@@ -17,6 +17,8 @@ import { useScrollImageSequence } from '@/components/motion/useScrollImageSequen
 const HERO_FRAME_COUNT = 115;
 const heroFrame = (dir: 1280 | 768) => (i: number) =>
   `/assets/frames/hero/${dir}/f-${String(i + 1).padStart(3, '0')}.webp`;
+const heroSrc = heroFrame(1280);
+const heroSrcMobile = heroFrame(768);
 import { HERO_COPY } from '@/data/home';
 import { BRAND_HEX } from '@/lib/brand';
 
@@ -126,8 +128,8 @@ export default function Hero() {
     canvasRef,
     sectionRef: root,
     count: HERO_FRAME_COUNT,
-    src: heroFrame(1280),
-    srcMobile: heroFrame(768),
+    src: heroSrc,
+    srcMobile: heroSrcMobile,
     end: '+=220%',
   });
 

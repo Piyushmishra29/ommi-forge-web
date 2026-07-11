@@ -7,7 +7,7 @@ Brand: authorized SMARK8ING client work; owner approved asset use.
 
 | Type | Count | Bytes |
 | ---- | ----- | ----- |
-| Video | 3 | 29,438,456 |
+| Video | 4 | 35,814,597 |
 | Image | 13 | 6,927,074 |
 | STL (numbered renders) | 9 | 28,645,506 |
 | STL (named products) | 11 | 33,662,478 |
@@ -20,11 +20,12 @@ Brand: authorized SMARK8ING client work; owner approved asset use.
 
 ## Video
 
-> The hero and plant motion now render as scroll-scrubbed WebP image sequences
-> (`public/assets/frames/hero/` and `public/assets/frames/plant/`), NOT `<video>`.
-> The source mp4s below were decoded to those frames and moved OUT of the deploy
-> to the top-level `media-src/` dir (kept as re-encode masters, never served).
-> Only `public/assets/video/hero-poster.jpg` still ships — it's the pre-decode
+> The hero, plant, and hammer motion now render as scroll-scrubbed WebP image
+> sequences (`public/assets/frames/hero/`, `public/assets/frames/plant/`, and
+> `public/assets/frames/hammer/`), NOT `<video>`. The source mp4s below were
+> decoded to those frames and moved OUT of the deploy to the top-level
+> `media-src/` dir (kept as re-encode masters, never served). Only
+> `public/assets/video/hero-poster.jpg` still ships — it's the pre-decode
 > canvas fallback.
 
 | Local path | Source URL | Size | Used on page | Notes |
@@ -33,6 +34,11 @@ Brand: authorized SMARK8ING client work; owner approved asset use.
 | `media-src/walkthrough-scrub.mp4` | (pre-downloaded) | 8,506,354 B (8.1 MB) | Decode master → plant frames | Decoded to `frames/plant/`. Not deployed. |
 | `media-src/plant-walkthrough.mp4` | `https://www.ommiforge.com/wp-content/uploads/2022/03/IMG_1668-1.mp4` (pre-downloaded) | 184,733 B (180 KB) | Decode master | 1260x906 H.264, 1.8s loop. Not deployed. |
 | `media-src/plant-pan-1080.mp4` | `https://www.ommiforge.com/wp-content/uploads/2022/02/pan-1080WebShareName.mp4` | 1,051,801 B (1.0 MB) | Decode master | 1080p panning shot of the plant. Not deployed. |
+| `media-src/pexels-5846379-power-hammer.mp4` | `https://www.pexels.com/video/forging-hot-metal-5846379/` (Pexels License — free for commercial use, no attribution required) | 6,376,141 B (6.1 MB) | Decode master → hammer frames | 1920x1080, 25fps, 13.6s. Stock footage of a power hammer striking a glowing steel bar. Decoded to `frames/hammer/`. Not deployed. |
+
+### `frames/hammer/` — scroll-scrubbed hammer strike sequence
+
+108-frame WebP sequence (`f-001.webp` … `f-108.webp`, 1-based, 3-digit zero-pad) at `public/assets/frames/hammer/960/` (960×540) and `public/assets/frames/hammer/640/` (640×360), decoded from the 4.32s window `t=0.00s`–`t=4.28s` of `media-src/pexels-5846379-power-hammer.mp4`. That window contains 4 full descend→impact ram cycles (faster cadence than initially assumed, ~0.96s/cycle) — spark-burst impact frames land at sequence indices **28, 53, 76, and 100**. Frame 1 opens on the ram raised with the bar quiet; frame 108 lands ~0.3s after the 4th impact, on the tail of its falling sparks. Encoded with `libwebp` at `-q:v 80`; 960 set averages ~19.7 KB/frame (2.08 MB total), 640 set averages ~11.0 KB/frame (1.16 MB total).
 
 ## Images
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Hero from '@/components/sections/home/Hero';
-import HammerStrikeIntro from '@/components/sections/home/HammerStrikeIntro';
+import HammerStrikeScrub from '@/components/sections/home/HammerStrikeScrub';
 import MaterialsGrid from '@/components/sections/home/MaterialsGrid';
 import ProductsMarquee from '@/components/sections/home/ProductsMarquee';
 import StatsCounter from '@/components/sections/home/StatsCounter';
@@ -15,7 +15,8 @@ import BgBridge from '@/components/sections/home/BgBridge';
  *
  * Scroll order (each section is its own client/server component):
  *  1. Hero                — full-bleed muted hero video + headline
- *  2. HammerStrikeIntro   — pinned R3F hammer + Heat/Strike/Forge
+ *  2. HammerStrikeScrub   — scroll-scrubbed power-hammer footage as a WebP
+ *                           image sequence + Heat/Strike/Forge cross-fade
  *  3. MaterialsGrid       — Carbon / Alloy / Stainless / Custom
  *  4. PlantWalkthrough    — scroll-scrubbed plant-floor walkthrough as a
  *                           WebP image sequence (lazy-mounted near
@@ -41,10 +42,12 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      {/* Bridge dark hero footage → light Hammer act. Softens the
-          previously-jarring graphite→paper slam at pin handoff. */}
+      {/* Hero footage and the Hammer act are both dark — the pin handoff
+          reads as one continuous graphite field, so no bridge is needed
+          here (a graphite→graphite strip would be a no-op). */}
+      <HammerStrikeScrub />
+      {/* Bridge dark Hammer footage → light MaterialsGrid. */}
       <BgBridge from="graphite" to="paper" />
-      <HammerStrikeIntro />
       <MaterialsGrid />
       {/* Bridge light MaterialsGrid → dark Plant act. */}
       <BgBridge from="paper" to="graphite" />

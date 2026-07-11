@@ -29,6 +29,8 @@ import { useScrollImageSequence } from '@/components/motion/useScrollImageSequen
 const PLANT_FRAME_COUNT = 108;
 const plantFrame = (dir: 960 | 640) => (i: number) =>
   `/assets/frames/plant/${dir}/f-${String(i + 1).padStart(3, '0')}.webp`;
+const plantSrc = plantFrame(960);
+const plantSrcMobile = plantFrame(640);
 
 /**
  * PlantCanvas mounts only after the parent section enters the lazy-load
@@ -44,8 +46,8 @@ function PlantCanvas({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
     canvasRef,
     sectionRef,
     count: PLANT_FRAME_COUNT,
-    src: plantFrame(960),
-    srcMobile: plantFrame(640),
+    src: plantSrc,
+    srcMobile: plantSrcMobile,
     end: '+=220%',
   });
 

@@ -8,9 +8,10 @@
  * Without `next/dynamic`, every route that statically imports a three
  * component pulls a fresh ~876 KB copy of three.js into its own route
  * chunk. Turbopack emits per-route bundles and won't dedupe the
- * vendor across them, so we were shipping three.js twice (once for
- * `/` via `HammerStrikeHero`, once for `/renders/*` via `StlViewer` /
- * `StlPreview`).
+ * vendor across them, so `/renders/*` would pull three.js into each of
+ * its route chunks via `StlViewer` / `StlPreview`. (The home page no
+ * longer touches three.js — its hammer act is now a canvas image
+ * sequence, not an R3F scene.)
  *
  * Wrapping each component in `dynamic(() => import(...), { ssr: false })`
  * defers the actual import to a separate async chunk that the runtime
@@ -131,20 +132,6 @@ function StlPreviewSkeleton() {
   );
 }
 
-/**
- * Full-bleed neutral skeleton for the hero scene. The hero takes the
- * full height of its parent (50vh mobile, 100% md+), so we just paint
- * a paper-tone block and let the Canvas fade in.
- */
-function HammerStrikeHeroSkeleton() {
-  return (
-    <div
-      className="h-full w-full bg-paper"
-      aria-hidden="true"
-    />
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /*  Lazy components                                                           */
 /* -------------------------------------------------------------------------- */
@@ -164,14 +151,5 @@ export const StlPreview = dynamic(
   {
     ssr: false,
     loading: () => <StlPreviewSkeleton />,
-  },
-);
-
-export const HammerStrikeHero = dynamic(
-  () =>
-    import('./HammerStrikeHero').then((m) => ({ default: m.HammerStrikeHero })),
-  {
-    ssr: false,
-    loading: () => <HammerStrikeHeroSkeleton />,
   },
 );

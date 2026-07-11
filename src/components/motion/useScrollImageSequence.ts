@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { ScrollTrigger } from '@/lib/gsap';
 
 interface UseScrollImageSequenceOptions {
@@ -28,11 +28,42 @@ interface UseScrollImageSequenceOptions {
   end?: string;
   /** Scrub smoothing (seconds). Default 0.5. */
   scrub?: number;
+  /**
+   * Fires with scroll progress (0..1) every tick — for driving overlay
+   * copy off the same pin without a second ScrollTrigger. Under
+   * reduced-motion (no pin) it's primed once with 1 so a scrubbed word
+   * overlay can settle on its final state. Latched in a ref, so passing a
+   * fresh closure each render does NOT re-mount the sequence.
+   */
+  onProgress?: (p: number) => void;
 }
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Debounced ScrollTrigger.refresh(), shared across all hook instances.
+ * Mounting (or unmounting) a pin changes the document height under every
+ * trigger below it; a global remeasure keeps their start/end positions
+ * honest. Debounced so several scrubs mounting in one scroll burst cost
+ * a single refresh.
+ */
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+const scheduleScrollTriggerRefresh = () => {
+  if (typeof window === 'undefined') return;
+  if (refreshTimer !== null) clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null;
+    // sort() first: refresh() processes triggers in creation order, and
+    // these scrubs mount lazily — AFTER page-load triggers that sit below
+    // them in the document (e.g. HeritageTimeline). Unsorted, a downstream
+    // trigger is measured before this pin's spacer is re-applied and
+    // keeps a start position that's short by the spacer height.
+    ScrollTrigger.sort();
+    ScrollTrigger.refresh();
+  }, 200);
+};
 
 /**
  * Coarse-to-fine load order. On a slow, high-latency origin, loading
@@ -80,7 +111,26 @@ export function useScrollImageSequence({
   desktopQuery = '(min-width: 1024px)',
   end = '+=220%',
   scrub = 0.5,
+  onProgress,
 }: UseScrollImageSequenceOptions) {
+  // Latch the progress callback so a fresh closure per render doesn't
+  // re-run the (frame-downloading) main effect.
+  const onProgressRef = useRef(onProgress);
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+  }, [onProgress]);
+
+  // Same latch for the frame-URL builders: a consumer passing an inline
+  // closure must never tear down the ScrollTrigger pin mid-scroll. The
+  // variant choice is locked on mount anyway (see frameSrc below), so
+  // identity churn carries no information.
+  const srcRef = useRef(src);
+  const srcMobileRef = useRef(srcMobile);
+  useEffect(() => {
+    srcRef.current = src;
+    srcMobileRef.current = srcMobile;
+  }, [src, srcMobile]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const canvas = canvasRef.current;
@@ -96,8 +146,12 @@ export function useScrollImageSequence({
     // good enough if the viewport later widens (e.g. tablet rotate), and
     // re-downloading a whole sequence mid-session would be far worse than
     // a slightly soft canvas.
+    const srcNow = srcRef.current;
+    const srcMobileNow = srcMobileRef.current;
     const frameSrc =
-      srcMobile && !window.matchMedia(desktopQuery).matches ? srcMobile : src;
+      srcMobileNow && !window.matchMedia(desktopQuery).matches
+        ? srcMobileNow
+        : srcNow;
 
     // --- preload frames with bounded concurrency ---
     // Why bounded? Unbounded `for (i=0..N) new Image().src = ...` fires N
@@ -258,11 +312,6 @@ export function useScrollImageSequence({
 
     let st: ScrollTrigger | null = null;
     if (!reduced) {
-      // `ScrollTrigger.create` already measures the trigger and runs
-      // onUpdate(0) immediately. We don't need a separate `refresh()`
-      // call here — refresh is a global remeasure of EVERY pinned
-      // trigger on the page, so calling it per-hook compounds badly
-      // when both the hero and plant scrubs mount in quick succession.
       st = ScrollTrigger.create({
         trigger: section,
         start: 'top top',
@@ -272,19 +321,39 @@ export function useScrollImageSequence({
         scrub,
         onUpdate: (self) => {
           draw(Math.round(self.progress * (count - 1)));
+          onProgressRef.current?.(self.progress);
         },
       });
+      // This pin just inserted a spacer into the document flow. Triggers
+      // that measured their positions BEFORE this mount (e.g. the
+      // PinnedSection-based HeritageTimeline, created at page load while
+      // the IO-gated scrubs were still unmounted) are now offset by the
+      // spacer height and will pin/animate at the wrong scroll position.
+      // A debounced global refresh remeasures everyone; the debounce
+      // collapses hero + hammer + plant mounting in quick succession
+      // into a single remeasure.
+      scheduleScrollTriggerRefresh();
+    } else {
+      // No pin under reduced-motion — prime overlay copy at its end state
+      // so a scrubbed word cross-fade settles instead of freezing on frame 0.
+      onProgressRef.current?.(1);
     }
 
     return () => {
       cancelled = true;
-      st?.kill();
+      if (st) {
+        st.kill();
+        // Killing the pin removes its spacer — remeasure downstream
+        // triggers for the same reason as on create.
+        scheduleScrollTriggerRefresh();
+      }
       window.removeEventListener('resize', onResize);
       ro?.disconnect();
     };
-    // `src` / `srcMobile` are part of the deps so consumers that swap frame
-    // sources get a clean re-mount; pass stable (module-level) builders to
-    // avoid thrash. canvasRef / sectionRef are stable React refs.
+    // `src` / `srcMobile` are read through refs (latched above), NOT deps:
+    // an inline-closure consumer re-rendering mid-scroll must never kill
+    // the pin. Swapping frame sources requires a `count` (or key) change.
+    // canvasRef / sectionRef are stable React refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, end, scrub, src, srcMobile, desktopQuery]);
+  }, [count, end, scrub, desktopQuery]);
 }

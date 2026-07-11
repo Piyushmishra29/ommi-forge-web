@@ -21,8 +21,8 @@ import { cn } from '@/lib/cn';
  *  ----------
  *  PinnedSection used to expose `progress` via `useState<number>`. Every
  *  ScrollTrigger tick called `setProgress(...)`, which re-rendered every
- *  descendant in the React tree — at ~60 fps, that included the R3F
- *  HammerStrikeHero Canvas, the scrub video, and the heritage track.
+ *  descendant in the React tree — at ~60 fps, that included heavy
+ *  scroll-driven children like the heritage track.
  *
  *  This module now keeps `progress` in a mutable object that lives in a
  *  React ref, and notifies subscribers via a manually-managed listener
