@@ -1,7 +1,20 @@
 'use client';
 
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import { ScrollTrigger } from '@/lib/gsap';
+
+/**
+ * The pin MUST be torn down in a layout effect, not a passive one. Pinning
+ * reparents the section into a GSAP `.pin-spacer`; React's own removeChild
+ * on route change then targets a node whose parent has silently changed and
+ * throws NotFoundError — which unmounts the entire app to the router's
+ * "This page couldn't load" screen. Layout-effect cleanups run synchronously
+ * in the mutation phase BEFORE React detaches DOM; passive cleanups run
+ * after, which is too late. (SSR renders never run layout effects, but React
+ * still warns on useLayoutEffect during SSR — hence the isomorphic guard.)
+ */
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface UseScrollImageSequenceOptions {
   /** Canvas that the frames are drawn onto (absolute-filled in the section). */
@@ -131,7 +144,7 @@ export function useScrollImageSequence({
     srcMobileRef.current = srcMobile;
   }, [src, srcMobile]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (typeof window === 'undefined') return;
     const canvas = canvasRef.current;
     const section = sectionRef.current;

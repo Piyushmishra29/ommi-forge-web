@@ -1,6 +1,6 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
@@ -12,20 +12,20 @@ interface PageTransitionProps {
 /**
  * PageTransition
  *
- * Handles the content crossfade between routes. The children are wrapped
- * in an AnimatePresence that's keyed on the current pathname, so exiting
- * content can finish its animation before the next route mounts.
+ * Fade-IN only on route change — deliberately NOT an AnimatePresence
+ * crossfade. With framer-motion 12 on React 19, AnimatePresence route
+ * exits complete visually (opacity 0) but the exited subtree is never
+ * unmounted: every navigation stacked another full invisible page in
+ * the DOM (~19k px of phantom scroll height each, GSAP pin-spacers and
+ * all) and the return trip even spawned duplicate exiting copies. A
+ * keyed motion.div gives the new page its soft entrance beat while
+ * React removes the old page synchronously — no exit tracking, nothing
+ * to get stuck.
  *
  * Respects `prefers-reduced-motion` — falls through without animating.
  *
- * Note: A `<PageWipe />` saffron slab used to live alongside this
- * component (mounted as a sibling under <body> in layout.tsx). It was
- * removed after it kept getting stuck at full opacity covering the
- * viewport: the wipe needed an enter→hold→exit lifecycle on a single
- * pathname change, but `AnimatePresence` with a single keyed child only
- * exits the OLD child and enters the NEW one — the new child then sat
- * at `scaleY: 1` forever, painting the whole screen saffron. The
- * crossfade below is enough of a brand moment on its own.
+ * (A `<PageWipe />` saffron slab and the AnimatePresence crossfade both
+ * used to live here; both were removed for getting permanently stuck.)
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
@@ -36,22 +36,13 @@ export default function PageTransition({ children }: PageTransitionProps) {
   }
 
   return (
-    // No `mode="wait"` — wait creates a blank gap because exit must
-    // complete before enter starts; on the default overlap mode the old
-    // page fades out while the new fades in, no visible blank. Opacity-
-    // only (no y-translate) reads as a soft dissolve rather than a
-    // mechanical slide. Short duration (0.22 s) so it feels like a quiet
-    // beat, not a transition slab.
-    <AnimatePresence initial={false}>
-      <motion.div
-        key={pathname}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={pathname}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
   );
 }

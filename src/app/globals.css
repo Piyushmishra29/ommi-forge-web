@@ -39,13 +39,14 @@
 
 /* ------------------------------------------------------------
  * Header height token (with iOS safe-area)
- *   Mobile bar = py-4 (32px) + logo content (~28px) → ~60px
+ *   Mobile bar = py-3 (24px) + hamburger h-11 (44px) → 68px
+ *     (the 44px tap target is the row's tallest child, not the logo)
  *   Desktop bar = py-5 (40px) + logo content (~36px) → ~76px
  * Shared by <main>'s top padding, the Hero's negative offset,
  * and the mobile menu sheet/backdrop so all three stay in sync.
  * ------------------------------------------------------------ */
 :root {
-  --header-h: calc(60px + env(safe-area-inset-top, 0px));
+  --header-h: calc(68px + env(safe-area-inset-top, 0px));
 }
 @media (min-width: 768px) {
   :root {

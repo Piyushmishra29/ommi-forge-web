@@ -36,6 +36,9 @@ export default function Header() {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const firstLinkRef = useRef<HTMLAnchorElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Whether the sheet has actually been opened — gates the focus-return
+  // in the lock effect so the mount run doesn't steal focus.
+  const wasOpenRef = useRef(false);
 
   // Close the sheet on route change — React 19 derived-state-from-prop pattern
   if (pathname !== prevPath) {
@@ -78,15 +81,27 @@ export default function Header() {
 
     if (!open) {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       setLenisPaused(false);
-      // Return focus to the trigger without scrolling the page
-      triggerRef.current?.focus({ preventScroll: true });
+      // Return focus to the trigger without scrolling the page — but only
+      // when the sheet was actually open. This effect also runs once on
+      // mount (open=false), and focusing there steals keyboard focus to
+      // the hamburger on every page load (an invisible control at ≥lg).
+      if (wasOpenRef.current) {
+        wasOpenRef.current = false;
+        triggerRef.current?.focus({ preventScroll: true });
+      }
       return;
     }
+    wasOpenRef.current = true;
     // Pause Lenis FIRST so it stops driving transforms on the document
     // while we lock the body — prevents the scroll-position glitch.
     setLenisPaused(true);
+    // Lock <html> too: Lenis scrolls the root element, and under
+    // reduced-motion / CALM_MODE Lenis isn't mounted at all, so the
+    // body-only lock leaves the page scrollable behind the sheet.
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     // Move focus into the sheet without yanking the page
     firstLinkRef.current?.focus({ preventScroll: true });
 
@@ -160,16 +175,26 @@ export default function Header() {
           aria-label="Primary"
           className="hidden items-center gap-5 lg:flex lg:gap-7"
         >
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              data-magnetic
-              className="whitespace-nowrap font-eyebrow text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:text-saffron lg:text-xs"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {NAV.map((item) => {
+            const active =
+              item.href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                data-magnetic
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'whitespace-nowrap font-eyebrow text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:text-saffron lg:text-xs',
+                  active && 'text-saffron',
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
           <Link
             href={CTA.href}
             data-magnetic
@@ -193,7 +218,7 @@ export default function Header() {
             type="button"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
-            aria-controls="mobile-nav"
+            aria-controls={open ? 'mobile-nav' : undefined}
             onClick={() => setOpen((v) => !v)}
             className="relative flex h-11 w-11 items-center justify-center"
           >
