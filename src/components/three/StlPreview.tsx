@@ -11,7 +11,8 @@ import {
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { configureGltfLoader, extractGeometry } from "./glb";
 import { BRAND_HEX } from "@/lib/brand";
 
 export type StlPreviewProps = {
@@ -34,11 +35,11 @@ function SpinningModel({
   hovered: boolean;
   reducedMotion: boolean;
 }) {
-  const rawGeometry = useLoader(STLLoader, src);
+  const gltf = useLoader(GLTFLoader, src, configureGltfLoader);
   const groupRef = useRef<THREE.Group>(null);
 
   const geometry = useMemo(() => {
-    const geom = rawGeometry.clone();
+    const geom = extractGeometry(gltf);
     geom.computeBoundingBox();
     geom.computeBoundingSphere();
 
@@ -56,7 +57,7 @@ function SpinningModel({
 
     geom.computeVertexNormals();
     return geom;
-  }, [rawGeometry]);
+  }, [gltf]);
 
   // Dispose the cloned BufferGeometry when the model unmounts or the
   // underlying STL src changes, otherwise R3F keeps the GPU buffer alive.

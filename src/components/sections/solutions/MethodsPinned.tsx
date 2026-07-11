@@ -112,7 +112,7 @@ function Inner() {
                       <div className="sm:col-span-4">
                         <div className="aspect-square w-full overflow-hidden border border-paper/10 bg-paper/[0.02]">
                           <StlPreview
-                            src={sample.stl}
+                            src={sample.model}
                             ariaLabel={`${m.sampleName} — sample ${m.shortLabel} forging`}
                             className="h-full w-full"
                           />

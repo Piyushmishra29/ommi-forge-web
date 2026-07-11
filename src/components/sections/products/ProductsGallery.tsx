@@ -108,7 +108,7 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
       >
         {item.kind === 'stl' ? (
           <StlPreview
-            src={item.stl}
+            src={item.model}
             ariaLabel={`${item.name} 3D preview`}
             className="h-full w-full"
           />
@@ -407,7 +407,7 @@ export default function ProductsGallery() {
               <div className="relative aspect-square w-full bg-render-bg md:col-span-7 md:aspect-auto md:min-h-[560px]">
                 {active.kind === 'stl' ? (
                   <StlViewer
-                    src={active.stl}
+                    src={active.model}
                     title={active.name}
                     productName={active.code}
                     autoRotate

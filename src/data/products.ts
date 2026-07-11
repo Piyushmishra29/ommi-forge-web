@@ -2,8 +2,8 @@
  * Catalogue for `/products`.
  *
  * Mixes two kinds of items:
- *  - `kind: 'stl'`   — uses one of the 11 named STLs under
- *                       /public/assets/stl/named/. Renders via
+ *  - `kind: 'stl'`   — uses a meshopt-compressed GLB under
+ *                       /public/assets/models/. Renders via
  *                       <StlPreview> on the grid, <StlViewer> in the
  *                       modal overlay.
  *  - `kind: 'image'` — uses one of the source photos under
@@ -50,7 +50,14 @@ interface ProductItemBase {
 export type ProductItem =
   | (ProductItemBase & {
       kind: 'stl';
-      stl: string;
+      /**
+       * meshopt-compressed GLB the viewer loads. 9 of the named products
+       * are byte-dupes of the numbered renders (see MEDIA_MANIFEST) so they
+       * point at the shared `part-*.glb`; `tvs-1200` and `trunnion-85000103`
+       * have their own GLBs. There is no STL download in the products UI, so
+       * the raw named STLs (being removed) are no longer referenced here.
+       */
+      model: string;
     })
   | (ProductItemBase & {
       kind: 'image';
@@ -64,7 +71,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Trunnion',
     code: '85000103',
     blurb: 'Heavy-duty trunnion pin forged for off-highway pivot assemblies.',
-    stl: '/assets/stl/named/trunnion-85000103.stl',
+    model: '/assets/models/trunnion-85000103.glb',
     aspect: 'tall',
     category: 'featured',
     applications: ['industrial', 'agricultural'],
@@ -75,7 +82,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Drive Sprocket',
     code: '451-ZZ-50163-V1',
     blurb: 'Forged sprocket blank for chain-drive industrial reduction units.',
-    stl: '/assets/stl/named/sprocket_451-zz-50163-v1.stl',
+    model: '/assets/models/part-i.glb',
     aspect: 'square',
     category: 'featured',
     applications: ['industrial', 'agricultural'],
@@ -86,7 +93,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Cylinder Head Blank',
     code: '130HCB9319',
     blurb: 'Near-net-shape cylinder-head forging — final machining done at the customer site.',
-    stl: '/assets/stl/named/cylinder-head-130hcb9319.stl',
+    model: '/assets/models/part-e.glb',
     aspect: 'wide',
     category: 'featured',
     applications: ['auto'],
@@ -97,7 +104,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'TVS 1200 Casing',
     code: 'TVS-1200',
     blurb: 'Closed-die transmission casing forging for two-wheeler applications.',
-    stl: '/assets/stl/named/tvs-1200.stl',
+    model: '/assets/models/tvs-1200.glb',
     aspect: 'square',
     category: 'catalogue',
     applications: ['auto'],
@@ -108,7 +115,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Fan Hub Shaft',
     code: 'CUHU1001F001',
     blurb: 'Shaft-fan-hub assembly forged from 42CrMo4 for vibration-resistant rotation.',
-    stl: '/assets/stl/named/shaft-fan-hub-cuhu1001f001.stl',
+    model: '/assets/models/part-h.glb',
     aspect: 'wide',
     category: 'catalogue',
     applications: ['industrial'],
@@ -119,7 +126,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Right Lever',
     code: 'B14072-8',
     blurb: 'Closed-die right-hand actuation lever for transmission linkage.',
-    stl: '/assets/stl/named/right-lever-b14072-8.stl',
+    model: '/assets/models/part-g.glb',
     aspect: 'square',
     category: 'catalogue',
     applications: ['auto', 'industrial'],
@@ -130,7 +137,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Selector Lever',
     code: 'B121768',
     blurb: 'Forged selector lever — used to engage gear positions in heavy gearboxes.',
-    stl: '/assets/stl/named/lever-b121768.stl',
+    model: '/assets/models/part-f.glb',
     aspect: 'tall',
     category: 'catalogue',
     applications: ['industrial'],
@@ -141,7 +148,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: '8-Way Valve Body',
     code: 'UM800900000B-BO-MODI',
     blurb: 'Forged hydraulic distributor body — eight outlet ports machined post-forging.',
-    stl: '/assets/stl/named/body-8-way_um800900000b-bo-modi.stl',
+    model: '/assets/models/part-d.glb',
     aspect: 'square',
     category: 'catalogue',
     applications: ['industrial', 'agricultural'],
@@ -152,7 +159,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'BM 140 RH Link',
     code: 'BM-140-RH',
     blurb: 'Right-hand link in EN24 alloy — case-hardened, shot-peened, magnetic-particle tested.',
-    stl: '/assets/stl/named/bm-140-rh-link.stl',
+    model: '/assets/models/part-a.glb',
     aspect: 'tall',
     category: 'catalogue',
     applications: ['agricultural', 'industrial'],
@@ -163,7 +170,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Forging Model',
     code: '4308128-V1',
     blurb: 'Reference forging model for tooling validation and grain-flow review.',
-    stl: '/assets/stl/named/4308128-FORGING-MODEL-v1-v1.stl',
+    model: '/assets/models/part-b.glb',
     aspect: 'square',
     category: 'catalogue',
     applications: ['industrial'],
@@ -174,7 +181,7 @@ export const PRODUCTS: ReadonlyArray<ProductItem> = [
     name: 'Part 1011',
     code: '1011',
     blurb: 'Closed-die forging for an OEM heavy-duty axle programme.',
-    stl: '/assets/stl/named/1011.stl',
+    model: '/assets/models/part-c.glb',
     aspect: 'wide',
     category: 'catalogue',
     applications: ['auto'],

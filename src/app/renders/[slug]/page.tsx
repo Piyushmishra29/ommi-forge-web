@@ -66,7 +66,7 @@ export default async function RenderDetailPage({
       <section className="mt-8 px-0 sm:px-6">
         <div className="mx-auto h-[60vh] max-w-[1400px] overflow-hidden md:h-[80vh]">
           <StlViewer
-            src={render.stl}
+            src={render.model}
             title={render.title}
             productName={render.productName}
           />

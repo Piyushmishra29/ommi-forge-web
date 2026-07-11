@@ -9,12 +9,13 @@ Brand: authorized SMARK8ING client work; owner approved asset use.
 | ---- | ----- | ----- |
 | Video | 4 | 35,814,597 |
 | Image | 13 | 6,927,074 |
-| STL (numbered renders) | 9 | 28,645,506 |
-| STL (named products) | 11 | 33,662,478 |
+| STL (numbered renders, download links) | 9 | 28,645,506 |
+| STL (conversion masters, `media-src/`) | 2 | 5,017,368 |
+| GLB (meshopt models, `public/assets/models/`) | 11 | 6,617,524 |
 | PDF | 0 | 0 |
 | `wp-mirror/` (raw fallback) | 59 files | ~15 MB |
 
-> **Note on STL duplication:** The 9 numbered `part-{a..i}.stl` files and 9 of the 11 named-product STLs share identical mesh data (same byte size, same content). The WordPress upload library renames the same source STL under multiple filenames. Both folders are kept so React Three Fiber loaders can use whichever path is semantically clearer.
+> **Note on STL duplication (resolved 2026-07-12):** The 9 numbered `part-{a..i}.stl` files and 9 of the 11 named-product STLs shared identical mesh data (same byte size, same content) — the WordPress upload library had renamed the same source STL under multiple filenames. The 9 named-product duplicates have been removed; the 2 unique named STLs (`tvs-1200`, `trunnion-85000103`) moved to `media-src/`. All 11 unique meshes now ship as meshopt-compressed GLB in `public/assets/models/` — see that section below for the full pipeline and per-file stats.
 
 > **`public/assets/wp-mirror/`** is a raw fallback safety net containing every `wp-content/uploads/...` asset referenced from the canonical site's home, about, contact, forged-products, quality-and-certification, render-a..h-2 pages. 59 files total. Not enumerated below — browse with `find public/assets/wp-mirror -type f`.
 
@@ -64,6 +65,8 @@ All sourced from `https://www.ommiforge.com/wp-content/uploads/`. Query strings 
 
 URL pattern: `https://www.ommiforge.com/wp-content/uploads/2022/02/File-0000{N}.stl`.
 
+Kept in place as raw binary STL download links (e.g. an explicit "download STL" button on `/render-*` pages). The 3D viewer itself loads the compressed GLB versions in `public/assets/models/` — see below.
+
 | Local path | Source URL (suffix) | Size | Used on page | Notes |
 | --- | --- | --- | --- | --- |
 | `public/assets/stl/part-a.stl` | `2022/02/File-00003.stl` | 3,042,884 B | `/render-a` (RENDER A) | Binary STL. |
@@ -76,23 +79,49 @@ URL pattern: `https://www.ommiforge.com/wp-content/uploads/2022/02/File-0000{N}.
 | `public/assets/stl/part-h.stl` | `2022/02/File-00008.stl` | 1,948,484 B | `/render-h-2` (RENDER H) | Binary STL. Source slug mismatched as on live site. |
 | `public/assets/stl/part-i.stl` | `2022/02/File-00009.stl` | 4,977,484 B | `/render-h` (RENDER I) | Binary STL. Source slug mismatched as on live site. |
 
-## STL — named product files
+## STL — named product files (superseded)
 
-URL pattern: `https://www.ommiforge.com/wp-content/uploads/2022/04/<filename>`. Referenced from `/forged-products/`.
+`public/assets/stl/named/` originally held 11 files mirroring `/forged-products/`. 9 of the 11 were byte-identical duplicates of `part-{a..i}.stl` (verified via `md5sum`, see table below) — the WordPress upload library had renamed the same source STL under multiple filenames. Those 9 duplicates were `git rm`'d on 2026-07-12; the directory no longer exists. The 2 unique named meshes (`tvs-1200.stl`, `trunnion-85000103.stl`) were moved to `media-src/` as GLB-conversion source masters (not deployed as raw STL — no page linked to them directly, they only ever backed the `/forged-products/` 3D viewer, which now loads `public/assets/models/tvs-1200.glb` and `public/assets/models/trunnion-85000103.glb`).
 
-| Local path | Source filename | Size | Used on page | Notes |
-| --- | --- | --- | --- | --- |
-| `public/assets/stl/named/tvs-1200.stl` | `tvs-1200.stl` | 2,542,184 B | `/forged-products/` | Product: TVS 1200. |
-| `public/assets/stl/named/trunnion-85000103.stl` | `trunnion-85000103.stl` | 2,475,184 B | `/forged-products/` | Product: Trunnion 85000103. |
-| `public/assets/stl/named/sprocket_451-zz-50163-v1.stl` | `sprocket_451-zz-50163-v1.stl` | 4,977,484 B | `/forged-products/` | Product: Sprocket 451-ZZ-50163. (Same mesh as `part-i.stl`.) |
-| `public/assets/stl/named/shaft-fan-hub-cuhu1001f001.stl` | `shaft-fan-hub-cuhu1001f001.stl` | 1,948,484 B | `/forged-products/` | Product: Shaft Fan Hub. (Same mesh as `part-h.stl`.) |
-| `public/assets/stl/named/right-lever-b14072-8.stl` | `right-lever-b14072-8.stl` | 1,228,984 B | `/forged-products/` | Product: Right Lever B14072-8. (Same mesh as `part-g.stl`.) |
-| `public/assets/stl/named/lever-b121768.stl` | `lever-b121768.stl` | 1,565,684 B | `/forged-products/` | Product: Lever B121768. (Same mesh as `part-f.stl`.) |
-| `public/assets/stl/named/cylinder-head-130hcb9319.stl` | `cylinder-head-130hcb9319.stl` | 2,111,984 B | `/forged-products/` | Product: Cylinder Head. (Same mesh as `part-e.stl`.) |
-| `public/assets/stl/named/body-8-way_um800900000b-bo-modi.stl` | `body-8-way_um800900000b-bo-modi.stl` | 5,010,384 B | `/forged-products/` | Product: Body 8-Way. (Same mesh as `part-d.stl`.) |
-| `public/assets/stl/named/bm-140-rh-link.stl` | `bm-140-rh-link.stl` | 3,042,884 B | `/forged-products/` | Product: BM-140 RH Link. (Same mesh as `part-a.stl`.) |
-| `public/assets/stl/named/4308128-FORGING-MODEL-v1-v1.stl` | `4308128-FORGING-MODEL-v1-v1.stl` | 5,324,134 B | `/forged-products/` | Product: 4308128 Forging Model. (Same mesh as `part-b.stl`.) |
-| `public/assets/stl/named/1011.stl` | `1011.stl` | 3,435,084 B | `/forged-products/` | Product: 1011. (Same mesh as `part-c.stl`.) |
+| Removed/moved path | md5 | Duplicate of | Disposition |
+| --- | --- | --- | --- |
+| `media-src/tvs-1200.stl` | `c5a1ca7cf3bafb4007c799c27fd1b3ab` | — (unique) | Moved from `stl/named/`, kept as conversion master |
+| `media-src/trunnion-85000103.stl` | `784a18b937742f01e14e9e03c193c2ab` | — (unique) | Moved from `stl/named/`, kept as conversion master |
+| `stl/named/sprocket_451-zz-50163-v1.stl` | `d97bc8d538bae57105a80e2147078a99` | `part-i.stl` | `git rm` — dupe |
+| `stl/named/shaft-fan-hub-cuhu1001f001.stl` | `8927648c444e79be073de783d955a343` | `part-h.stl` | `git rm` — dupe |
+| `stl/named/right-lever-b14072-8.stl` | `a30f0bb95084ea70d80e75c6ca0d0f9a` | `part-g.stl` | `git rm` — dupe |
+| `stl/named/lever-b121768.stl` | `f75a564484f217b4750ad539dd8fb2a2` | `part-f.stl` | `git rm` — dupe |
+| `stl/named/cylinder-head-130hcb9319.stl` | `573e109855ba028b8be7a1b1146d0b97` | `part-e.stl` | `git rm` — dupe |
+| `stl/named/body-8-way_um800900000b-bo-modi.stl` | `73628ffa45fb19b8862bc104266e4f1e` | `part-d.stl` | `git rm` — dupe |
+| `stl/named/bm-140-rh-link.stl` | `6c8f6efb84af3a9fd659eddae650eb95` | `part-a.stl` | `git rm` — dupe |
+| `stl/named/4308128-FORGING-MODEL-v1-v1.stl` | `c4e9f30bf9177d52c2e326bcf5a868bf` | `part-b.stl` | `git rm` — dupe |
+| `stl/named/1011.stl` | `c148a3fc659d815cbd50ffe12286e258` | `part-c.stl` | `git rm` — dupe |
+
+## 3D Models — `public/assets/models/` (meshopt-compressed GLB)
+
+The 11 unique meshes (`part-a` … `part-i`, `tvs-1200`, `trunnion-85000103`) were converted from raw binary STL (~32.1 MB total, byte-duplicates removed) to meshopt-compressed GLB (~6.31 MB total, 5.09x smaller) on 2026-07-12. This is what the React Three Fiber viewer loads — the STL sources exist only as download links (`stl/part-*.stl`) and conversion masters (`media-src/tvs-1200.stl`, `media-src/trunnion-85000103.stl`).
+
+**Pipeline:**
+1. STL → glTF intermediate: `assimp export <in>.stl <mid>.glb` (assimp 5.3, via `assimp-utils` apt package). Clean conversion on all 11 files, no warnings.
+2. Meshopt compression: `gltfpack -i <mid>.glb -o <out>.glb -cc` (gltfpack 1.2, via `npm i -g gltfpack`). `-cc` = max meshopt compression. No `-si` simplification pass — these are mechanical CAD parts with hard edges; triangle counts are preserved exactly source-to-output.
+3. Verified every output: GLB magic bytes checked, and `npx @gltf-transform/cli inspect` confirmed `extensionsUsed: KHR_mesh_quantization, EXT_meshopt_compression, KHR_materials_specular` on every file — matches the `three` `MeshoptDecoder` the app uses (NOT Draco).
+
+| Local path | Source STL | STL size | GLB size | Ratio | Triangles |
+| --- | --- | --- | --- | --- | --- |
+| `public/assets/models/part-a.glb` | `stl/part-a.stl` | 3,042,884 B | 630,404 B | 4.83x | 60,856 |
+| `public/assets/models/part-b.glb` | `stl/part-b.stl` | 5,324,134 B | 519,616 B | 10.25x | 106,481 |
+| `public/assets/models/part-c.glb` | `stl/part-c.stl` | 3,435,084 B | 747,868 B | 4.59x | 68,700 |
+| `public/assets/models/part-d.glb` | `stl/part-d.stl` | 5,010,384 B | 1,042,880 B | 4.80x | 100,206 |
+| `public/assets/models/part-e.glb` | `stl/part-e.stl` | 2,111,984 B | 429,320 B | 4.92x | 42,238 |
+| `public/assets/models/part-f.glb` | `stl/part-f.stl` | 1,565,684 B | 341,952 B | 4.58x | 31,312 |
+| `public/assets/models/part-g.glb` | `stl/part-g.stl` | 1,228,984 B | 252,900 B | 4.86x | 24,578 |
+| `public/assets/models/part-h.glb` | `stl/part-h.stl` | 1,948,484 B | 431,604 B | 4.51x | 38,968 |
+| `public/assets/models/part-i.glb` | `stl/part-i.stl` | 4,977,484 B | 1,072,016 B | 4.64x | 99,548 |
+| `public/assets/models/tvs-1200.glb` | `media-src/tvs-1200.stl` | 2,542,184 B | 605,036 B | 4.20x | 50,842 |
+| `public/assets/models/trunnion-85000103.glb` | `media-src/trunnion-85000103.stl` | 2,475,184 B | 543,928 B | 4.55x | 49,502 |
+| **Total** | | **33,662,474 B (32.10 MB)** | **6,617,524 B (6.31 MB)** | **5.09x** | **673,231** |
+
+Note on `part-b`'s outlier 10.25x ratio: its source mesh has a higher ratio of coincident vertices per triangle (294,431 raw vertices for 106,481 triangles vs. the ~2.5:1 typical of the other parts) — gltfpack's welding + quantization pass collapses these harder than the more irregular meshes. Triangle count is unaffected either way; every file's output triangle count matches its input exactly (verified via `gltfpack -v` and cross-checked against `assimp info`).
 
 ## PDFs
 

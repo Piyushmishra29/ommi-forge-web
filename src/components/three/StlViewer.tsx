@@ -8,10 +8,11 @@ import {
   useState,
 } from "react";
 import { Canvas, useLoader } from "@react-three/fiber";
-import { ContactShadows, OrbitControls } from "@react-three/drei";
+import { ContactShadows, OrbitControls, useProgress } from "@react-three/drei";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { configureGltfLoader, extractGeometry } from "./glb";
 import { BRAND_HEX } from "@/lib/brand";
 
 type OrbitControlsHandle = React.ComponentRef<typeof OrbitControls>;
@@ -29,10 +30,10 @@ export type StlViewerProps = {
  * Caches per src so we don't recompute the bounding sphere on every re-render.
  */
 function StlModel({ src }: { src: string }) {
-  const rawGeometry = useLoader(STLLoader, src);
+  const gltf = useLoader(GLTFLoader, src, configureGltfLoader);
 
   const geometry = useMemo(() => {
-    const geom = rawGeometry.clone();
+    const geom = extractGeometry(gltf);
     geom.computeBoundingBox();
     geom.computeBoundingSphere();
 
@@ -54,7 +55,7 @@ function StlModel({ src }: { src: string }) {
 
     geom.computeVertexNormals();
     return geom;
-  }, [rawGeometry]);
+  }, [gltf]);
 
   // Dispose the cloned geometry on unmount / src change so we don't
   // leak GPU buffers across navigations.
@@ -88,6 +89,26 @@ function AnvilWireframe() {
         <meshBasicMaterial color={BRAND_HEX.mesh} wireframe />
       </mesh>
     </group>
+  );
+}
+
+/**
+ * Real load progress for the meshopt GLB. `useProgress` reads three's
+ * DefaultLoadingManager (which `useLoader` feeds), so this DOM overlay tracks
+ * the actual byte/decoder progress rather than the old frozen wireframe-only
+ * wait. Rendered as a sibling of the Canvas — the `AnvilWireframe` Suspense
+ * fallback stays behind it while the geometry streams in.
+ */
+function LoadProgress() {
+  const { active, progress } = useProgress();
+  if (!active) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-10 sm:items-center sm:pb-0">
+      <span className="inline-flex items-center gap-2 bg-snow/70 px-4 py-2 font-eyebrow text-[10px] uppercase tracking-[0.3em] text-graphite backdrop-blur">
+        Loading
+        <span className="text-saffron">{Math.round(progress)}%</span>
+      </span>
+    </div>
   );
 }
 
@@ -197,7 +218,7 @@ export function StlViewer({
   // drives drag/zoom, and `data-lenis-prevent` keeps Lenis from fighting it.
   const [active, setActive] = useState(false);
 
-  const downloadName = src.split("/").pop() ?? "render.stl";
+  const downloadName = src.split("/").pop() ?? "render.glb";
 
   const handleToggleRotate = () => setManualRotate(!rotating);
 
@@ -291,6 +312,9 @@ export function StlViewer({
         />
       </Canvas>
 
+      {/* Real streaming progress over the wireframe fallback. */}
+      <LoadProgress />
+
       {/* Tap-to-activate gate. While inactive this transparent button sits
           over the (pointer-events-none) canvas; a tap flips `active` so the
           canvas takes over. It is itself swipe-friendly via `touch-action`
@@ -339,11 +363,11 @@ export function StlViewer({
           href={src}
           download={downloadName}
           className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-snow/70 text-graphite shadow-sm backdrop-blur transition hover:bg-snow"
-          aria-label="Download STL"
+          aria-label="Download 3D model"
         >
           <DownloadIcon />
           <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded bg-graphite px-2 py-1 font-eyebrow text-[10px] uppercase tracking-wider text-snow opacity-0 transition group-hover:opacity-100">
-            Download STL
+            Download model
           </span>
         </a>
       </div>

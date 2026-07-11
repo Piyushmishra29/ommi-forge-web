@@ -5,6 +5,23 @@ import { motion } from "framer-motion";
 import { StlPreview } from "@/components/three/lazy";
 import type { Render } from "@/data/renders";
 
+// Models already asked for this session — so hovering a tile twice, or two
+// tiles that share a GLB, injects at most one <link rel="prefetch">.
+const prefetched = new Set<string>();
+
+/**
+ * On hover/focus intent, warm the browser cache for a tile's GLB so the
+ * detail route's <StlViewer> has it ready. Fire-and-forget; deduped.
+ */
+function prefetchModel(href: string) {
+  if (typeof document === "undefined" || prefetched.has(href)) return;
+  prefetched.add(href);
+  const link = document.createElement("link");
+  link.rel = "prefetch";
+  link.href = href;
+  document.head.appendChild(link);
+}
+
 export function RendersGrid({ renders }: { renders: Render[] }) {
   return (
     <motion.ul
@@ -33,9 +50,11 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
             href={`/renders/${render.slug}`}
             className="group block overflow-hidden bg-paper ring-1 ring-black/5 transition hover:ring-mesh/40"
             data-magnetic
+            onMouseEnter={() => prefetchModel(render.model)}
+            onFocus={() => prefetchModel(render.model)}
           >
             <StlPreview
-              src={render.stl}
+              src={render.model}
               ariaLabel={`${render.title} — ${render.productName}`}
               className="transition-transform duration-700 group-hover:scale-[1.02]"
             />
