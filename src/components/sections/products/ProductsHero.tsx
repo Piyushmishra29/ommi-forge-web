@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { gsap } from '@/lib/gsap';
+import { PRODUCTS } from '@/data/products';
 import Eyebrow from '@/components/ui/Eyebrow';
 import SplitText from '@/components/motion/SplitText';
 
@@ -82,9 +83,14 @@ export default function ProductsHero() {
       ref={root}
       className="relative bg-paper pt-32 pb-16 md:pt-44 md:pb-24"
     >
-      <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow data-fade>
-          <span className="text-mesh">Catalogue · 13 forged parts</span>
+          {/* Counted, not typed — the gallery below is rendered straight
+              from PRODUCTS, so a hardcoded 13 silently goes stale the
+              first time a part is added. */}
+          <span className="text-ember">
+            Catalogue · {PRODUCTS.length} forged parts
+          </span>
         </Eyebrow>
 
         <h1
@@ -113,7 +119,12 @@ export default function ProductsHero() {
             data-magnetic
             data-cursor-label="Browse"
             onClick={handleBrowseAll}
-            className="group inline-flex items-center gap-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-mesh"
+            // min-h-11 = the 44px minimum target. 12px type on its own
+            // gives this scroll cue a ~15px tall hit area.
+            // A hover colour has to clear 4.5:1 too — mesh is 3.05:1 on
+            // paper, so the hover state is ember. The dash below keeps
+            // group-hover:bg-mesh: it is non-text ink at 3:1.
+            className="group inline-flex min-h-11 items-center gap-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-ember"
           >
             <span
               aria-hidden

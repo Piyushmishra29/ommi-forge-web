@@ -44,18 +44,47 @@ const overlayVariants: Variants = {
   exit: { opacity: 0 },
 };
 
+/**
+ * Close glyph — Lucide `x` geometry, inlined rather than pulled from an
+ * icon package because this is the only icon on the route. Sized to the
+ * 12px eyebrow type it sits beside, drawn in `currentColor` so it
+ * inherits the button's hover transition. Decorative: the button's own
+ * text label ("Close") is the accessible name.
+ */
+function CloseIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      className="h-3.5 w-3.5"
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Section header                                                            */
 /* -------------------------------------------------------------------------- */
 
 interface SectionHeaderProps {
+  /**
+   * Id for the `<h2>`. Required — each band's `<section>` points its
+   * `aria-labelledby` at this, so a missing id silently leaves the
+   * landmark unnamed.
+   */
+  id: string;
   eyebrow: string;
   title: string;
   intro?: string;
   align?: 'left' | 'center';
 }
 
-function SectionHeader({ eyebrow, title, intro, align = 'left' }: SectionHeaderProps) {
+function SectionHeader({ id, eyebrow, title, intro, align = 'left' }: SectionHeaderProps) {
   return (
     <header
       className={
@@ -65,9 +94,12 @@ function SectionHeader({ eyebrow, title, intro, align = 'left' }: SectionHeaderP
       }
     >
       <Eyebrow>
-        <span className="text-mesh">{eyebrow}</span>
+        <span className="text-ember">{eyebrow}</span>
       </Eyebrow>
-      <h2 className="mt-6 font-display text-3xl font-light leading-[1.05] text-graphite md:text-5xl">
+      <h2
+        id={id}
+        className="mt-6 font-display text-3xl font-light leading-[1.05] text-graphite md:text-5xl"
+      >
         {title}
       </h2>
       {intro ? (
@@ -97,7 +129,19 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
       layoutId={`card-${item.slug}`}
       data-magnetic
       onClick={() => onOpen(item.slug)}
-      className="group relative block w-full overflow-hidden bg-render-bg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+      // Explicit name. Without it the button's accessible name is the
+      // concatenation of everything inside it — code, name, the "View →"
+      // arrow and (on mobile) the duplicate caption strip, which
+      // announces the part name twice and never says what the button
+      // does.
+      aria-label={`${item.name}, part ${item.code} — open detail`}
+      // No local focus ring. This used to override the global one with
+      // `focus:outline-none` + a saffron-only `ring-2`, which is the
+      // weakest possible indicator here: tiles sit on render-bg and on
+      // photography, where saffron alone measures ~2.2:1. The global
+      // two-tone graphite+saffron ring in globals.css carries the 3:1
+      // floor on every surface in the palette — let it through.
+      className="group relative block w-full overflow-hidden bg-render-bg text-left"
     >
       <div
         className={
@@ -116,9 +160,13 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
           <picture>
             <source srcSet={withExt(item.src, 'avif')} type="image/avif" />
             <source srcSet={withExt(item.src, 'webp')} type="image/webp" />
+            {/* The blurb, not the name: both image-kind items are plant
+                photographs ("Power Hammer Bay", "Heat Treatment") whose
+                names describe the subject, not the picture. The blurb
+                describes what is actually in frame. */}
             <img
               src={item.src}
-              alt={item.name}
+              alt={item.blurb}
               width={aspectSize[item.aspect].w}
               height={aspectSize[item.aspect].h}
               loading="lazy"
@@ -149,9 +197,14 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
                 <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-saffron">
                   {item.code}
                 </p>
-                <h3 className="mt-2 font-display text-2xl font-light leading-tight text-paper md:text-3xl">
+                {/* <p>, not <h3>: every label in this tile lives inside
+                    the <button>, whose content model is phrasing only.
+                    A heading nested in a button is invalid and isn't
+                    exposed as a heading by screen readers anyway — the
+                    band's <h2> is the real landmark. */}
+                <p className="mt-2 font-display text-2xl font-light leading-tight text-paper md:text-3xl">
                   {item.name}
-                </h3>
+                </p>
               </div>
               <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-paper">
                 View →
@@ -159,14 +212,23 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
             </div>
         </>
       ) : (
-        <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent p-5 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+        // Revealed on focus as well as hover, so a keyboard user
+        // tabbing the grid sees the same label a mouse user does.
+        <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent p-5 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
           <div>
-            <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
+            {/* saffron, matching the featured tile's part code above.
+                These captions float on a graphite gradient over
+                photography/renders, so the backing is variable — at the
+                scrim's own bottom stop mesh measures ≈3.4:1 while
+                saffron reaches ≈5.1:1, and saffron beats mesh on every
+                dark surface in the palette. Same label, same treatment,
+                so it now uses the same accent. */}
+            <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-saffron">
               {item.code}
             </p>
-            <h3 className="mt-1 font-display text-xl font-light text-paper md:text-2xl">
+            <p className="mt-1 font-display text-xl font-light text-paper md:text-2xl">
               {item.name}
-            </h3>
+            </p>
           </div>
           <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-paper">
             View →
@@ -178,12 +240,15 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
           featured because their bottom slab is already visible. */}
       {!featured ? (
         <div className="bg-paper p-4 md:hidden">
-          <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-mesh">
+          {/* Same part code as the desktop hover slab above, but this strip
+              is opaque paper, not a graphite scrim — so it takes ember
+              (5.19:1) where the slab keeps mesh. */}
+          <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-ember">
             {item.code}
           </p>
-          <h3 className="mt-1 font-display text-lg font-light text-graphite">
+          <p className="mt-1 font-display text-lg font-light text-graphite">
             {item.name}
-          </h3>
+          </p>
         </div>
       ) : null}
     </motion.button>
@@ -237,6 +302,17 @@ export default function ProductsGallery() {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
+    // `overflow: hidden` on <body> does NOT stop Lenis — it drives the
+    // scroll position itself, so the page keeps gliding behind the
+    // overlay. Same contract the mobile nav uses: pause the instance,
+    // which also applies `.lenis-stopped { overflow: clip }` to <html>.
+    const setLenisPaused = (paused: boolean) => {
+      document.dispatchEvent(
+        new CustomEvent('lenis:setpaused', { detail: { paused } }),
+      );
+    };
+    setLenisPaused(true);
+
     // Save the element that opened the modal so we can return focus to it on close.
     lastFocusedRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -277,6 +353,7 @@ export default function ProductsGallery() {
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
+      setLenisPaused(false);
       window.removeEventListener('keydown', onKey);
       cancelAnimationFrame(focusFrame);
       // Restore focus to whatever opened the modal.
@@ -292,8 +369,9 @@ export default function ProductsGallery() {
         aria-labelledby="featured-heading"
         className="bg-paper pt-4 pb-20 md:pt-8 md:pb-28"
       >
-        <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+        <div className="mx-auto max-w-page px-6 md:px-10">
           <SectionHeader
+            id="featured-heading"
             eyebrow="Featured · Three hero parts"
             title="The parts our customers ask for most."
             intro="Walk a metallurgist through these and you'll cover the bulk of what leaves Malur — heavy-duty trunnions, drive sprockets and near-net cylinder heads."
@@ -316,8 +394,9 @@ export default function ProductsGallery() {
         aria-labelledby="catalogue-heading"
         className="bg-paper pb-24 md:pb-32"
       >
-        <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+        <div className="mx-auto max-w-page px-6 md:px-10">
           <SectionHeader
+            id="catalogue-heading"
             eyebrow="Full catalogue"
             title="Every named part we forge."
             intro="Levers, links, valve bodies and process photography — tap any tile for the full 3D viewer."
@@ -338,8 +417,9 @@ export default function ProductsGallery() {
         aria-labelledby="by-application-heading"
         className="border-t border-graphite/10 bg-paper pb-24 pt-20 md:pb-32 md:pt-24"
       >
-        <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+        <div className="mx-auto max-w-page px-6 md:px-10">
           <SectionHeader
+            id="by-application-heading"
             eyebrow="By application"
             title="What industry are you serving?"
             intro="Same parts, grouped by the industries they typically land in. Click a chip to zoom the 3D viewer."
@@ -363,7 +443,12 @@ export default function ProductsGallery() {
                         type="button"
                         data-magnetic
                         onClick={() => setActiveSlug(p.slug)}
-                        className="group inline-flex items-center gap-2 border border-graphite/15 bg-paper px-3 py-2 font-eyebrow text-[11px] font-semibold uppercase tracking-[0.16em] text-graphite transition-colors hover:border-mesh hover:bg-mesh hover:text-paper"
+                        aria-label={`${p.name}, part ${p.code} — open detail`}
+                        // min-h-11 = 44px. At 11px type these chips were
+                        // ~29px tall and sat in a wrapped grid, which is
+                        // exactly the case the minimum target size
+                        // exists for.
+                        className="group inline-flex min-h-11 items-center gap-2 border border-graphite/15 bg-paper px-3 py-2 font-eyebrow text-[11px] font-semibold uppercase tracking-[0.16em] text-graphite transition-colors hover:border-mesh hover:bg-mesh hover:text-paper"
                       >
                         <span>{p.name}</span>
                         <span
@@ -386,97 +471,118 @@ export default function ProductsGallery() {
       <AnimatePresence>
         {active && (
           <motion.div
-            ref={dialogRef}
             key="product-overlay"
             variants={overlayVariants}
             initial="initial"
             animate="animate"
             exit="exit"
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[1100] flex items-center justify-center bg-graphite/85 p-4 backdrop-blur-sm md:p-10"
+            // Scrolls internally: on a phone the square render plus the
+            // spec column is taller than the viewport, and the panel
+            // used to be centre-cropped with the CTA unreachable.
+            // `data-lenis-prevent` keeps that wheel/touch scroll on the
+            // overlay instead of leaking to the (paused) page beneath.
+            data-lenis-prevent
+            className="fixed inset-0 z-[1100] overflow-y-auto overscroll-contain bg-graphite/85 p-4 backdrop-blur-sm md:p-10"
             onClick={() => setActiveSlug(null)}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${active.name} detail`}
           >
-            <motion.div
-              layoutId={`card-${active.slug}`}
-              onClick={(e) => e.stopPropagation()}
-              className="relative grid w-full max-w-5xl grid-cols-1 overflow-hidden bg-paper md:grid-cols-12"
-            >
-              <div className="relative aspect-square w-full bg-render-bg md:col-span-7 md:aspect-auto md:min-h-[560px]">
-                {active.kind === 'stl' ? (
-                  <StlViewer
-                    src={active.model}
-                    title={active.name}
-                    productName={active.code}
-                    autoRotate
-                    className="h-full w-full"
-                  />
-                ) : (
-                  <picture>
-                    <source
-                      srcSet={withExt(active.src, 'avif')}
-                      type="image/avif"
+            <div className="flex min-h-full items-center justify-center">
+              <motion.div
+                ref={dialogRef}
+                layoutId={`card-${active.slug}`}
+                onClick={(e) => e.stopPropagation()}
+                // role/aria live on the PANEL, not the backdrop — the
+                // backdrop is the click-away target and isn't part of the
+                // dialog. Labelled by the heading it actually renders.
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="product-dialog-title"
+                className="relative grid w-full max-w-5xl grid-cols-1 overflow-hidden bg-paper md:grid-cols-12"
+              >
+                <div className="relative aspect-square w-full bg-render-bg md:col-span-7 md:aspect-auto md:min-h-[560px]">
+                  {active.kind === 'stl' ? (
+                    <StlViewer
+                      src={active.model}
+                      title={active.name}
+                      productName={active.code}
+                      autoRotate
+                      className="h-full w-full"
                     />
-                    <source
-                      srcSet={withExt(active.src, 'webp')}
-                      type="image/webp"
-                    />
-                    <img
-                      src={active.src}
-                      alt={active.name}
-                      width={aspectSize[active.aspect].w}
-                      height={aspectSize[active.aspect].h}
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  </picture>
-                )}
-              </div>
-
-              <div className="flex flex-col justify-between p-8 md:col-span-5 md:p-10">
-                <div>
-                  <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
-                    Catalogue · {active.code}
-                  </p>
-                  <h2 className="mt-4 font-display text-3xl font-light leading-tight text-graphite md:text-4xl">
-                    {active.name}
-                  </h2>
-                  <p className="mt-6 font-body text-base leading-relaxed text-steel md:text-lg">
-                    {active.blurb}
-                  </p>
-                  <ul className="mt-6 flex flex-wrap gap-2">
-                    {productApplications(active).map((app) => (
-                      <li
-                        key={app}
-                        className="border border-graphite/20 px-2.5 py-1 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.18em] text-graphite"
-                      >
-                        {APPLICATION_LABEL[app]}
-                      </li>
-                    ))}
-                  </ul>
+                  ) : (
+                    <picture>
+                      <source
+                        srcSet={withExt(active.src, 'avif')}
+                        type="image/avif"
+                      />
+                      <source
+                        srcSet={withExt(active.src, 'webp')}
+                        type="image/webp"
+                      />
+                      {/* Identification only here — unlike the tile, the
+                          blurb is rendered as visible copy beside this
+                          image, so repeating it in `alt` would just make
+                          a screen reader say it twice. */}
+                      <img
+                        src={active.src}
+                        alt={`${active.name}, part ${active.code}`}
+                        width={aspectSize[active.aspect].w}
+                        height={aspectSize[active.aspect].h}
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
+                    </picture>
+                  )}
                 </div>
 
-                <div className="mt-10 flex flex-wrap items-center gap-4">
-                  <a
-                    href="/contact/"
-                    data-magnetic
-                    className="inline-flex items-center justify-center bg-saffron px-6 py-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
-                  >
-                    Request a Quote
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSlug(null)}
-                    data-magnetic
-                    className="font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-steel transition-colors hover:text-graphite"
-                  >
-                    Close ✕
-                  </button>
+                <div className="flex flex-col justify-between p-8 md:col-span-5 md:p-10">
+                  <div>
+                    <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
+                      Catalogue · {active.code}
+                    </p>
+                    <h2
+                      id="product-dialog-title"
+                      className="mt-4 font-display text-3xl font-light leading-tight text-graphite md:text-4xl"
+                    >
+                      {active.name}
+                    </h2>
+                    <p className="mt-6 font-body text-base leading-relaxed text-steel md:text-lg">
+                      {active.blurb}
+                    </p>
+                    <ul className="mt-6 flex flex-wrap gap-2">
+                      {productApplications(active).map((app) => (
+                        <li
+                          key={app}
+                          className="border border-graphite/20 px-2.5 py-1 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.18em] text-graphite"
+                        >
+                          {APPLICATION_LABEL[app]}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* min-h-11 = the 44px minimum touch target; 12px type
+                      with py-3 lands at ~39px on its own. */}
+                  <div className="mt-10 flex flex-wrap items-center gap-4">
+                    <a
+                      href="/contact/"
+                      data-magnetic
+                      className="inline-flex min-h-11 items-center justify-center bg-saffron px-6 py-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
+                    >
+                      Request a Quote
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSlug(null)}
+                      data-magnetic
+                      className="inline-flex min-h-11 items-center justify-center gap-2 px-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-steel transition-colors hover:text-graphite"
+                    >
+                      Close
+                      <CloseIcon />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

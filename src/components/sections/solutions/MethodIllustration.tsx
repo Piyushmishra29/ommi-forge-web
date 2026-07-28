@@ -12,19 +12,53 @@ import { cn } from '@/lib/cn';
  * compresses. The motion is intentionally restrained (industrial, not
  * playful) so it doesn't compete with the copy.
  *
- * Colour: graphite background, mesh grid, saffron strokes. All values
- * pull from `src/lib/brand.ts` via Tailwind tokens (`stroke-saffron`,
- * `stroke-mesh`, etc.) where possible; raw hexes (`#FF9933` saffron,
- * `#FF5533` mesh, `#FAFAFA` paper) are used only inside SVG attributes
- * that don't accept Tailwind classes.
- *
- * Reduced-motion: handled at the global `<PinnedSection>` layer — when
- * pinning is disabled `progress` stays at 0, so each illustration sits
- * at the start of its window and the inner detail rests at frame 0.
+ * Reduced-motion: `<MethodsPinned>` drops the pin entirely and renders
+ * one illustration per method with `staticIndex`, which pins that slide
+ * to opacity 1 at its FINISHED frame (hammer down, ring grown) so the
+ * drawing still reads as a completed operation without any motion.
  */
+
+/**
+ * Illustration palette.
+ *
+ * Every colour in these SVGs is a brand token — there are no
+ * illustration-only values here. The drawings use SVG presentation
+ * attributes rather than Tailwind classes because several are computed
+ * per-frame alongside geometry (`x`, `width`, `opacity`), so keeping
+ * colour on the same attribute surface keeps each shape readable as one
+ * unit. Presentation attributes accept CSS custom properties, so these
+ * stay bound live to the `@theme` tokens in `globals.css` instead of
+ * duplicating hexes.
+ *
+ * Named by ROLE, not by colour, so the drawings say what a shape *is*:
+ */
+const INK = {
+  /** Structural machinery — anvils, platens, hammer heads, guide rails. */
+  machine: 'var(--color-paper)',
+  /** Tooling that shapes the part — dies, jaws, mandrel, impact sparks. */
+  tooling: 'var(--color-saffron)',
+  /** The hot workpiece — billet, shaft, ring, upset head. */
+  billet: 'var(--color-mesh)',
+  /** Knock-outs punched back to the panel background (ring bore, etc.). */
+  ground: 'var(--color-graphite)',
+} as const;
+
+/** Accessible name for each slide, in `ORDER` order. */
+const SLIDE_LABEL: Record<IllustrationKey, string> = {
+  'closed-die': 'Closed-die forging',
+  'open-die': 'Open-die forging',
+  ring: 'Ring rolling',
+  upset: 'Upset forging',
+};
+
 interface Props {
   progress: number;
   className?: string;
+  /**
+   * Reduced-motion / static mode: show only this slide, held at its
+   * finished frame. When set, `progress` is ignored.
+   */
+  staticIndex?: number;
 }
 
 const ORDER: ReadonlyArray<IllustrationKey> = [
@@ -63,9 +97,35 @@ function localProgress(progress: number, index: number): number {
   return (progress - start) / slice;
 }
 
-export default function MethodIllustration({ progress, className }: Props) {
+export default function MethodIllustration({
+  progress,
+  className,
+  staticIndex,
+}: Props) {
+  const pinned = staticIndex === undefined;
+  const held = pinned
+    ? -1
+    : Math.min(ORDER.length - 1, Math.max(0, staticIndex));
+
+  // Static mode holds one slide at full opacity and frame 1 (the finished
+  // state); pinned mode crossfades each slide through its own window.
+  const opacityAt = (i: number) =>
+    pinned ? opacityFor(progress, i) : i === held ? 1 : 0;
+  const frameAt = (i: number) => (pinned ? localProgress(progress, i) : 1);
+
+  // ONE accessible name for the whole canvas. The four <svg> layers are
+  // stacked on top of each other, so labelling each as its own
+  // `role="img"` made screen readers announce all four methods at once
+  // even though three are invisible. The wrapper names whichever slide
+  // is currently legible; the layers below are decorative.
+  const namedIndex = pinned
+    ? Math.min(ORDER.length - 1, Math.floor(progress * ORDER.length))
+    : held;
+
   return (
     <div
+      role="img"
+      aria-label={`${SLIDE_LABEL[ORDER[namedIndex]]} — technical illustration`}
       className={cn(
         'relative aspect-square w-full max-w-[520px] overflow-hidden bg-graphite',
         className,
@@ -73,17 +133,17 @@ export default function MethodIllustration({ progress, className }: Props) {
     >
       <BackdropGrid />
 
-      <ShapeLayer opacity={opacityFor(progress, 0)} label="Closed-die forging">
-        <ClosedDieIllustration progress={localProgress(progress, 0)} />
+      <ShapeLayer opacity={opacityAt(0)}>
+        <ClosedDieIllustration progress={frameAt(0)} />
       </ShapeLayer>
-      <ShapeLayer opacity={opacityFor(progress, 1)} label="Open-die forging">
-        <OpenDieIllustration progress={localProgress(progress, 1)} />
+      <ShapeLayer opacity={opacityAt(1)}>
+        <OpenDieIllustration progress={frameAt(1)} />
       </ShapeLayer>
-      <ShapeLayer opacity={opacityFor(progress, 2)} label="Ring rolling">
-        <RingRollingIllustration progress={localProgress(progress, 2)} />
+      <ShapeLayer opacity={opacityAt(2)}>
+        <RingRollingIllustration progress={frameAt(2)} />
       </ShapeLayer>
-      <ShapeLayer opacity={opacityFor(progress, 3)} label="Upset forging">
-        <UpsetIllustration progress={localProgress(progress, 3)} />
+      <ShapeLayer opacity={opacityAt(3)}>
+        <UpsetIllustration progress={frameAt(3)} />
       </ShapeLayer>
     </div>
   );
@@ -109,30 +169,29 @@ function BackdropGrid() {
           height="40"
           patternUnits="userSpaceOnUse"
         >
-          <path d="M40 0 L0 0 L0 40" fill="none" stroke="#FAFAFA" strokeWidth="0.5" />
+          <path d="M40 0 L0 0 L0 40" fill="none" stroke={INK.machine} strokeWidth="0.5" />
         </pattern>
       </defs>
       <rect width="400" height="400" fill="url(#grid)" />
-      <circle cx="200" cy="200" r="180" fill="none" stroke="#FAFAFA" strokeWidth="0.5" />
-      <circle cx="200" cy="200" r="120" fill="none" stroke="#FAFAFA" strokeWidth="0.5" />
+      <circle cx="200" cy="200" r="180" fill="none" stroke={INK.machine} strokeWidth="0.5" />
+      <circle cx="200" cy="200" r="120" fill="none" stroke={INK.machine} strokeWidth="0.5" />
     </svg>
   );
 }
 
 function ShapeLayer({
   opacity,
-  label,
   children,
 }: {
   opacity: number;
-  label: string;
   children: React.ReactNode;
 }) {
   return (
     <svg
       viewBox="0 0 400 400"
-      role="img"
-      aria-label={label}
+      // Decorative: the parent <div role="img"> carries the single
+      // accessible name for whichever slide is legible.
+      aria-hidden
       className="absolute inset-0 h-full w-full transition-opacity duration-300"
       style={{ opacity }}
     >
@@ -156,13 +215,13 @@ function ClosedDieIllustration({ progress }: { progress: number }) {
   return (
     <g>
       {/* Anvil base */}
-      <rect x="60" y="320" width="280" height="40" fill="#FAFAFA" fillOpacity="0.06" stroke="#FAFAFA" strokeOpacity="0.3" strokeWidth="1" />
+      <rect x="60" y="320" width="280" height="40" fill={INK.machine} fillOpacity="0.06" stroke={INK.machine} strokeOpacity="0.3" strokeWidth="1" />
       {/* Lower die */}
       <path
         d="M 110 320 L 110 240 L 175 240 L 200 260 L 225 240 L 290 240 L 290 320 Z"
-        fill="#FF9933"
+        fill={INK.tooling}
         fillOpacity="0.12"
-        stroke="#FF9933"
+        stroke={INK.tooling}
         strokeWidth="1.5"
       />
       {/* Billet (the orange-hot part being squeezed) */}
@@ -171,18 +230,18 @@ function ClosedDieIllustration({ progress }: { progress: number }) {
         y={245 - squeeze / 2}
         width={60 + squeeze * 2}
         height={30 + squeeze}
-        fill="#FF5533"
+        fill={INK.billet}
         fillOpacity="0.6"
-        stroke="#FF5533"
+        stroke={INK.billet}
         strokeWidth="1.5"
         rx="2"
       />
       {/* Upper die — slammed down by the hammer */}
       <path
         d={`M 110 ${hammerY + 60} L 110 ${hammerY + 140} L 175 ${hammerY + 140} L 200 ${hammerY + 120} L 225 ${hammerY + 140} L 290 ${hammerY + 140} L 290 ${hammerY + 60} Z`}
-        fill="#FF9933"
+        fill={INK.tooling}
         fillOpacity="0.12"
-        stroke="#FF9933"
+        stroke={INK.tooling}
         strokeWidth="1.5"
       />
       {/* Hammer head — the heavy block above the upper die */}
@@ -191,17 +250,17 @@ function ClosedDieIllustration({ progress }: { progress: number }) {
         y={hammerY}
         width="100"
         height="60"
-        fill="#FAFAFA"
+        fill={INK.machine}
         fillOpacity="0.12"
-        stroke="#FAFAFA"
+        stroke={INK.machine}
         strokeWidth="1.5"
       />
       {/* Guide rails */}
-      <line x1="155" y1="0" x2="155" y2={hammerY} stroke="#FAFAFA" strokeOpacity="0.35" strokeWidth="0.5" strokeDasharray="3 4" />
-      <line x1="245" y1="0" x2="245" y2={hammerY} stroke="#FAFAFA" strokeOpacity="0.35" strokeWidth="0.5" strokeDasharray="3 4" />
+      <line x1="155" y1="0" x2="155" y2={hammerY} stroke={INK.machine} strokeOpacity="0.35" strokeWidth="0.5" strokeDasharray="3 4" />
+      <line x1="245" y1="0" x2="245" y2={hammerY} stroke={INK.machine} strokeOpacity="0.35" strokeWidth="0.5" strokeDasharray="3 4" />
       {/* Spark lines on impact */}
       {progress > 0.85 && (
-        <g stroke="#FF9933" strokeWidth="1" opacity={Math.min(1, (progress - 0.85) / 0.15)}>
+        <g stroke={INK.tooling} strokeWidth="1" opacity={Math.min(1, (progress - 0.85) / 0.15)}>
           <line x1="110" y1="260" x2="80" y2="245" />
           <line x1="290" y1="260" x2="320" y2="245" />
           <line x1="110" y1="260" x2="85" y2="275" />
@@ -226,16 +285,16 @@ function OpenDieIllustration({ progress }: { progress: number }) {
   return (
     <g>
       {/* Lower open-die platen */}
-      <rect x="60" y="230" width="280" height="30" fill="#FF9933" fillOpacity="0.12" stroke="#FF9933" strokeWidth="1.5" />
+      <rect x="60" y="230" width="280" height="30" fill={INK.tooling} fillOpacity="0.12" stroke={INK.tooling} strokeWidth="1.5" />
       {/* Shaft */}
       <rect
         x="80"
         y="180"
         width="240"
         height="50"
-        fill="#FF5533"
+        fill={INK.billet}
         fillOpacity="0.55"
-        stroke="#FF5533"
+        stroke={INK.billet}
         strokeWidth="1.5"
         rx="3"
       />
@@ -247,22 +306,22 @@ function OpenDieIllustration({ progress }: { progress: number }) {
           y1="180"
           x2={x}
           y2="195"
-          stroke="#FF9933"
+          stroke={INK.tooling}
           strokeOpacity={hammerX > x - 5 ? 0.9 : 0.3}
           strokeWidth="1"
         />
       ))}
       {/* Upper-die platen (sits above the shaft, doesn't move) */}
-      <rect x="60" y="155" width="280" height="20" fill="#FAFAFA" fillOpacity="0.08" stroke="#FAFAFA" strokeOpacity="0.35" strokeWidth="1" />
+      <rect x="60" y="155" width="280" height="20" fill={INK.machine} fillOpacity="0.08" stroke={INK.machine} strokeOpacity="0.35" strokeWidth="1" />
       {/* Travelling hammer head — small, square, slides across */}
       <rect
         x={hammerX - 22}
         y={hammerY}
         width="44"
         height="64"
-        fill="#FAFAFA"
+        fill={INK.machine}
         fillOpacity="0.15"
-        stroke="#FAFAFA"
+        stroke={INK.machine}
         strokeWidth="1.5"
       />
       <line
@@ -270,14 +329,14 @@ function OpenDieIllustration({ progress }: { progress: number }) {
         y1="0"
         x2={hammerX}
         y2={hammerY}
-        stroke="#FAFAFA"
+        stroke={INK.machine}
         strokeOpacity="0.3"
         strokeWidth="0.5"
         strokeDasharray="3 4"
       />
       {/* End-cap supports */}
-      <circle cx="60" cy="205" r="8" fill="#FAFAFA" fillOpacity="0.15" stroke="#FAFAFA" strokeOpacity="0.4" strokeWidth="1" />
-      <circle cx="340" cy="205" r="8" fill="#FAFAFA" fillOpacity="0.15" stroke="#FAFAFA" strokeOpacity="0.4" strokeWidth="1" />
+      <circle cx="60" cy="205" r="8" fill={INK.machine} fillOpacity="0.15" stroke={INK.machine} strokeOpacity="0.4" strokeWidth="1" />
+      <circle cx="340" cy="205" r="8" fill={INK.machine} fillOpacity="0.15" stroke={INK.machine} strokeOpacity="0.4" strokeWidth="1" />
       <Caption text="02 · OPEN DIE" />
     </g>
   );
@@ -299,17 +358,17 @@ function RingRollingIllustration({ progress }: { progress: number }) {
   return (
     <g>
       {/* Outer roller frame */}
-      <circle cx="200" cy="200" r="170" fill="none" stroke="#FAFAFA" strokeOpacity="0.18" strokeWidth="1" strokeDasharray="2 4" />
+      <circle cx="200" cy="200" r="170" fill="none" stroke={INK.machine} strokeOpacity="0.18" strokeWidth="1" strokeDasharray="2 4" />
       {/* Ring — annulus drawn as two stroked circles plus a fill ring */}
-      <circle cx="200" cy="200" r={outerR} fill="#FF5533" fillOpacity="0.18" stroke="#FF5533" strokeWidth="1.5" />
-      <circle cx="200" cy="200" r={innerR} fill="#1F2124" stroke="#FF5533" strokeWidth="1.5" />
+      <circle cx="200" cy="200" r={outerR} fill={INK.billet} fillOpacity="0.18" stroke={INK.billet} strokeWidth="1.5" />
+      <circle cx="200" cy="200" r={innerR} fill={INK.ground} stroke={INK.billet} strokeWidth="1.5" />
       {/* Mandrel — saffron disc at the centre, fixed */}
-      <circle cx="200" cy="200" r="22" fill="#FF9933" />
-      <circle cx="200" cy="200" r="6" fill="#1F2124" />
+      <circle cx="200" cy="200" r="22" fill={INK.tooling} />
+      <circle cx="200" cy="200" r="6" fill={INK.ground} />
       {/* Idler roller riding the outside of the ring */}
-      <circle cx={idlerX} cy={idlerY} r="14" fill="#FAFAFA" fillOpacity="0.18" stroke="#FAFAFA" strokeWidth="1.5" />
+      <circle cx={idlerX} cy={idlerY} r="14" fill={INK.machine} fillOpacity="0.18" stroke={INK.machine} strokeWidth="1.5" />
       {/* Reference circle showing the starting diameter so growth reads */}
-      <circle cx="200" cy="200" r="80" fill="none" stroke="#FAFAFA" strokeOpacity="0.22" strokeWidth="0.5" strokeDasharray="3 3" />
+      <circle cx="200" cy="200" r="80" fill="none" stroke={INK.machine} strokeOpacity="0.22" strokeWidth="0.5" strokeDasharray="3 3" />
       <Caption text="03 · RING ROLLING" />
     </g>
   );
@@ -332,16 +391,16 @@ function UpsetIllustration({ progress }: { progress: number }) {
   return (
     <g>
       {/* Bottom die holder */}
-      <rect x="100" y="320" width="200" height="40" fill="#FAFAFA" fillOpacity="0.08" stroke="#FAFAFA" strokeOpacity="0.35" strokeWidth="1" />
+      <rect x="100" y="320" width="200" height="40" fill={INK.machine} fillOpacity="0.08" stroke={INK.machine} strokeOpacity="0.35" strokeWidth="1" />
       {/* Upset head — the bulged section that grows as we squish */}
       <rect
         x={200 - headWidth / 2}
         y={shaftBottom}
         width={headWidth}
         height={headHeight}
-        fill="#FF5533"
+        fill={INK.billet}
         fillOpacity="0.55"
-        stroke="#FF5533"
+        stroke={INK.billet}
         strokeWidth="1.5"
         rx="2"
       />
@@ -351,18 +410,18 @@ function UpsetIllustration({ progress }: { progress: number }) {
         y={shaftTop}
         width="30"
         height={shaftBottom - shaftTop}
-        fill="#FF5533"
+        fill={INK.billet}
         fillOpacity="0.4"
-        stroke="#FF5533"
+        stroke={INK.billet}
         strokeWidth="1.5"
       />
       {/* Side die jaws clamping the upset head */}
-      <rect x={200 - headWidth / 2 - 16} y={shaftBottom + 5} width="14" height={headHeight - 10} fill="#FF9933" fillOpacity="0.18" stroke="#FF9933" strokeWidth="1.5" />
-      <rect x={200 + headWidth / 2 + 2} y={shaftBottom + 5} width="14" height={headHeight - 10} fill="#FF9933" fillOpacity="0.18" stroke="#FF9933" strokeWidth="1.5" />
+      <rect x={200 - headWidth / 2 - 16} y={shaftBottom + 5} width="14" height={headHeight - 10} fill={INK.tooling} fillOpacity="0.18" stroke={INK.tooling} strokeWidth="1.5" />
+      <rect x={200 + headWidth / 2 + 2} y={shaftBottom + 5} width="14" height={headHeight - 10} fill={INK.tooling} fillOpacity="0.18" stroke={INK.tooling} strokeWidth="1.5" />
       {/* Top platen — the thing pressing down */}
-      <rect x="120" y={platenY} width="160" height="20" fill="#FAFAFA" fillOpacity="0.15" stroke="#FAFAFA" strokeWidth="1.5" />
+      <rect x="120" y={platenY} width="160" height="20" fill={INK.machine} fillOpacity="0.15" stroke={INK.machine} strokeWidth="1.5" />
       {/* Pressure arrows on the platen */}
-      <g stroke="#FAFAFA" strokeOpacity="0.5" strokeWidth="1">
+      <g stroke={INK.machine} strokeOpacity="0.5" strokeWidth="1">
         <line x1="160" y1={platenY - 18} x2="160" y2={platenY - 4} />
         <polyline points={`156,${platenY - 8} 160,${platenY - 4} 164,${platenY - 8}`} fill="none" />
         <line x1="240" y1={platenY - 18} x2="240" y2={platenY - 4} />
@@ -382,7 +441,7 @@ function Caption({ text }: { text: string }) {
     <text
       x="20"
       y="384"
-      fill="#FAFAFA"
+      fill={INK.machine}
       fillOpacity="0.55"
       fontFamily="var(--font-eyebrow), system-ui, sans-serif"
       fontSize="11"

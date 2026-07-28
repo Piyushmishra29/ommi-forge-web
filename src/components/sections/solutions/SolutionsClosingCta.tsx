@@ -88,7 +88,7 @@ export default function SolutionsClosingCta() {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-graphite/15 to-transparent"
       />
 
-      <div className="relative mx-auto flex w-full max-w-[var(--container-page)] flex-col items-start px-6 md:px-10">
+      <div className="relative mx-auto flex w-full max-w-page flex-col items-start px-6 md:px-10">
         <Eyebrow data-cta-fade>
           <span className="text-graphite">{SOLUTIONS_CLOSING_CTA.eyebrow}</span>
         </Eyebrow>

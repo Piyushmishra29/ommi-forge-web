@@ -86,10 +86,10 @@ export default function SolutionsHero() {
     >
       <div
         data-hero-inner
-        className="mx-auto max-w-[var(--container-page)] px-6 md:px-10"
+        className="mx-auto max-w-page px-6 md:px-10"
       >
         <Eyebrow data-hero-fade>
-          <span className="text-mesh">{SOLUTIONS_HERO.eyebrow}</span>
+          <span className="text-ember">{SOLUTIONS_HERO.eyebrow}</span>
         </Eyebrow>
 
         <h1

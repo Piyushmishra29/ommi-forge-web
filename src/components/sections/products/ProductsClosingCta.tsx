@@ -65,9 +65,12 @@ export default function ProductsClosingCta() {
       ref={root}
       className="relative isolate overflow-hidden bg-saffron text-graphite"
     >
-      {/* Ambient glyph — large stencilled '8' for the OMMI mark, sits
-          behind the type at very low contrast so it reads as paper
-          texture, not decoration. */}
+      {/* Ambient glyph — an outsized infinity mark bled off the right
+          edge at graphite/5, so it reads as paper texture rather than
+          as an icon. Purely decorative, hence aria-hidden.
+          NB: the sibling closers (home + /solutions) use gradient
+          vignettes instead; this slab is the only one carrying a
+          glyph. */}
       <span
         aria-hidden
         className="pointer-events-none absolute -right-12 top-1/2 -translate-y-1/2 font-display text-[clamp(360px,55vw,720px)] font-light leading-none text-graphite/5 select-none"
@@ -75,7 +78,7 @@ export default function ProductsClosingCta() {
         ∞
       </span>
 
-      <div className="relative mx-auto flex max-w-[var(--container-page)] flex-col gap-12 px-6 py-24 md:flex-row md:items-end md:justify-between md:px-10 md:py-32">
+      <div className="relative mx-auto flex max-w-page flex-col gap-12 px-6 py-24 md:flex-row md:items-end md:justify-between md:px-10 md:py-32">
         <div className="max-w-3xl">
           <Eyebrow data-pcta-fade>
             <span className="text-graphite">Still scoping a part?</span>
