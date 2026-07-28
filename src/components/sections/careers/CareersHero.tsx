@@ -65,22 +65,25 @@ export default function CareersHero() {
       ref={root}
       className="relative bg-paper pt-32 pb-0 md:pt-40"
     >
-      <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow data-fade>
-          <span className="text-mesh">Join Ommi · Malur, Karnataka</span>
+          <span className="text-ember">Join Ommi · Malur, Karnataka</span>
         </Eyebrow>
 
         <h1
           data-careers-headline
-          className="mt-8 max-w-5xl font-display font-light leading-[0.98] text-graphite"
+          className="mt-8 max-w-5xl text-balance font-display font-light leading-[0.98] text-graphite"
           style={{ fontSize: 'clamp(56px, 10vw, 110px)' }}
         >
           <SplitText as="span">{`Build with steel. Talk to us.`}</SplitText>
         </h1>
 
+        {/* max-w-xl (not -2xl): at 16px pre-md, a 2xl (672px) measure
+            runs to ~84ch — past the 65-75ch comfortable line length —
+            on tablet widths just under the `md:` breakpoint. */}
         <p
           data-fade
-          className="mt-10 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]"
+          className="mt-10 max-w-xl text-pretty font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]"
         >
           We hire metallurgists, machinists, and the people who keep our
           floor humming. Fifty-one harvests in, Ommi still hires for grit,

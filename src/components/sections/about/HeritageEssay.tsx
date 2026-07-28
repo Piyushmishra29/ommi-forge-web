@@ -67,27 +67,31 @@ function getRMServer() {
 function StaticEssay() {
   return (
     <section className="bg-paper text-graphite">
-      <div className="mx-auto grid max-w-[var(--container-page)] grid-cols-1 gap-12 px-6 py-32 md:grid-cols-12 md:gap-16 md:px-10 md:py-40">
+      <div className="mx-auto grid max-w-page grid-cols-1 gap-12 px-6 py-32 md:grid-cols-12 md:gap-16 md:px-10 md:py-40">
         <aside className="md:col-span-4">
-          <p className="mb-8 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+          <p className="mb-8 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
             <span
               aria-hidden
               className="mr-3 inline-block h-px w-8 align-middle bg-mesh"
             />
             Heritage
           </p>
-          <h2 className="font-display text-3xl font-light leading-tight text-graphite md:text-5xl">
-            Five decades of forging — written one heat at a time.
+          <h2 className="text-balance font-display text-3xl font-light leading-tight text-graphite md:text-5xl">
+            Five decades — written one heat at a time.
           </h2>
         </aside>
         <div className="md:col-span-8 md:pl-4">
-          <div className="space-y-16">
+          {/* max-w-2xl caps the measure on tablet widths just under
+              `md:` (single-column, full-bleed) where the unconstrained
+              column would otherwise run past ~75ch at text-lg. Barely
+              clips the already-narrower 8/12 grid track on desktop. */}
+          <div className="max-w-2xl space-y-16">
             {CHAPTERS.map((c) => (
               <div key={c.year}>
-                <p className="mb-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+                <p className="mb-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
                   {c.year} · {c.heading}
                 </p>
-                <p className="font-body text-lg leading-relaxed text-steel md:text-xl md:leading-[1.65]">
+                <p className="text-pretty font-body text-lg leading-relaxed text-steel md:text-xl md:leading-[1.65]">
                   {c.body}
                 </p>
               </div>
@@ -117,10 +121,10 @@ function PinnedHeritage() {
 
   return (
     <div className="relative h-full w-full bg-paper text-graphite">
-      <div className="mx-auto grid h-full max-w-[var(--container-page)] grid-cols-1 items-center gap-12 px-6 py-20 md:grid-cols-12 md:gap-16 md:px-10 md:py-24">
+      <div className="mx-auto grid h-full max-w-page grid-cols-1 items-center gap-12 px-6 py-20 md:grid-cols-12 md:gap-16 md:px-10 md:py-24">
         {/* Chapter rail — left column on desktop. */}
         <aside className="md:col-span-4">
-          <p className="mb-8 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+          <p className="mb-8 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
             <span
               aria-hidden
               className="mr-3 inline-block h-px w-8 align-middle bg-mesh"
@@ -156,7 +160,7 @@ function PinnedHeritage() {
                   <p
                     className={cn(
                       'mt-1 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] transition-colors duration-500',
-                      i === activeIndex ? 'text-mesh' : 'text-steel/55',
+                      i === activeIndex ? 'text-ember' : 'text-steel/55',
                     )}
                   >
                     {c.heading}
@@ -171,10 +175,12 @@ function PinnedHeritage() {
             are stacked behind at opacity 0. CSS transitions handle the
             fade so we don't need a per-frame React update. */}
         <div className="md:col-span-8 md:pl-4">
-          <h2 className="mb-12 max-w-2xl font-display text-3xl font-light leading-tight text-graphite md:text-5xl">
+          <h2 className="mb-12 max-w-2xl text-balance font-display text-3xl font-light leading-tight text-graphite md:text-5xl">
             Five decades — written one heat at a time.
           </h2>
-          <div className="relative min-h-[260px] md:min-h-[320px]">
+          {/* max-w-2xl: see StaticEssay for why — caps the measure below
+              ~768px before the 8/12 grid track takes over. */}
+          <div className="relative max-w-2xl min-h-[260px] md:min-h-[320px]">
             {CHAPTERS.map((c, i) => (
               <article
                 key={c.year}
@@ -186,10 +192,10 @@ function PinnedHeritage() {
                     : 'pointer-events-none absolute inset-0 translate-y-4 opacity-0',
                 )}
               >
-                <p className="mb-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+                <p className="mb-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
                   {c.year} · {c.heading}
                 </p>
-                <p className="font-body text-lg leading-relaxed text-steel md:text-xl md:leading-[1.65]">
+                <p className="text-pretty font-body text-lg leading-relaxed text-steel md:text-xl md:leading-[1.65]">
                   {c.body}
                 </p>
               </article>

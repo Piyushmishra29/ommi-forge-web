@@ -23,7 +23,7 @@ export default function Sustainability() {
         className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-paper/5 md:block"
       />
 
-      <div className="relative mx-auto grid max-w-[var(--container-page)] grid-cols-1 gap-12 px-6 md:grid-cols-12 md:gap-16 md:px-10">
+      <div className="relative mx-auto grid max-w-page grid-cols-1 gap-12 px-6 md:grid-cols-12 md:gap-16 md:px-10">
         <div className="md:col-span-5">
           <div
             className="relative h-[480px] w-full overflow-hidden bg-steel/40 md:h-[560px]"
@@ -54,10 +54,16 @@ export default function Sustainability() {
           <Eyebrow className="text-paper">
             <span className="text-mesh">{SUSTAINABILITY.eyebrow}</span>
           </Eyebrow>
-          <h2 className="mt-8 max-w-xl font-display text-3xl font-light leading-[1.1] text-paper md:text-5xl lg:text-6xl">
+          <h2 className="mt-8 max-w-xl text-balance font-display text-3xl font-light leading-[1.1] text-paper md:text-5xl lg:text-6xl">
             {SUSTAINABILITY.heading}
           </h2>
-          <div className="mt-10 space-y-6 font-body text-base leading-relaxed text-paper/80 md:text-lg md:leading-[1.7]">
+          {/* max-w-xl caps the measure at ~72ch/16px (mobile, single-col
+              full-bleed) down to ~64ch/18px (md 7-col) — the 7-col grid
+              track alone is wide enough to run past 75ch on tablet
+              widths just under the `md:` breakpoint, before the grid
+              column split takes over. Matches the same cap used for the
+              Values3Up slide body. */}
+          <div className="mt-10 max-w-xl space-y-6 text-pretty font-body text-base leading-relaxed text-paper/80 md:text-lg md:leading-[1.7]">
             <p>{SUSTAINABILITY.body1}</p>
             <p>{SUSTAINABILITY.body2}</p>
           </div>

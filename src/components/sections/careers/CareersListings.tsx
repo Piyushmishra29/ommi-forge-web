@@ -26,9 +26,12 @@ export default function CareersListings() {
       <>
         {/* 1. CV-request editorial moment ---------------------------- */}
         <section className="bg-paper pt-24 pb-16 md:pt-32 md:pb-24">
-          <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+          <div className="mx-auto max-w-page px-6 md:px-10">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+              {/* Paper section: ember for the label text (5.19:1), mesh kept
+                  on the dash below — non-text ink only needs 3:1. The two
+                  graphite sections further down stay all-mesh. */}
+              <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
                 <span
                   aria-hidden
                   className="mr-3 inline-block h-px w-8 align-middle bg-mesh"
@@ -36,12 +39,15 @@ export default function CareersListings() {
                 {CAREERS_CTA.eyebrow}
               </p>
               <h2
-                className="mt-8 font-display font-light leading-[1.02] text-graphite"
+                className="mt-8 text-balance font-display font-light leading-[1.02] text-graphite"
                 style={{ fontSize: 'clamp(48px, 8vw, 96px)' }}
               >
                 {CAREERS_CTA.heading}
               </h2>
-              <p className="mx-auto mt-8 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]">
+              {/* max-w-xl: see CareersHero for why -2xl overruns the
+                  65-75ch measure at 16px on tablet widths just under
+                  `md:`. */}
+              <p className="mx-auto mt-8 max-w-xl text-pretty font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]">
                 {CAREERS_CTA.body}
               </p>
               <a
@@ -58,7 +64,7 @@ export default function CareersListings() {
 
         {/* 2. "What we look for" 3-up grid -------------------------- */}
         <section className="bg-graphite py-24 text-paper md:py-32">
-          <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+          <div className="mx-auto max-w-page px-6 md:px-10">
             <div className="mb-12 max-w-2xl md:mb-16">
               <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
                 <span
@@ -67,7 +73,7 @@ export default function CareersListings() {
                 />
                 What we look for
               </p>
-              <h3 className="mt-6 font-display text-3xl font-light leading-tight text-paper md:text-5xl">
+              <h3 className="mt-6 text-balance font-display text-3xl font-light leading-tight text-paper md:text-5xl">
                 Three traits. The rest we&apos;ll teach.
               </h3>
             </div>
@@ -85,7 +91,7 @@ export default function CareersListings() {
                     </span>
                     <span className="text-paper">{trait.tag}</span>
                   </p>
-                  <p className="mt-8 font-body text-base leading-relaxed text-paper/80 md:text-lg md:leading-[1.65]">
+                  <p className="mt-8 text-pretty font-body text-base leading-relaxed text-paper/80 md:text-lg md:leading-[1.65]">
                     {trait.body}
                   </p>
                 </article>

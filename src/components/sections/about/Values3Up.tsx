@@ -36,16 +36,16 @@ const ACCENTS = [
 function StaticValues() {
   return (
     <section className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <div className="mb-16 max-w-2xl md:mb-24">
-          <p className="mb-6 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+          <p className="mb-6 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
             <span
               aria-hidden
               className="mr-3 inline-block h-px w-8 align-middle bg-mesh"
             />
             How we work
           </p>
-          <h2 className="font-display text-3xl font-light leading-tight text-graphite md:text-5xl">
+          <h2 className="text-balance font-display text-3xl font-light leading-tight text-graphite md:text-5xl">
             Three values. Non-negotiable.
           </h2>
         </div>
@@ -64,10 +64,10 @@ function StaticValues() {
                   {v.number}
                 </span>
                 <div>
-                  <h3 className="mb-4 font-display text-2xl font-light leading-tight md:text-3xl">
+                  <h3 className="mb-4 text-pretty font-display text-2xl font-light leading-tight md:text-3xl">
                     {v.title}
                   </h3>
-                  <p className="font-body text-base leading-relaxed opacity-90 md:text-lg">
+                  <p className="text-pretty font-body text-base leading-relaxed opacity-90 md:text-lg">
                     {v.body}
                   </p>
                 </div>
@@ -139,9 +139,19 @@ function ValueTrack() {
   return (
     <div className="relative h-full w-full bg-graphite text-paper">
       {/* Header strip — eyebrow + step rail. Stays in place over the
-          translating slides. */}
+          translating slides.
+
+          The visible label is a styled eyebrow `<p>`, not a heading —
+          the giant per-slide `<h3>` numerals below are the visual
+          headline. But that leaves this section with no `<h2>` of its
+          own in the pinned (default-motion) DOM, so the outline
+          algorithm reads the three value `<h3>`s as subsections of the
+          previous section's `<h2>` (Heritage). A visually-hidden `<h2>`
+          — mirroring StaticValues' heading below — restores a correct
+          h1→h2→h3 order without changing the visual design. */}
+      <h2 className="sr-only">Three values. Non-negotiable.</h2>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-12 md:px-10 md:pt-16">
-        <div className="mx-auto flex max-w-[var(--container-page)] items-end justify-between">
+        <div className="mx-auto flex max-w-page items-end justify-between">
           <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
             <span
               aria-hidden
@@ -185,7 +195,7 @@ function ValueTrack() {
             key={v.number}
             className="relative flex h-full w-screen shrink-0 items-center"
           >
-            <div className="mx-auto grid w-full max-w-[var(--container-page)] grid-cols-1 items-center gap-12 px-6 md:grid-cols-12 md:gap-16 md:px-10">
+            <div className="mx-auto grid w-full max-w-page grid-cols-1 items-center gap-12 px-6 md:grid-cols-12 md:gap-16 md:px-10">
               <div className="md:col-span-5">
                 {/* Mesh-orange numeral. clamp so it scales with viewport. */}
                 <span
@@ -198,12 +208,12 @@ function ValueTrack() {
               </div>
               <div className="md:col-span-7 md:pl-4">
                 <h3
-                  className="font-display font-light leading-[1.05] text-paper"
+                  className="text-balance font-display font-light leading-[1.05] text-paper"
                   style={{ fontSize: 'clamp(40px, 6.5vw, 84px)' }}
                 >
                   {v.title}
                 </h3>
-                <p className="mt-8 max-w-xl font-body text-lg leading-relaxed text-paper/80 md:text-xl md:leading-[1.6]">
+                <p className="mt-8 max-w-xl text-pretty font-body text-lg leading-relaxed text-paper/80 md:text-xl md:leading-[1.6]">
                   {v.body}
                 </p>
                 <p className="mt-10 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-paper/70">
@@ -255,7 +265,7 @@ export default function Values3Up() {
       </PinnedSection>
 
       <div className="bg-graphite pb-24 pt-4 md:pb-32">
-        <div className="mx-auto flex max-w-[var(--container-page)] justify-center px-6 md:px-10">
+        <div className="mx-auto flex max-w-page justify-center px-6 md:px-10">
           <Link
             href="/contact/"
             data-magnetic

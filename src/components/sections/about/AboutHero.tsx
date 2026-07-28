@@ -147,7 +147,7 @@ export default function AboutHero() {
         className="absolute inset-0 bg-gradient-to-br from-graphite/95 via-graphite/55 to-graphite/95"
       />
 
-      <div className="relative mx-auto grid w-full max-w-[var(--container-page)] grid-cols-1 gap-12 px-6 pb-24 pt-40 md:grid-cols-12 md:px-10 md:pb-32 md:pt-48">
+      <div className="relative mx-auto grid w-full max-w-page grid-cols-1 gap-12 px-6 pb-24 pt-40 md:grid-cols-12 md:px-10 md:pb-32 md:pt-48">
         <div className="md:col-span-8">
           <div data-fade>
             <Eyebrow className="text-paper">
@@ -155,7 +155,7 @@ export default function AboutHero() {
             </Eyebrow>
           </div>
           <h1
-            className="mt-10 max-w-5xl font-display font-light leading-[1.02] text-paper"
+            className="mt-10 max-w-5xl text-balance font-display font-light leading-[1.02] text-paper"
             style={{ fontSize: 'clamp(56px, 9vw, 110px)' }}
           >
             <SplitText as="span">
@@ -165,7 +165,7 @@ export default function AboutHero() {
         </div>
 
         <div className="self-end md:col-span-4 md:pl-6" data-fade>
-          <p className="font-display text-xl font-light leading-snug text-paper md:text-2xl">
+          <p className="text-balance font-display text-xl font-light leading-snug text-paper md:text-2xl">
             <span className="text-mesh">“</span>
             {FOUNDER_QUOTE.body}
             <span className="text-mesh">”</span>
