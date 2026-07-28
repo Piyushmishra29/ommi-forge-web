@@ -1,172 +1,61 @@
-'use client';
-
-import { useCallback, useEffect, useRef } from 'react';
-import { gsap } from '@/lib/gsap';
-import PinnedSection, {
-  useScrollSubscribe,
-} from '@/components/motion/PinnedSection';
-import { useStaticPins } from '@/components/motion/useStaticPins';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { MILESTONES } from '@/data/home';
 
 /**
- * HeritageTimeline
+ * Beat 7 — heritage, 1975 → 2026.
  *
- * Horizontal-scroll timeline (1975 → 2026). Wrapped in
- * `<PinnedSection length={4}>`; while pinned, the inner flex track is
- * translated leftward proportional to scroll progress so each
- * milestone slides into view.
+ * v2 pinned this and scrolled it sideways. v3 does not: `/` spends its one
+ * pin on the act at the top (§5.1), and a horizontal track is a hijacked
+ * scroll axis (§6 rule 18) that also had to carry a whole second static
+ * implementation for phones and reduced motion. One layout, every viewport,
+ * every motion preference — and it is now a server component, so the
+ * section costs no client JS at all.
  *
- * Perf: PinnedSection now publishes progress through a ref-backed
- * store, so this component subscribes via `useScrollSubscribe` and
- * writes the transform straight through `gsap.quickSetter`. No React
- * state is involved on the scroll path; the component renders once and
- * the `<div>` track is mutated imperatively per frame.
- *
- * Reduced-motion: renders the same milestones stacked vertically,
- * no pin, no horizontal motion.
+ * The 2026 entry is `inProgress`: an electric-forging pilot that has not
+ * landed yet. It gets a dashed saffron rule where the finished milestones
+ * get a solid cinder one — the same distinction a drawing makes between a
+ * dimension and a proposed one, and it is legible without relying on the
+ * "(in progress)" label alone.
  */
-function TimelineTrack() {
-  const trackRef = useRef<HTMLDivElement | null>(null);
-
-  // Cache the `x` setter once per element. `gsap.quickSetter` returns
-  // a memoised function bound to the target — far cheaper per-call than
-  // creating an inline `style={{ transform: ... }}` object that React
-  // would otherwise have to diff every ScrollTrigger tick.
-  const quickSetterRef = useRef<ReturnType<typeof gsap.quickSetter> | null>(null);
-
-  // Max leftward translate, in px: the track's full scrollWidth minus the
-  // viewport width. Measured from the DOM (not a magic vw constant) so the
-  // last milestone always lands flush at progress=1 regardless of whether
-  // cards are 80vw (mobile) or 60vw (desktop). Recomputed on resize.
-  const maxTranslateRef = useRef(0);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    // Bind in px so the measured pixel distance is applied verbatim.
-    quickSetterRef.current = gsap.quickSetter(track, 'x', 'px');
-
-    const measure = () => {
-      maxTranslateRef.current = Math.max(
-        0,
-        track.scrollWidth - window.innerWidth,
-      );
-    };
-    measure();
-    window.addEventListener('resize', measure, { passive: true });
-
-    return () => {
-      window.removeEventListener('resize', measure);
-      quickSetterRef.current = null;
-    };
-  }, []);
-
-  const onScroll = useCallback((progress: number) => {
-    const setter = quickSetterRef.current;
-    if (!setter) return;
-    // Translate by the measured distance so milestone #6 fully lands at
-    // progress=1 on every breakpoint, with no over-/under-translation.
-    setter(-maxTranslateRef.current * progress);
-  }, []);
-
-  useScrollSubscribe(onScroll);
-
+export default function HeritageTimeline() {
   return (
-    <div className="relative flex h-full w-full flex-col justify-center overflow-hidden bg-paper">
-      <div className="px-6 pt-12 md:px-12">
-        <Eyebrow>ACT 05 · HERITAGE</Eyebrow>
-        <h2 className="mt-4 max-w-2xl font-display text-3xl font-light leading-[1.1] text-graphite md:text-5xl">
+    <section className="relative w-full section-y">
+      <div className="mx-auto max-w-page page-x">
+        <Eyebrow>HERITAGE</Eyebrow>
+        <h2 className="type-display-l mt-6 max-w-[16ch]">
           Fifty-one years on the floor.
         </h2>
-      </div>
 
-      <div className="relative mt-12 flex-1">
-        {/* Connecting hairline */}
-        <div
-          aria-hidden
-          className="absolute left-0 right-0 top-1/2 h-px bg-graphite/15"
-        />
-
-        <div
-          ref={trackRef}
-          className="absolute inset-y-0 flex items-center gap-0"
-          style={{ willChange: 'transform' }}
-        >
+        <ol className="mt-16 grid gap-12 md:grid-cols-2 md:gap-x-16">
           {MILESTONES.map((m) => (
-            <article
+            <li
               key={m.year}
-              className="relative flex h-full w-[80vw] shrink-0 flex-col justify-center px-8 md:w-[60vw] md:px-16"
+              className={
+                m.inProgress
+                  ? 'border-t-2 border-dashed border-saffron pt-6'
+                  : 'border-t border-rule pt-6'
+              }
             >
-              <div className="relative">
-                <span
-                  className="absolute -top-2 left-0 h-3 w-3 -translate-y-1/2 bg-mesh"
-                  aria-hidden
-                />
-                <p className="font-display text-[clamp(72px,10vw,160px)] font-light leading-none text-mesh">
-                  {m.year}
-                </p>
-                <h3 className="mt-6 font-display text-2xl font-light leading-tight text-graphite md:text-4xl">
-                  {m.title}
-                  {m.inProgress && (
-                    <span className="ml-3 align-middle font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-ember">
-                      (in progress)
-                    </span>
-                  )}
-                </h3>
-                <p className="mt-6 max-w-md font-body text-base leading-relaxed text-steel">
-                  {m.body}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StaticList() {
-  return (
-    <section className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-page px-6 md:px-10">
-        <Eyebrow>ACT 05 · HERITAGE</Eyebrow>
-        <h2 className="mt-4 font-display text-3xl font-light leading-[1.1] text-graphite md:text-5xl">
-          Fifty-one years on the floor.
-        </h2>
-
-        <ol className="mt-16 grid gap-12 md:grid-cols-2">
-          {MILESTONES.map((m) => (
-            <li key={m.year}>
-              <p className="font-display text-6xl font-light leading-none text-mesh">
+              {/* Real figures, so `.type-data` and its tabular figures —
+                  the same role the stats use, one step down in size. */}
+              <p className="type-data text-[clamp(40px,4.5vw,64px)] text-saffron">
                 {m.year}
               </p>
-              <h3 className="mt-4 font-display text-2xl font-light leading-tight text-graphite">
+              <h3 className="type-display-s mt-5">
                 {m.title}
-                {m.inProgress && (
-                  <span className="ml-3 align-middle font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-ember">
+                {m.inProgress ? (
+                  // saffron, not ember: ember measures 2.98:1 on graphite and
+                  // is forbidden on the dark ground (§2.2).
+                  <span className="type-meta ml-3 align-middle uppercase text-saffron">
                     (in progress)
                   </span>
-                )}
+                ) : null}
               </h3>
-              <p className="mt-3 font-body text-base leading-relaxed text-steel">
-                {m.body}
-              </p>
+              <p className="type-body mt-3 max-w-[52ch]">{m.body}</p>
             </li>
           ))}
         </ol>
       </div>
     </section>
-  );
-}
-
-export default function HeritageTimeline() {
-  // Static on mobile + reduced-motion — stacked pins are janky on phones.
-  const staticMode = useStaticPins();
-  if (staticMode) return <StaticList />;
-  return (
-    <PinnedSection length={4}>
-      <TimelineTrack />
-    </PinnedSection>
   );
 }

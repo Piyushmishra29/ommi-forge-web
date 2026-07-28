@@ -1,100 +1,92 @@
 import Eyebrow from '@/components/ui/Eyebrow';
-import RevealHeading from '@/components/motion/RevealHeading';
 import { LOCATION } from '@/data/home';
 
 /**
- * Location
+ * The plant, as a datasheet.
  *
- * Two-column section:
- *  - Left: address, phone, email, hours.
- *  - Right: embedded Google Maps iframe centred on the Malur plant.
+ * §2.3 names the location block as a paper-card case, and it is the right
+ * one: an address, a phone number and a pair of coordinates are cold
+ * technical information, printed. The map sits on the dark ground beside it
+ * with a cinder hairline — square, unshadowed, because a rounded card with a
+ * lift is exactly the "floating UI card" this system does not use.
  *
- * The iframe is wrapped in a paper-toned bordered frame with a soft
- * lift shadow; below it, a small "Open in Maps" link sends the user
- * to a real-world map deep link.
+ * Everything here comes from `LOCATION`; nothing on this page is typed by
+ * hand twice.
  */
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="type-meta uppercase text-ink-muted">{label}</p>
+      {children}
+    </div>
+  );
+}
+
 export default function Location() {
   return (
-    <section className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-page px-6 md:px-10">
+    <section className="relative w-full section-y">
+      <div className="mx-auto max-w-page page-x">
         <Eyebrow>FIND US</Eyebrow>
-        <RevealHeading
-          as="h2"
-          className="mt-4 max-w-3xl font-display text-4xl font-light leading-[1.1] text-graphite md:text-6xl"
-        >
+        <h2 className="type-display-l mt-6 max-w-[18ch]">
           Malur, Karnataka — three acres of forge floor.
-        </RevealHeading>
+        </h2>
 
-        <div className="mt-16 grid gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* Address block */}
-          <div className="flex flex-col gap-8">
-            <div>
-              <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-ember">
-                Plant
-              </p>
-              <address className="mt-3 not-italic font-display text-2xl font-light leading-snug text-graphite md:text-3xl">
-                {LOCATION.street}
-                <br />
-                {LOCATION.area}
-                <br />
-                {LOCATION.region}
-              </address>
-            </div>
+        {/* 7/5, never 6/6 (§2.5). */}
+        <div className="mt-16 grid gap-8 lg:grid-cols-12 lg:gap-12">
+          <div className="lg:col-span-7">
+            <div className="paper-card p-8 md:p-10" data-rule="saffron">
+              <Field label="Plant">
+                <address className="type-display-s mt-3 not-italic">
+                  {LOCATION.street}
+                  <br />
+                  {LOCATION.area}
+                  <br />
+                  {LOCATION.region}
+                </address>
+              </Field>
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div>
-                <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-steel">
-                  Phone
-                </p>
-                {/* min-h-11 (44px): a bare inline link at text-lg is only
-                    ~27px tall, under the 44×44 minimum — and these two are
-                    the section's primary "call / email us" actions on a
-                    phone. inline-flex so the box grows, not the text. */}
-                <a
-                  href={LOCATION.phoneHref}
-                  data-magnetic
-                  // 18px non-bold is NOT WCAG "large text" (that needs 24px,
-                  // or 18.66px bold), so the hover colour has to clear the
-                  // full 4.5:1 — mesh is 3.05:1 on paper, ember 5.19:1.
-                  className="mt-1 inline-flex min-h-11 items-center font-body text-lg text-graphite transition-colors hover:text-ember"
-                >
-                  {LOCATION.phone}
-                </a>
-              </div>
-              <div>
-                <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-steel">
-                  Email
-                </p>
-                <a
-                  href={LOCATION.emailHref}
-                  data-magnetic
-                  className="mt-1 inline-flex min-h-11 items-center break-all font-body text-lg text-graphite transition-colors hover:text-ember"
-                >
-                  {LOCATION.email}
-                </a>
-              </div>
-              <div>
-                <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-steel">
-                  Hours
-                </p>
-                <p className="mt-2 font-body text-lg text-graphite">
-                  {LOCATION.hours}
-                </p>
-              </div>
-              <div>
-                <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-steel">
-                  GPS
-                </p>
-                <p className="mt-2 font-body text-lg text-graphite tabular-nums">
-                  {LOCATION.lat.toFixed(4)}, {LOCATION.lng.toFixed(4)}
-                </p>
+              <div className="mt-10 grid gap-6 sm:grid-cols-2">
+                <Field label="Phone">
+                  {/* min-h-11 (44px): a bare inline link at this size is only
+                      ~27px tall, and on a phone this is the section's primary
+                      action. inline-flex so the box grows, not the text. */}
+                  <a
+                    href={LOCATION.phoneHref}
+                    data-magnetic
+                    className="type-body inline-flex min-h-11 items-center text-ink transition-colors hover:text-ink-accent"
+                  >
+                    {LOCATION.phone}
+                  </a>
+                </Field>
+                <Field label="Email">
+                  <a
+                    href={LOCATION.emailHref}
+                    data-magnetic
+                    className="type-body inline-flex min-h-11 items-center break-all text-ink transition-colors hover:text-ink-accent"
+                  >
+                    {LOCATION.email}
+                  </a>
+                </Field>
+                <Field label="Hours">
+                  <p className="type-body mt-2 text-ink">{LOCATION.hours}</p>
+                </Field>
+                <Field label="GPS">
+                  <p className="type-spec mt-2 text-ink">
+                    {LOCATION.lat.toFixed(4)}, {LOCATION.lng.toFixed(4)}
+                  </p>
+                </Field>
               </div>
             </div>
           </div>
 
-          {/* Map */}
-          <div>
-            <div className="overflow-hidden rounded-3xl border border-graphite/10 bg-render-bg shadow-[0_24px_60px_-32px_rgba(31,33,36,0.35)]">
+          <div className="lg:col-span-5">
+            <div className="border border-rule">
               <iframe
                 title="Ommi Forge plant location — Malur, Karnataka"
                 src={LOCATION.embed}
@@ -102,7 +94,7 @@ export default function Location() {
                 height="480"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                className="block h-[420px] w-full md:h-[480px]"
+                className="block h-[360px] w-full lg:h-[420px]"
               />
             </div>
             <a
@@ -110,9 +102,7 @@ export default function Location() {
               target="_blank"
               rel="noopener noreferrer"
               data-magnetic
-              // min-h-11: 12px uppercase text alone gives an ~18px tall
-              // hit area — well under the 44×44 minimum.
-              className="mt-2 inline-flex min-h-11 items-center gap-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-ember"
+              className="mt-2 inline-flex min-h-11 items-center gap-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.26em] text-saffron transition-colors hover:text-mesh"
             >
               Open in Maps
               <span aria-hidden>→</span>

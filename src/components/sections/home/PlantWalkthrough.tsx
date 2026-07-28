@@ -90,11 +90,20 @@ export default function PlantWalkthrough() {
       { rootMargin: '600px' },
     );
     io.observe(el);
-    // Defensive fallback: if the observer hasn't fired by 2.5 s — which
-    // can happen on fast momentum scroll or deep-link landings that skip
-    // the rootMargin window in some browsers — force the canvas to mount
-    // so the section is never permanently blank.
-    const fallback = window.setTimeout(() => setActive(true), 2500);
+    // Defensive fallback: if the observer hasn't fired by 2.5 s — which can
+    // happen on fast momentum scroll or deep-link landings that skip the
+    // rootMargin window in some browsers — force the canvas to mount so the
+    // section is never permanently blank.
+    //
+    // Gated on proximity, which it was not before: an unconditional timer
+    // fetched all 108 frames (3.6 MB, the single biggest asset on the route)
+    // 2.5 s after landing, for every visitor, including the ones who never
+    // scrolled past the hero. Measured on the exported build — it is why the
+    // plant sequence showed up in a first-visit trace.
+    const fallback = window.setTimeout(() => {
+      const box = el.getBoundingClientRect();
+      if (box.top < window.innerHeight + 1200) setActive(true);
+    }, 2500);
     return () => {
       io.disconnect();
       window.clearTimeout(fallback);
@@ -104,18 +113,22 @@ export default function PlantWalkthrough() {
   return (
     <section
       ref={sectionRef}
-      className="relative h-[100dvh] w-full overflow-hidden bg-graphite"
+      // `100svh`, not `100dvh`: a mobile URL bar collapsing changes `dvh`
+      // mid-pin, which moves the pinned box under the visitor. The small
+      // viewport unit is stable for the whole gesture (§2.5).
+      className="relative h-[100svh] w-full overflow-hidden bg-graphite"
       style={{ contain: 'layout style paint' }}
     >
       {active ? <PlantCanvas sectionRef={sectionRef} /> : null}
       <div className="absolute inset-0 bg-graphite/30" aria-hidden />
 
-      <div className="absolute right-6 top-24 z-10 max-w-sm bg-graphite/75 p-6 md:right-10 md:top-32 md:p-8">
-        <Eyebrow className="text-paper">ACT 03 · WALKTHROUGH</Eyebrow>
-        <h2 className="mt-4 font-display text-3xl font-light leading-tight text-paper md:text-5xl">
-          Inside the wonderworld.
-        </h2>
-        <p className="mt-4 font-body text-sm text-paper/80 md:text-base">
+      {/* A flat scrim, not a blur: this is the one job blur is actually for
+          and the site does not spend it here (§6 rule 2). Opaque enough that
+          the copy holds its measured contrast over any frame of the clip. */}
+      <div className="absolute right-6 top-24 z-10 max-w-sm bg-graphite/85 p-6 md:right-10 md:top-32 md:p-8">
+        <Eyebrow>WALKTHROUGH</Eyebrow>
+        <h2 className="type-display-m mt-4">Inside the wonderworld.</h2>
+        <p className="type-body mt-4">
           A pass through the Malur plant — hammers, anvils, and the floor
           that turns spec sheets into steel.
         </p>

@@ -7,77 +7,58 @@ import { STATS } from '@/data/home';
 
 /**
  * Same locale + grouping as NumberCounter's internal formatter, so the
- * invisible "ghost" below measures exactly the string the counter will
- * finish on ("1,000+", not "1000+").
+ * invisible ghost below measures exactly the string the counter will finish
+ * on ("1,000+", not "1000+").
  */
 const statFormatter = new Intl.NumberFormat('en-IN');
 
 /**
- * StatsCounter
+ * Beat 8 — the numbers.
  *
- * Graphite slab section with paper text. Four counters set in
- * mesh-orange Manrope at clamp(80px, 14vw, 200px) above Work Sans
- * uppercase labels. NumberCounter honours reduced-motion internally.
- *
- * The huge font-size lives on the counter's outer span via an inline
- * style + Tailwind utility composition — we deliberately avoid
- * styled-jsx so the section stays a plain server-friendly component
- * once the surrounding 'use client' boundary is the only barrier.
+ * These are the only counters on the site: `STATS` are real figures (eight
+ * power hammers, not "10+"), and §6 rule 17 rules out counting a decorative
+ * number for effect.
  */
 export default function StatsCounter() {
   return (
-    <section className="bg-graphite py-32 text-paper md:py-40">
-      <div className="mx-auto max-w-page px-6 md:px-10">
-        <Eyebrow className="text-paper">OUR POWER IS NUMBERS</Eyebrow>
-        <RevealHeading
-          as="h2"
-          className="mt-6 max-w-3xl font-display text-4xl font-light leading-[1.1] text-paper md:text-6xl"
-        >
+    <section className="relative w-full section-y">
+      <div className="mx-auto max-w-page page-x">
+        <Eyebrow>OUR POWER IS NUMBERS</Eyebrow>
+        <RevealHeading as="h2" className="type-display-l mt-6 max-w-[20ch]">
           Words can only mean so much.
         </RevealHeading>
-        <p className="mt-6 max-w-xl font-body text-base text-paper/70 md:text-lg">
+        <p className="type-lede mt-6 max-w-[46ch]">
           Which is why our numbers speak for themselves.
         </p>
 
-        <ul className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-12 xl:grid-cols-4 xl:gap-12">
+        <ul className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 xl:grid-cols-4">
           {STATS.map((stat) => (
             <li
               key={stat.label}
-              className="flex min-w-0 flex-col gap-4 border-t border-paper/15 pt-6 pr-4"
+              className="flex min-w-0 flex-col gap-4 border-t border-rule pr-4 pt-6"
             >
-              {/* Fluid font sizing tuned so the widest stat ("1,000+",
-                  ~3.1em wide in Manrope bold) fits a 4-up xl cell
-                  (≈249px at gap-12) WITH breathing room. 96px overflowed
-                  into the next column — capped at 72px so "1,000+" lands
-                  ~221px wide, leaving a comfortable gutter. Single-digit
-                  stats still read large. gap-12 everywhere for air. */}
               {/* `grid` (not `block`) stacks an invisible ghost of the FINAL
                   string under the live counter in the same cell, so the box
                   is sized for "1,000+" from first paint. Without it the
                   counter mounts at "0" and the element's width grows through
-                  the whole 1.6 s tween — reserve-space / CLS. tabular-nums
-                  alone only equalises digit WIDTH, not digit COUNT. */}
-              <span
-                className="grid font-display font-bold leading-[0.92] text-saffron tabular-nums"
-                style={{
-                  fontSize: 'clamp(52px, 5.5vw, 72px)',
-                  letterSpacing: '-0.03em',
-                  textShadow: '0 0 36px rgba(255,153,51,0.18)',
-                }}
-              >
-                <span
-                  aria-hidden
-                  className="invisible col-start-1 row-start-1"
-                >
+                  the whole 1.6s tween — reserved space, not a layout shift.
+                  `tabular-nums` (carried by .type-data) only equalises digit
+                  WIDTH, not digit COUNT, so it cannot replace this. */}
+              {/* `.type-data` carries the role — Work Sans 800, tabular
+                  figures, -0.02em — but its 88px ceiling is sized for a
+                  single figure, not for four in a row. Measured at 1440: a
+                  4-up cell is 249px and "1,000+" sets ~290px at 88px, so the
+                  second and third stats overlapped. Capped to fit the cell
+                  with its gutter intact. */}
+              <span className="type-data grid text-[clamp(38px,4.2vw,58px)] text-saffron">
+                <span aria-hidden className="invisible col-start-1 row-start-1">
                   {`${statFormatter.format(stat.value)}${stat.suffix}`}
                 </span>
                 <span className="col-start-1 row-start-1">
                   <NumberCounter to={stat.value} suffix={stat.suffix} />
                 </span>
               </span>
-              <p className="font-eyebrow text-sm font-semibold uppercase tracking-[0.22em] text-paper">
-                {stat.label}
-              </p>
+              <p className="type-eyebrow text-swarf">{stat.label}</p>
             </li>
           ))}
         </ul>

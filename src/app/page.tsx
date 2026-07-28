@@ -1,33 +1,37 @@
 import type { Metadata } from 'next';
-import Hero from '@/components/sections/home/Hero';
-import HammerStrikeScrub from '@/components/sections/home/HammerStrikeScrub';
-import MaterialsGrid from '@/components/sections/home/MaterialsGrid';
+import { Scene3DProvider } from '@/components/three3';
+import HeatAct from '@/components/sections/home/HeatAct';
 import ProductsMarquee from '@/components/sections/home/ProductsMarquee';
-import StatsCounter from '@/components/sections/home/StatsCounter';
+import MaterialsGrid from '@/components/sections/home/MaterialsGrid';
 import PlantWalkthrough from '@/components/sections/home/PlantWalkthrough';
 import HeritageTimeline from '@/components/sections/home/HeritageTimeline';
+import StatsCounter from '@/components/sections/home/StatsCounter';
 import Location from '@/components/sections/home/Location';
 import ClosingCta from '@/components/sections/home/ClosingCta';
-import BgBridge from '@/components/sections/home/BgBridge';
 
 /**
- * Ommi Forge — home page.
+ * Ommi Forge — home.
  *
- * Scroll order (each section is its own client/server component):
- *  1. Hero                — full-bleed muted hero video + headline
- *  2. HammerStrikeScrub   — scroll-scrubbed power-hammer footage as a WebP
- *                           image sequence + Heat/Strike/Forge cross-fade
- *  3. MaterialsGrid       — Carbon / Alloy / Stainless / Custom
- *  4. PlantWalkthrough    — scroll-scrubbed plant-floor walkthrough as a
- *                           WebP image sequence (lazy-mounted near
- *                           viewport; responsive 960/640 variants)
- *  5. StatsCounter        — 8 / 1000+ / 100+ / 1 day
- *  6. ProductsMarquee     — image-only catalogue marquee (moved down
- *                           from Act 04 — lazy-loaded JPGs cost less
- *                           than the previous STL canvases anyway)
- *  7. HeritageTimeline    — 1975 → 2026 horizontal timeline
- *  8. Location            — Malur address + Maps iframe
- *  9. ClosingCta          — saffron slab, quote CTA
+ * The page is one heat (V3-DIRECTION §1): a single billet's trip down the
+ * line, in order, once. Scroll is the conveyor, and the part on screen is
+ * always the same part further along.
+ *
+ *  0–3  HeatAct          the one pinned act — cold open, Heat, Strike, Forge
+ *   4   ProductsMarquee  the line: three parts crossing one frame, + catalogue
+ *   5   MaterialsGrid    the cold bench. Paper cards, deliberately no 3D
+ *   6   PlantWalkthrough scroll-scrubbed plant footage, photographic
+ *   7   HeritageTimeline 1975 → 2026, the 2026 pilot still open
+ *   8   StatsCounter     8 hammers · 1000+ MT/yr · 100+ parts · 1 day
+ *   -   Location         the plant address, as a datasheet (§2.3)
+ *   9   ClosingCta       the same part, machined and cold. The bookend
+ *
+ * `<Scene3DProvider>` wraps the whole page and owns exactly one WebGL
+ * context; the two slots inside it (the act and the line) are rectangles of
+ * that one canvas, not canvases of their own. It sits here rather than in
+ * the layout because a route with no 3D should not carry a canvas host at
+ * all, and it must not end up inside an ancestor that sets `transform`,
+ * `filter` or `perspective` — any of those would make the fixed canvas
+ * position itself against that ancestor instead of the viewport.
  */
 export const metadata: Metadata = {
   // Absolute title so the root `%s · Ommi Forge` template doesn't double
@@ -40,28 +44,15 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <>
-      <Hero />
-      {/* Hero footage and the Hammer act are both dark — the pin handoff
-          reads as one continuous graphite field, so no bridge is needed
-          here (a graphite→graphite strip would be a no-op). */}
-      <HammerStrikeScrub />
-      {/* Bridge dark Hammer footage → light MaterialsGrid. */}
-      <BgBridge from="graphite" to="paper" />
-      <MaterialsGrid />
-      {/* Bridge light MaterialsGrid → dark Plant act. */}
-      <BgBridge from="paper" to="graphite" />
-      <PlantWalkthrough />
-      <StatsCounter />
-      {/* Bridge dark Stats → light Products. */}
-      <BgBridge from="graphite" to="paper" />
+    <Scene3DProvider>
+      <HeatAct />
       <ProductsMarquee />
+      <MaterialsGrid />
+      <PlantWalkthrough />
       <HeritageTimeline />
+      <StatsCounter />
       <Location />
-      {/* Bridge light Location → saffron ClosingCta (intentional brand
-          moment — keep slightly taller for the final "warming up"). */}
-      <BgBridge from="paper" to="saffron" heightPx={140} />
       <ClosingCta />
-    </>
+    </Scene3DProvider>
   );
 }
