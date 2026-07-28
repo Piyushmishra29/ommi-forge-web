@@ -11,6 +11,10 @@
  *  - A small "Open in Google Maps →" magnetic link sits beneath the
  *    map for visitors who'd rather take the route into a real app.
  *  - Hours hang off a saffron-rule prefix and stay small + quiet.
+ *
+ * Colour note: every accent here is `ember`, not `mesh`. All of it is
+ * small text on `paper`, where mesh only reaches ≈3:1 — ember is the
+ * token that clears AA on a light surface.
  */
 interface ContactLink {
   label: string;
@@ -59,7 +63,7 @@ export default function ContactDetails() {
     <div className="space-y-12">
       {/* Reach us — eyebrow above the address block. */}
       <div>
-        <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
+        <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
           <span
             aria-hidden
             className="mr-3 inline-block h-px w-8 align-middle bg-mesh"
@@ -73,14 +77,13 @@ export default function ContactDetails() {
 
       {/* Plant address */}
       <div>
-        <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-graphite/60">
+        <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-steel">
           {PLANT_BLOCK.label}
         </p>
         <address className="mt-3 not-italic font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]">
-          {PLANT_BLOCK.lines.map((l, i) => (
+          {PLANT_BLOCK.lines.map((l) => (
             <span key={l} className="block">
               {l}
-              {i < PLANT_BLOCK.lines.length - 1 && <br aria-hidden />}
             </span>
           ))}
         </address>
@@ -90,7 +93,7 @@ export default function ContactDetails() {
       <dl className="space-y-8">
         {[EMAIL_LINK, PHONE_LINK].map((link) => (
           <div key={link.label}>
-            <dt className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-graphite/60">
+            <dt className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-steel">
               {link.label}
             </dt>
             <dd
@@ -100,7 +103,7 @@ export default function ContactDetails() {
               <a
                 href={link.href}
                 data-magnetic
-                className="break-words transition-colors hover:text-mesh"
+                className="inline-flex min-h-11 items-center break-words transition-colors hover:text-ember"
               >
                 {link.display}
               </a>
@@ -127,13 +130,14 @@ export default function ContactDetails() {
           target="_blank"
           rel="noreferrer"
           data-magnetic
-          className="group inline-flex items-center gap-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-mesh"
+          className="group inline-flex min-h-11 items-center gap-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-ember"
         >
           <span
             aria-hidden
-            className="inline-block h-px w-10 bg-saffron transition-all duration-500 group-hover:w-16 group-hover:bg-mesh"
+            className="inline-block h-px w-10 bg-saffron transition-all duration-500 group-hover:w-16 group-hover:bg-ember"
           />
           Open in Google Maps
+          <span className="sr-only"> (opens in a new tab)</span>
           <span
             aria-hidden
             className="transition-transform duration-500 group-hover:translate-x-1"
@@ -150,14 +154,13 @@ export default function ContactDetails() {
           className="mt-2 inline-block h-px w-8 shrink-0 bg-saffron"
         />
         <div>
-          <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-graphite/60">
+          <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-steel">
             {HOURS_BLOCK.label}
           </p>
-          <p className="mt-2 font-body text-sm leading-relaxed text-steel md:text-base">
-            {HOURS_BLOCK.lines.map((l, i) => (
+          <p className="mt-2 font-body text-sm leading-relaxed text-cinder md:text-base">
+            {HOURS_BLOCK.lines.map((l) => (
               <span key={l} className="block">
                 {l}
-                {i < HOURS_BLOCK.lines.length - 1 && <br aria-hidden />}
               </span>
             ))}
           </p>

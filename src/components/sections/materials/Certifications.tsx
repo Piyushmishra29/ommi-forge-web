@@ -41,7 +41,7 @@ function buildMailto({ title }: Certification): string {
 export default function Certifications() {
   return (
     <section id="certif" className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow>
           <span className="text-ember">Certifications</span>
         </Eyebrow>
@@ -66,10 +66,17 @@ export default function Certifications() {
               <a
                 href={buildMailto(c)}
                 data-magnetic
-                className="group relative flex h-full flex-col justify-between gap-8 bg-paper p-8 transition-colors hover:bg-graphite hover:text-paper"
+                // The link's own text is "ISO 9001:2015 … Request copy",
+                // which doesn't say what activating it does. Spell the
+                // action out for anyone tabbing a list of six of these.
+                aria-label={`Request a copy of ${c.title} by email`}
+                className="group relative flex h-full flex-col justify-between gap-8 bg-paper p-8 transition-colors hover:bg-graphite hover:text-paper focus-visible:bg-graphite focus-visible:text-paper"
               >
                 <div>
-                  <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-ember">
+                  {/* ember is the small-text accent on paper (≈5.3:1) but
+                      collapses to ≈2:1 once the card flips to graphite on
+                      hover/focus — saffron is the dark-surface accent. */}
+                  <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-ember transition-colors group-hover:text-saffron group-focus-visible:text-saffron">
                     Available on request
                   </p>
                   <h3 className="mt-4 font-display text-2xl font-light leading-tight md:text-3xl">
@@ -80,9 +87,11 @@ export default function Certifications() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em]">
-                  <span className="opacity-70">{c.validity}</span>
-                  <span className="flex items-center gap-2 text-ember transition-transform group-hover:translate-x-1">
+                <div className="flex items-center justify-between gap-4 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em]">
+                  {/* opacity-70 lands at ≈4.3:1 for 10px text on paper —
+                      80 clears AA on both the paper and graphite states. */}
+                  <span className="opacity-80">{c.validity}</span>
+                  <span className="flex items-center gap-2 text-ember transition-all group-hover:translate-x-1 group-hover:text-saffron group-focus-visible:translate-x-1 group-focus-visible:text-saffron">
                     Request copy <RequestIcon />
                   </span>
                 </div>

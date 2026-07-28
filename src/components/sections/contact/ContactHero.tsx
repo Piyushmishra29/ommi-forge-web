@@ -62,9 +62,11 @@ export default function ContactHero() {
       ref={root}
       className="relative bg-paper pt-32 pb-12 md:pt-40 md:pb-20"
     >
-      <div className="mx-auto max-w-[var(--container-page)] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
+        {/* ember, not mesh: at 12px on paper mesh sits at ≈3:1, under
+            AA for normal-size text. ember is the small-text accent. */}
         <Eyebrow data-fade>
-          <span className="text-mesh">Quote to part · in a day</span>
+          <span className="text-ember">Quote to part · in a day</span>
         </Eyebrow>
 
         <h1

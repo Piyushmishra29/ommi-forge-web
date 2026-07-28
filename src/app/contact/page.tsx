@@ -14,7 +14,7 @@ export default function ContactPage() {
     <>
       <ContactHero />
       <section className="bg-paper pb-32 md:pb-40">
-        <div className="mx-auto grid max-w-[var(--container-page)] grid-cols-1 gap-16 px-6 md:grid-cols-12 md:gap-20 md:px-10">
+        <div className="mx-auto grid max-w-page grid-cols-1 gap-16 px-6 md:grid-cols-12 md:gap-20 md:px-10">
           <div className="md:col-span-7">
             <ContactForm />
           </div>
