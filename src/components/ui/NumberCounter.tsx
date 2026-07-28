@@ -85,11 +85,17 @@ export default function NumberCounter({
   }, [inView, to, duration, count]);
 
   return (
-    <span
-      ref={ref}
-      className={cn('tabular-nums', className)}
-      aria-label={ariaLabel ?? `${prefix}${to}${suffix}`}
-    >
+    <span ref={ref} className={cn('tabular-nums', className)}>
+      {/* A bare <span> maps to the `generic` role, and ARIA does not let
+          generics take an accessible name from author — the old
+          `aria-label` on this wrapper was silently dropped by screen
+          readers, leaving nothing at all once the animated span was
+          aria-hidden. A visually-hidden twin is unconditional. It also
+          reads the *formatted* figure (50,000, not 50000), which the old
+          label didn't. */}
+      <span className="sr-only">
+        {ariaLabel ?? `${prefix}${formatter.format(to)}${suffix}`}
+      </span>
       <motion.span aria-hidden>{text}</motion.span>
     </span>
   );

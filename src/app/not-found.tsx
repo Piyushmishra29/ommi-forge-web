@@ -39,9 +39,16 @@ export default function NotFound() {
   }, [reduced]);
 
   return (
-    <main
+    // A <section>, not a <main>: this renders inside the root layout's
+    // <main id="main">, and nesting a second main landmark gives the
+    // document two mains for assistive tech to choose between.
+    // Height is the viewport minus the fixed header the layout already
+    // pads for — `100dvh` here made the slab overflow by exactly one
+    // header, so every 404 shipped with a dead scrollbar.
+    <section
       ref={root}
-      className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-graphite text-paper"
+      aria-labelledby="notfound-heading"
+      className="relative flex min-h-[calc(100dvh-var(--header-h))] w-full items-center justify-center overflow-hidden bg-graphite text-paper"
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-6 py-24 text-center md:px-10 md:py-32">
         <Eyebrow className="text-paper">OFF THE MAP</Eyebrow>
@@ -61,6 +68,7 @@ export default function NotFound() {
         </div>
 
         <h1
+          id="notfound-heading"
           className="mt-6 font-display font-light leading-[1.05] text-paper"
           style={{ fontSize: 'clamp(32px, 5vw, 56px)' }}
         >
@@ -102,7 +110,6 @@ export default function NotFound() {
           </a>
         </p>
       </div>
-
-    </main>
+    </section>
   );
 }

@@ -131,14 +131,19 @@ export default function RootLayout({
             for the bounded-concurrency queue to dequeue it. Media-scoped so
             a phone preloads the 768-wide frame and a desktop the 1280-wide
             one — never both — matching the variant the hook picks on mount. */}
+        {/* `fetchPriority` (camelCase) is the React prop name — React 19
+            typings carry it on LinkHTMLAttributes and React lowercases it
+            to the `fetchpriority` HTML attribute on the way out. Spelling
+            it lowercase in JSX made React reject it as an unknown DOM
+            property, drop it, and log a console warning — so the preload
+            silently ran at default priority. */}
         <link
           rel="preload"
           as="image"
           href="/assets/frames/hero/1280/f-001.webp"
           type="image/webp"
           media="(min-width: 1024px)"
-          // @ts-expect-error — React 19 typings don't include fetchPriority yet
-          fetchpriority="high"
+          fetchPriority="high"
         />
         <link
           rel="preload"
@@ -146,8 +151,7 @@ export default function RootLayout({
           href="/assets/frames/hero/768/f-001.webp"
           type="image/webp"
           media="(max-width: 1023px)"
-          // @ts-expect-error — React 19 typings don't include fetchPriority yet
-          fetchpriority="high"
+          fetchPriority="high"
         />
       </head>
       <body className="min-h-dvh bg-paper text-graphite">

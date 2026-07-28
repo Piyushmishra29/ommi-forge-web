@@ -20,9 +20,29 @@
      small light-bg text only — keep mesh/saffron for dark bgs and
      large display numerals (which only need 3:1). */
   --color-ember:      #C2381C;
+  /* Third step of the same warm ramp — ember's exact hue and saturation
+     (hsl 10, 75%) dropped from 43.5% to 31% lightness, so it reads as a
+     darker sibling rather than a second red. Ember only clears AA on the
+     two lightest surfaces; the MID-light surfaces defeat it — ember is
+     3.29:1 on peach and 3.84:1 on render-bg, both under 4.5:1 for small
+     text. oxide measures 5.32:1 on peach, 6.21:1 on render-bg, 8.40:1 on
+     paper and 8.77:1 on snow, i.e. it is the one warm accent that passes
+     on EVERY light surface in the palette. Reach for it whenever an
+     accent lands on peach or render-bg; ember stays the default on
+     paper/snow because it is the brighter, more on-brand orange-red and
+     already clears there. oxide is 1.84:1 on graphite — never use it on
+     a dark surface; that is mesh's and saffron's job. */
+  --color-oxide:      #8A2814;
   --color-graphite:   #1F2124;
   --color-steel:      #54595F;
+  /* ash is a DECORATIVE grey only — measured 4.11:1 on paper and 4.29:1
+     on snow, i.e. below AA 4.5:1 for normal text. Same relationship as
+     mesh → ember above: `cinder` is the AA-safe tertiary for small text
+     on light surfaces (5.11:1 on paper, 5.33:1 on snow). Reach for
+     cinder whenever the grey carries words; keep ash for hairlines,
+     dividers and other non-text ink. */
   --color-ash:        #7A7A7A;
+  --color-cinder:     #6B6B6B;
   --color-peach:      #FFBC7D;
   --color-paper:      #FAFAFA;
   --color-snow:       #FFFFFF;
@@ -39,11 +59,17 @@
 
 /* ------------------------------------------------------------
  * Header height token (with iOS safe-area)
- *   Mobile bar = py-3 (24px) + hamburger h-11 (44px) → 68px
+ *   Mobile bar = py-3 (24px) + hamburger h-11 (44px) → 68px  ✔ exact
  *     (the 44px tap target is the row's tallest child, not the logo)
- *   Desktop bar = py-5 (40px) + logo content (~36px) → ~76px
- * Shared by <main>'s top padding, the Hero's negative offset,
- * and the mobile menu sheet/backdrop so all three stay in sync.
+ *   Desktop bar = md:py-4 (32px) + logo md:h-[34px] → 66px, so the 76px
+ *     below carries ~10px of slack. NOT corrected here on purpose: the
+ *     token also drives the Hero's negative offset and every pinned
+ *     ScrollTrigger start measured against it, so retuning it is a
+ *     whole-site relayout, not a token edit. (The old comment claimed
+ *     `py-5` — that stopped being true when the bar moved to md:py-4.)
+ * Shared by <main>'s top padding, the Hero's negative offset, the
+ * mobile menu sheet/backdrop, and the full-bleed error/404 screens,
+ * so all of them stay in sync.
  * ------------------------------------------------------------ */
 :root {
   --header-h: calc(68px + env(safe-area-inset-top, 0px));
@@ -89,12 +115,37 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ------------------------------------------------------------
- * Focus styles — saffron ring, WCAG-compliant
+ * Focus styles — two-tone ring (WCAG 1.4.11, 3:1 non-text contrast)
+ *
+ * A saffron-only ring is invisible on half this site's surfaces:
+ * saffron vs paper is 2.04:1, vs snow 2.13:1, vs render-bg 1.51:1, and
+ * vs a saffron CTA block 1.00:1 — the ring literally vanished on the
+ * primary button. Graphite is the mirror case: 15.5:1 on paper, 11.4:1
+ * on render-bg, 7.6:1 on a saffron block, but 1.00:1 on the graphite
+ * header/footer. Stacking them covers every surface in the palette —
+ * whichever half disappears, the other carries the 3:1 floor.
+ *
+ * Geometry: a 4px graphite box-shadow fills 0–4px out from the border
+ * box; the saffron outline (offset 2px, width 2px) paints on top of its
+ * outer half. Net result is a 2px graphite hairline hugging the element
+ * inside a 2px saffron ring — 4px total, no fat halo.
  * ------------------------------------------------------------ */
 :focus-visible {
   outline: 2px solid var(--color-saffron);
-  outline-offset: 3px;
+  outline-offset: 2px;
   border-radius: 2px;
+  box-shadow: 0 0 0 4px var(--color-graphite);
+}
+
+/* <main> is a programmatic focus target (skip link + the SPA route
+   change in RouteResetEffects), not an interactive control. The full
+   two-tone ring around a viewport-sized landmark reads as an error
+   state, so shrink it to an inset hairline here — still a visible
+   indicator, never a full-bleed slab. */
+#main:focus-visible {
+  outline-width: 1px;
+  outline-offset: -1px;
+  box-shadow: none;
 }
 
 ::selection {
@@ -189,6 +240,31 @@ html[data-magnetic-cursor="on"] [data-magnetic] {
   cursor: none;
 }
 
+/* `cursor` inherits, so the body-level `none` above also strips the
+   I-beam off every text field — the contact form ends up with no caret
+   affordance at all. Text-entry controls keep their native cursor; the
+   ring still tracks over them, it just stops being the only signal. */
+html[data-magnetic-cursor="on"]
+  :is(
+    textarea,
+    [contenteditable],
+    input:not(
+        [type="checkbox"],
+        [type="radio"],
+        [type="button"],
+        [type="submit"],
+        [type="reset"],
+        [type="file"],
+        [type="range"],
+        [type="color"]
+      )
+  ) {
+  cursor: text;
+}
+html[data-magnetic-cursor="on"] :is(select, [disabled], [aria-disabled="true"]) {
+  cursor: auto;
+}
+
 /* ------------------------------------------------------------
  * Reduced-motion — global hard overrides
  * ------------------------------------------------------------ */
@@ -203,8 +279,23 @@ html[data-magnetic-cursor="on"] [data-magnetic] {
   }
 }
 
-/* Touch devices never get the magnetic cursor */
+/* Touch devices and reduced-motion users never get the magnetic cursor.
+   MagneticCursor already gates on both media queries before it sets the
+   `data-magnetic-cursor` attribute, so these blocks are belt-and-braces:
+   if the attribute is ever left behind (a crash between setting it and
+   the effect cleanup, a stale attribute restored by bfcache), the native
+   cursor still comes back rather than leaving the pointer invisible. */
 @media (hover: none) {
+  html[data-magnetic-cursor="on"],
+  html[data-magnetic-cursor="on"] body,
+  html[data-magnetic-cursor="on"] a,
+  html[data-magnetic-cursor="on"] button,
+  html[data-magnetic-cursor="on"] [data-magnetic] {
+    cursor: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
   html[data-magnetic-cursor="on"],
   html[data-magnetic-cursor="on"] body,
   html[data-magnetic-cursor="on"] a,

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect } from 'react';
 
 /**
@@ -40,14 +41,24 @@ export default function Error({
   }, [isChunkError]);
 
   return (
-    <main
-      id="main"
-      className="flex min-h-[100dvh] flex-col items-center justify-center bg-paper px-6 text-center text-graphite"
+    // A <section>, not a <main>: this boundary renders *inside* the root
+    // layout's <main id="main">, so a nested landmark here would give the
+    // document two mains and two `#main` ids — which quietly breaks the
+    // skip link (it would resolve to whichever comes first). Height is
+    // the viewport minus the fixed header the layout already pads for,
+    // otherwise the error screen is always one header-height too tall
+    // and every crash arrives with a phantom scrollbar.
+    <section
+      aria-labelledby="error-heading"
+      className="flex min-h-[calc(100dvh-var(--header-h))] flex-col items-center justify-center bg-paper px-6 py-20 text-center text-graphite"
     >
       <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.3em] text-ember">
         {isChunkError ? 'Reconnecting' : 'Something slipped'}
       </p>
-      <h1 className="mt-6 max-w-2xl font-display text-[clamp(32px,5vw,56px)] font-light leading-[1.05]">
+      <h1
+        id="error-heading"
+        className="mt-6 max-w-2xl font-display text-[clamp(32px,5vw,56px)] font-light leading-[1.05]"
+      >
         {isChunkError
           ? 'Reloading the page…'
           : 'That didn’t load cleanly.'}
@@ -55,18 +66,51 @@ export default function Error({
       <p className="mt-5 max-w-md font-body text-base text-steel">
         {isChunkError
           ? 'A file dropped on the way in — fetching it again.'
-          : 'A one-off hiccup. Give it another try.'}
+          : 'A one-off hiccup. Give it another try — the rest of the site is fine.'}
       </p>
       {!isChunkError ? (
-        <button
-          type="button"
-          onClick={reset}
-          data-magnetic
-          className="mt-10 inline-flex items-center justify-center bg-saffron px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
-        >
-          Try again
-        </button>
+        <>
+          {/* Two exits, not one. "Try again" only helps when the fault was
+              transient; if it isn't, a retry button is a dead end, so the
+              floor is always one click away. */}
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
+            <button
+              type="button"
+              onClick={reset}
+              data-magnetic
+              className="inline-flex items-center justify-center bg-saffron px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
+            >
+              Try again
+            </button>
+            <Link
+              href="/"
+              data-magnetic
+              className="inline-flex items-center justify-center border border-graphite px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-graphite hover:text-paper"
+            >
+              Back to the floor →
+            </Link>
+          </div>
+
+          <span aria-hidden className="mt-14 inline-block h-px w-12 bg-ember" />
+          <p className="mt-4 font-body text-sm text-steel">
+            Still stuck? Email{' '}
+            <a
+              href="mailto:marketing@ommiforge.com"
+              className="text-ember underline decoration-ember decoration-1 underline-offset-4 transition-colors hover:text-graphite"
+            >
+              marketing@ommiforge.com
+            </a>
+          </p>
+          {error?.digest ? (
+            // The digest is the only handle support has on a production
+            // stack trace (real messages are stripped in prod builds).
+            // Surfacing it turns "it broke" into a searchable report.
+            <p className="mt-3 font-eyebrow text-[10px] uppercase tracking-[0.3em] text-steel">
+              Ref {error.digest}
+            </p>
+          ) : null}
+        </>
       ) : null}
-    </main>
+    </section>
   );
 }

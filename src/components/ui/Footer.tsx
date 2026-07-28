@@ -17,7 +17,7 @@ const FOOTER_LINKS = NAV.filter((n) => n.href !== '/');
 export default function Footer() {
   return (
     <footer className="bg-graphite text-paper">
-      <div className="mx-auto max-w-[1140px] px-6 py-20 md:px-10">
+      <div className="mx-auto max-w-page px-6 py-20 md:px-10">
         <div className="grid gap-12 md:grid-cols-3">
           {/* Brand block */}
           <div>
@@ -39,17 +39,27 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Quick links */}
-          <nav aria-label="Footer">
-            <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-mesh">
+          {/* Quick links.
+              Column titles are real <h2>s, not styled <p>s — screen-reader
+              users navigate a footer by its headings, and `heading-hierarchy`
+              wants the structure to exist in the markup rather than only in
+              the type treatment. Visual styling is unchanged.
+              Links get `inline-block py-1` so each row is 28px tall
+              instead of the 20px a bare text-sm line gives — clearing the
+              24×24 minimum target size, with an 8px gap between targets. */}
+          <nav aria-labelledby="footer-explore">
+            <h2
+              id="footer-explore"
+              className="font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-mesh"
+            >
               Explore
-            </p>
-            <ul className="mt-6 flex flex-col gap-3">
+            </h2>
+            <ul className="mt-5 flex flex-col gap-2">
               {FOOTER_LINKS.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="font-body text-sm text-paper/80 transition-colors hover:text-saffron"
+                    className="inline-block py-1 font-body text-sm text-paper/80 transition-colors hover:text-saffron"
                   >
                     {item.label}
                   </Link>
@@ -58,7 +68,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/contact/"
-                  className="font-body text-sm text-paper/80 transition-colors hover:text-saffron"
+                  className="inline-block py-1 font-body text-sm text-paper/80 transition-colors hover:text-saffron"
                 >
                   Contact
                 </Link>
@@ -68,9 +78,9 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-mesh">
+            <h2 className="font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-mesh">
               Get in touch
-            </p>
+            </h2>
             <address className="mt-6 not-italic font-body text-sm leading-relaxed text-paper/80">
               Plot No 300, 301 &amp; 302, 3rd Phase,
               <br />
@@ -78,11 +88,11 @@ export default function Footer() {
               <br />
               Karnataka 563160
             </address>
-            <ul className="mt-5 flex flex-col gap-2 font-body text-sm text-paper/80">
+            <ul className="mt-4 flex flex-col gap-2 font-body text-sm text-paper/80">
               <li>
                 <a
                   href="tel:+918951953866"
-                  className="transition-colors hover:text-saffron"
+                  className="inline-block py-1 transition-colors hover:text-saffron"
                 >
                   +91 8951953866
                 </a>
@@ -90,12 +100,12 @@ export default function Footer() {
               <li>
                 <a
                   href="mailto:marketing@ommiforge.com"
-                  className="transition-colors hover:text-saffron"
+                  className="inline-block py-1 transition-colors hover:text-saffron"
                 >
                   marketing@ommiforge.com
                 </a>
               </li>
-              <li className="text-paper/60">Sun – Fri · 9AM – 5PM</li>
+              <li className="pt-1 text-paper/60">Sun – Fri · 9AM – 5PM</li>
             </ul>
           </div>
         </div>
@@ -103,7 +113,7 @@ export default function Footer() {
 
       {/* Hairline + colophon */}
       <div className="border-t border-mesh/60">
-        <div className="mx-auto flex max-w-[1140px] flex-col gap-2 px-6 py-6 text-xs text-paper/60 md:flex-row md:items-center md:justify-between md:px-10">
+        <div className="mx-auto flex max-w-page flex-col gap-2 px-6 py-6 text-xs text-paper/60 md:flex-row md:items-center md:justify-between md:px-10">
           <p>© 2026 Ommi Forge Pvt. Ltd. · Forged with intent.</p>
           <p className="font-eyebrow uppercase tracking-[0.18em]">
             Bangalore · Malur · India

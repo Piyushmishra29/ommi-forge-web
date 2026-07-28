@@ -29,11 +29,16 @@ import { cn } from '@/lib/cn';
  */
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [prevPath, setPrevPath] = useState(pathname);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  // The scroll-progress hairline is written straight to the DOM node
+  // rather than held in state: it changes on every scroll frame, and a
+  // setState there re-rendered the whole header (nav + AnimatePresence
+  // sheet) ~60×/second while Lenis was already saturating the frame.
+  // `scrolled` stays in state because it flips at most twice per page.
+  const progressRef = useRef<HTMLDivElement | null>(null);
   const firstLinkRef = useRef<HTMLAnchorElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   // Whether the sheet has actually been opened — gates the focus-return
@@ -62,7 +67,10 @@ export default function Header() {
       const scrollTop = window.scrollY || doc.scrollTop;
       const max = doc.scrollHeight - doc.clientHeight;
       setScrolled(scrollTop > 100);
-      setProgress(max > 0 ? Math.min(1, Math.max(0, scrollTop / max)) : 0);
+      const progress = max > 0 ? Math.min(1, Math.max(0, scrollTop / max)) : 0;
+      if (progressRef.current) {
+        progressRef.current.style.transform = `scaleX(${progress})`;
+      }
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -131,7 +139,12 @@ export default function Header() {
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
+      // Release BOTH locks. The open branch above locks <html> as well as
+      // <body>, so clearing only body here left the document permanently
+      // unscrollable if the header ever unmounted while the sheet was
+      // open (dev fast-refresh, or a route swap that remounts the tree).
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       setLenisPaused(false);
     };
   }, [open]);
@@ -149,7 +162,7 @@ export default function Header() {
           : 'bg-transparent text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]',
       )}
     >
-      <div className="mx-auto flex max-w-[1140px] items-center justify-between px-6 py-3 md:px-10 md:py-4">
+      <div className="mx-auto flex max-w-page items-center justify-between px-6 py-3 md:px-10 md:py-4">
         <Link
           href="/"
           aria-label="Ommi Forge — home"
@@ -187,8 +200,13 @@ export default function Header() {
                 data-magnetic
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'whitespace-nowrap font-eyebrow text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:text-saffron lg:text-xs',
-                  active && 'text-saffron',
+                  'relative whitespace-nowrap font-eyebrow text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:text-saffron lg:text-xs',
+                  // Current page carries a saffron underline as well as
+                  // the saffron ink — `color-not-only`, so the active item
+                  // still reads for anyone who can't separate the two
+                  // oranges from paper-white.
+                  active &&
+                    'text-saffron after:absolute after:-bottom-2 after:left-0 after:h-px after:w-full after:bg-saffron after:content-[""]',
                 )}
               >
                 {item.label}
@@ -206,10 +224,15 @@ export default function Header() {
 
         {/* Mobile/tablet: inline Quote chip + hamburger */}
         <div className="flex items-center gap-2 lg:hidden">
+          {/* 36px-tall chip, but the tap target is padded out to the full
+              44px via an invisible ::after — `touch-target-size` says to
+              extend the hit area beyond the visual bounds rather than
+              inflate the chip, which would make it as tall as the
+              hamburger and unbalance the bar. */}
           <Link
             href={CTA.href}
             data-magnetic
-            className="inline-flex h-9 items-center bg-saffron px-3.5 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.2em] text-graphite"
+            className="relative inline-flex h-9 items-center bg-saffron px-3.5 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.2em] text-graphite after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']"
           >
             Quote
           </Link>
@@ -244,11 +267,13 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Scroll-progress hairline */}
+      {/* Scroll-progress hairline — scaleX is driven imperatively by the
+          scroll listener above (see progressRef). */}
       <div
+        ref={progressRef}
         aria-hidden
         className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-mesh"
-        style={{ transform: `scaleX(${progress})` }}
+        style={{ transform: 'scaleX(0)' }}
       />
 
       {/* Mobile sheet */}
@@ -289,17 +314,31 @@ export default function Header() {
                 aria-label="Mobile primary"
                 className="flex flex-1 flex-col gap-5 overflow-y-auto px-8 py-10"
               >
-                {NAV.map((item, i) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    ref={i === 0 ? firstLinkRef : undefined}
-                    onClick={() => setOpen(false)}
-                    className="font-display text-3xl font-light text-paper transition-colors hover:text-saffron"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {NAV.map((item, i) => {
+                  // Same current-page test as the desktop nav — the sheet
+                  // was the one place that never marked where you are.
+                  const active =
+                    item.href === '/'
+                      ? pathname === '/'
+                      : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      ref={i === 0 ? firstLinkRef : undefined}
+                      onClick={() => setOpen(false)}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'font-display text-3xl font-light transition-colors hover:text-saffron',
+                        active
+                          ? 'text-saffron underline decoration-saffron decoration-1 underline-offset-8'
+                          : 'text-paper',
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
                 <Link
                   href={CTA.href}
                   onClick={() => setOpen(false)}
