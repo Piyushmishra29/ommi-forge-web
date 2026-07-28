@@ -22,10 +22,13 @@ import { cn } from '@/lib/cn';
  * padding and the Hero pulls itself back up by the same amount so the
  * fixed bar overlays the hero without leaving a gap on secondary routes.
  *
- * Foreground colour at the top of the page is `text-paper` with a
- * subtle text-shadow so the logo + hamburger stay legible over either
- * the dark hero video or any lighter page hero. Once scrolled past
- * 100px the bar flips to solid graphite.
+ * v3 colour: the page ground is graphite, so the v2 branch that flipped
+ * secondary routes to a solid bar at scrollTop 0 (because their heroes
+ * were paper and a paper-toned logo vanished) is gone — there is no light
+ * hero left to guard against. The bar is transparent at the top of every
+ * route and becomes solid graphite with a cinder hairline past 100px.
+ * Foreground stays `text-paper` (15.46:1 on graphite) with a text-shadow
+ * while transparent, because on `/` it is sitting over a live canvas.
  */
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -50,14 +53,6 @@ export default function Header() {
     setPrevPath(pathname);
     setOpen(false);
   }
-
-  // Only the home route ("/") opens against the dark hero video. Every
-  // other route has a paper-toned hero at the top, so the transparent
-  // "text-paper" treatment would render the logo invisible until the
-  // user scrolls past 100px. Detect that here and flip to a graphite
-  // foreground at the top of secondary routes; once scrolled past 100px
-  // the bar becomes solid graphite either way.
-  const onDarkHero = pathname === '/';
 
   // Scroll-progress + scrolled boolean
   useEffect(() => {
@@ -153,13 +148,14 @@ export default function Header() {
     <header
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       className={cn(
-        'fixed inset-x-0 top-0 z-[1000] transition-colors duration-300',
-        // Home keeps the transparent-over-hero treatment at the top; every
-        // other route now gets a solid graphite bar so the white-outlined
-        // wordmark logo always reads cleanly.
-        scrolled || !onDarkHero
-          ? 'bg-graphite text-paper shadow-[0_2px_24px_-12px_rgba(0,0,0,0.4)]'
-          : 'bg-transparent text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]',
+        'fixed inset-x-0 top-0 z-[1000] text-paper transition-colors duration-300',
+        // The v2 drop shadow was a dark blur on what is now a dark ground —
+        // it separated nothing. A cinder hairline (3.03:1 on graphite) is the
+        // structural edge instead, and it doubles as the track the mesh
+        // scroll-progress bar fills along.
+        scrolled
+          ? 'border-b border-cinder bg-graphite'
+          : 'border-b border-transparent bg-transparent [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]',
       )}
     >
       <div className="mx-auto flex max-w-page items-center justify-between px-6 py-3 md:px-10 md:py-4">
@@ -213,10 +209,16 @@ export default function Header() {
               </Link>
             );
           })}
+          {/* Hover keeps GRAPHITE ink, it does not flip to paper. The v2
+              pattern was `hover:bg-mesh hover:text-paper`, and paper on mesh
+              measures 3.05:1 — under AA 4.5:1 for a 12px uppercase label,
+              which is nowhere near large-text size. graphite on mesh is
+              5.07:1 and passes. Same fix applied to every saffron CTA in
+              this lane. */}
           <Link
             href={CTA.href}
             data-magnetic
-            className="ml-2 inline-flex items-center justify-center bg-saffron px-5 py-2.5 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
+            className="ml-2 inline-flex items-center justify-center bg-saffron px-5 py-2.5 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-graphite"
           >
             {CTA.label}
           </Link>
@@ -290,7 +292,11 @@ export default function Header() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
               style={{ top: 'var(--header-h)' }}
-              className="fixed inset-0 z-[998] cursor-default bg-graphite/40 backdrop-blur-sm lg:hidden"
+              // No backdrop-blur (§6.2) — and on `/` this scrim sits over a
+              // live WebGL canvas, where a full-viewport blur is a real
+              // per-frame cost, not just a stylistic one. A denser flat
+              // graphite scrim does the same legibility job for free.
+              className="fixed inset-0 z-[998] cursor-default bg-graphite/70 lg:hidden"
             />
             <motion.div
               id="mobile-nav"
@@ -308,7 +314,13 @@ export default function Header() {
                 top: 'var(--header-h)',
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
               }}
-              className="fixed inset-y-0 right-0 z-[999] flex w-[88vw] max-w-[420px] flex-col bg-graphite text-paper lg:hidden"
+              // slag, not graphite: a graphite sheet on a graphite page has no
+              // edge at all now. slag is only a 1.17:1 lift, so the leading
+              // edge carries an `ash` hairline — 3.22:1 against slag and
+              // 3.76:1 against the graphite behind it, i.e. it clears WCAG
+              // 1.4.11 on BOTH sides. `cinder` would not: it is 3.03:1 on
+              // graphite but only 2.60:1 on slag.
+              className="fixed inset-y-0 right-0 z-[999] flex w-[88vw] max-w-[420px] flex-col border-l border-ash bg-slag text-paper lg:hidden"
             >
               <nav
                 aria-label="Mobile primary"
@@ -347,29 +359,32 @@ export default function Header() {
                   {CTA.label}
                 </Link>
 
-                {/* Reach-us block at sheet bottom */}
-                <div className="mt-auto border-t border-paper/15 pt-6">
-                  <p className="font-eyebrow text-[10px] uppercase tracking-[0.3em] text-mesh">
-                    Reach us
-                  </p>
+                {/* Reach-us block at sheet bottom.
+                    Every `text-paper/NN` here became a measured token: on slag
+                    the alpha steps were unverifiable guesses, and paper/60 in
+                    particular landed under AA. swarf is 5.31:1 on slag, and
+                    the eyebrow goes saffron (6.49:1) rather than mesh, which
+                    is only 4.35:1 there. */}
+                <div className="mt-auto border-t border-ash pt-6">
+                  <p className="type-eyebrow text-saffron">Reach us</p>
                   <a
                     href="mailto:marketing@ommiforge.com"
-                    className="mt-3 block font-body text-sm text-paper/80 transition-colors hover:text-saffron"
+                    className="mt-3 block font-body text-sm text-swarf transition-colors hover:text-saffron"
                   >
                     marketing@ommiforge.com
                   </a>
                   <a
                     href="tel:+918951953866"
-                    className="mt-1 block font-body text-sm text-paper/80 transition-colors hover:text-saffron"
+                    className="mt-1 block font-body text-sm text-swarf transition-colors hover:text-saffron"
                   >
                     +91 8951953866
                   </a>
-                  <p className="mt-3 font-body text-xs text-paper/60">
+                  <p className="mt-3 font-body text-xs text-swarf">
                     Plot No 300, 301 &amp; 302, 3rd Phase,
                     <br />
                     Industrial Area, Malur, Karnataka 563160
                   </p>
-                  <p className="mt-2 font-body text-xs text-paper/60">
+                  <p className="mt-2 font-body text-xs text-swarf">
                     Sun – Fri · 9 AM – 5 PM
                   </p>
                 </div>

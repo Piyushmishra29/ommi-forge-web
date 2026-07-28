@@ -9,18 +9,21 @@ import SplitText from '@/components/motion/SplitText';
 /**
  * ContactHero
  *
- * Editorial opener for `/contact/`. Promotes the page to the same
- * cinematic register as `/`, `/about`, `/solutions`, `/products`:
+ * Editorial opener for `/contact/`, on the dark ground. No 3D on this
+ * route (§5.8) — everything below is a paper card, because a form is a
+ * document.
  *
- *  - Eyebrow `QUOTE TO PART · IN A DAY`.
- *  - Display headline at `clamp(56px, 10vw, 110px)`, split per-char
- *    and swept in via GSAP on mount.
- *  - Strong sub-headline naming the three things we accept (a
- *    drawing, a sample, a paragraph) so the form below feels earned
- *    rather than merely present.
+ *  - Eyebrow `QUOTE TO PART · IN A DAY`, saffron on graphite. v2 forced
+ *    `text-ember` here because the ground was paper; on graphite ember
+ *    is 2.98:1 and forbidden, and `<Eyebrow>` now resolves the right
+ *    token per surface on its own.
+ *  - `display-l`, the page-h1 role (§2.4). v2 ran the home hero's scale.
+ *  - Sub-headline naming the three things we accept (a drawing, a
+ *    sample, a paragraph) so the form below feels earned.
  *
  * Reduced-motion: the per-char stagger is skipped so the headline
- * renders at rest.
+ * renders at rest — `gsap.from()` is never reached, so nothing is left
+ * parked at `opacity: 0`.
  */
 export default function ContactHero() {
   const root = useRef<HTMLElement | null>(null);
@@ -58,29 +61,22 @@ export default function ContactHero() {
   }, [reduced]);
 
   return (
-    <section
-      ref={root}
-      className="relative bg-paper pt-32 pb-12 md:pt-40 md:pb-20"
-    >
-      <div className="mx-auto max-w-page px-6 md:px-10">
-        {/* ember, not mesh: at 12px on paper mesh sits at ≈3:1, under
-            AA for normal-size text. ember is the small-text accent. */}
-        <Eyebrow data-fade>
-          <span className="text-ember">Quote to part · in a day</span>
-        </Eyebrow>
+    <section ref={root} className="relative section-y pb-0">
+      <div className="mx-auto max-w-page page-x">
+        {/* See CareersHero: <Eyebrow> does not spread unknown props, so
+            `data-fade` has to sit on a wrapper to actually be selected. */}
+        <div data-fade>
+          <Eyebrow>Quote to part · in a day</Eyebrow>
+        </div>
 
         <h1
           data-contact-headline
-          className="mt-8 max-w-5xl font-display font-light leading-[0.98] text-graphite"
-          style={{ fontSize: 'clamp(56px, 10vw, 110px)' }}
+          className="type-display-l mt-8 max-w-4xl text-balance"
         >
           <SplitText as="span">{`Quote to part in a day.`}</SplitText>
         </h1>
 
-        <p
-          data-fade
-          className="mt-10 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]"
-        >
+        <p data-fade className="type-lede mt-10 max-w-[68ch] text-pretty">
           Send us a drawing, a sample, or a paragraph in an email. We&apos;ll
           come back with a method and a price — often within a day, from a
           real human at the marketing desk.

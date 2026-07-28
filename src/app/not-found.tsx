@@ -51,31 +51,27 @@ export default function NotFound() {
       className="relative flex min-h-[calc(100dvh-var(--header-h))] w-full items-center justify-center overflow-hidden bg-graphite text-paper"
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-6 py-24 text-center md:px-10 md:py-32">
-        <Eyebrow className="text-paper">OFF THE MAP</Eyebrow>
+        <Eyebrow>OFF THE MAP</Eyebrow>
 
-        <div
-          data-404
-          className="mt-8"
-          style={{ textShadow: '0 0 48px rgba(255, 153, 51, 0.22)' }}
-        >
+        {/* The v2 `textShadow: 0 0 48px rgba(255,153,51,.22)` is gone. A
+            saffron bloom around saturated warm type on a dark ground is
+            precisely the neon look §6.3 rules out — and it is the only
+            glow that existed on the site. */}
+        <div data-404 className="mt-8">
           <SplitText
             as="span"
-            className="block font-display font-bold leading-[0.92] text-mesh"
+            className="block font-display font-bold leading-[0.92] text-saffron"
             charClassName="text-[clamp(120px,20vw,240px)]"
           >
             404
           </SplitText>
         </div>
 
-        <h1
-          id="notfound-heading"
-          className="mt-6 font-display font-light leading-[1.05] text-paper"
-          style={{ fontSize: 'clamp(32px, 5vw, 56px)' }}
-        >
+        <h1 id="notfound-heading" className="type-display-l mt-6 text-balance">
           This page isn&apos;t on our shop floor.
         </h1>
 
-        <p className="mt-6 max-w-xl font-body text-base text-paper/70 md:text-lg">
+        <p className="type-lede mt-6 max-w-xl text-pretty">
           Let&apos;s get you back to something real.
         </p>
 
@@ -83,14 +79,14 @@ export default function NotFound() {
           <Link
             href="/"
             data-magnetic
-            className="inline-flex items-center justify-center bg-saffron px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-paper hover:text-graphite"
+            className="type-eyebrow inline-flex min-h-11 items-center justify-center bg-saffron px-8 py-4 text-graphite transition-colors hover:bg-mesh hover:text-graphite"
           >
             Back to the floor →
           </Link>
           <Link
             href="/renders/"
             data-magnetic
-            className="inline-flex items-center justify-center border border-paper px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-paper transition-colors hover:bg-paper hover:text-graphite"
+            className="type-eyebrow inline-flex min-h-11 items-center justify-center border border-paper px-8 py-4 text-paper transition-colors hover:bg-paper hover:text-graphite"
           >
             Browse 3D renders →
           </Link>
@@ -100,11 +96,13 @@ export default function NotFound() {
           aria-hidden
           className="mt-16 inline-block h-px w-12 bg-saffron"
         />
-        <p className="mt-4 font-body text-sm text-paper/60">
+        {/* `paper/60` on graphite measures 5.4:1 by luck rather than by
+            design; swarf is the measured dark-ground grey (6.19:1). */}
+        <p className="type-small mt-4">
           Wandered off? Email{' '}
           <a
             href="mailto:marketing@ommiforge.com"
-            className="text-paper underline decoration-saffron decoration-2 underline-offset-4 transition-colors hover:text-saffron"
+            className="text-saffron underline decoration-1 underline-offset-4 transition-colors hover:text-mesh"
           >
             marketing@ommiforge.com
           </a>

@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { z } from 'zod';
 import { cn } from '@/lib/cn';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
+import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
  * Contact form — react-hook-form + zod, persistent editorial labels,
@@ -26,6 +27,15 @@ import { useReducedMotion } from '@/lib/use-reduced-motion';
  *     success flip. It surfaces an honest inline notice telling the
  *     visitor to email us directly, and keeps their input intact. No
  *     network is touched and no payload is logged.
+ *
+ * v3 surface note: this component lives inside a `<PaperCard>` (§2.3) —
+ * a form is a document, so it is one of the few things on a dark site
+ * that belongs on paper. That is why almost nothing below changed in the
+ * dark conversion: `.paper-card` re-points the semantic ink tokens to the
+ * v2 light palette for its whole subtree, so every `text-graphite`,
+ * `text-ember`, `text-steel`, `text-cinder` and `border-graphite/25`
+ * here is still measuring exactly what it measured in v2. The a11y
+ * contract below was carried forward verbatim, not re-derived.
  *
  * Accessibility contract (the form is the site's only conversion
  * point, so this is deliberately explicit):
@@ -200,7 +210,10 @@ export default function ContactForm() {
       : '';
 
   return (
-    <div className="relative">
+    // Capped measure inside a full-width sheet. The card itself runs the
+    // container width (a paper card has a 480px floor and is never a chip),
+    // but ~490px-wide text inputs are not a form, they are a banner.
+    <div className="relative max-w-[820px]">
       {/* Persistent live region — must NOT live inside the
           AnimatePresence swap, see the header comment. */}
       <p className="sr-only" role="status" aria-live="polite">
@@ -209,21 +222,15 @@ export default function ContactForm() {
 
       {/* Section heading above the form — editorial, not corporate. */}
       <div className="mb-10 md:mb-12">
-        <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
-          <span
-            aria-hidden
-            className="mr-3 inline-block h-px w-8 align-middle bg-mesh"
-          />
-          Start a quote
-        </p>
-        <h2
-          className="mt-6 font-display font-light leading-tight text-graphite"
-          style={{ fontSize: 'clamp(24px, 3vw, 32px)' }}
-        >
+        {/* <Eyebrow> resolves to ember in here via --color-ink-accent; the
+            v2 markup hard-coded ember for the label and mesh for the dash,
+            and mesh is only ≈3:1 on paper even as a hairline. */}
+        <Eyebrow>Start a quote</Eyebrow>
+        <h2 className="type-display-m mt-6">
           Tell us what you&apos;re making.
         </h2>
-        <p className="mt-4 font-body text-sm leading-relaxed text-steel">
-          Fields marked <span className="text-ember">*</span> are required.
+        <p className="type-small mt-4">
+          Fields marked <span className="text-ink-accent">*</span> are required.
         </p>
       </div>
 
@@ -386,7 +393,7 @@ export default function ContactForm() {
                 aria-busy={isSubmitting}
                 data-magnetic
                 data-cursor-label="Send"
-                className="inline-flex min-h-11 items-center justify-center gap-3 bg-saffron px-10 py-5 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-mesh hover:text-paper disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-11 items-center justify-center gap-3 bg-saffron px-10 py-5 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-mesh hover:text-graphite disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -422,23 +429,20 @@ export default function ContactForm() {
               ease: [0.76, 0, 0.24, 1],
             }}
             onAnimationStart={() => successRef.current?.focus()}
-            className="relative isolate min-h-[420px] overflow-hidden bg-graphite p-10 text-paper md:p-14"
+            // Stays ON the sheet. v2 swapped in a graphite slab with mesh
+            // corner brackets; both had to go. The brackets are HUD chrome
+            // (§6.9), and a dark block nested inside a paper card re-inverts
+            // the ink tokens under it — every `type-*` class in here would
+            // have quietly resolved to the light palette on a dark ground
+            // (ember at 2.98:1). One ember rule down the leading edge marks
+            // the state change instead, using the sheet's own accent.
+            className="relative min-h-[360px] border-l-4 border-ember py-2 pl-8 md:pl-10"
           >
-            <div
-              aria-hidden
-              className="absolute right-0 top-0 h-24 w-24 border-r-2 border-t-2 border-mesh"
-            />
-            <div
-              aria-hidden
-              className="absolute bottom-0 left-0 h-24 w-24 border-b-2 border-l-2 border-mesh"
-            />
-            <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-mesh">
-              Message sent
-            </p>
-            <h3 className="mt-6 max-w-xl font-display text-3xl font-light leading-tight text-paper md:text-5xl">
+            <Eyebrow>Message sent</Eyebrow>
+            <h3 className="type-display-l mt-6 max-w-xl text-balance">
               Thanks. We&apos;ll be in touch — often within a day.
             </h3>
-            <p className="mt-6 max-w-md font-body text-base leading-relaxed text-paper/70 md:text-lg">
+            <p className="type-lede mt-6 max-w-[60ch] text-pretty">
               Our marketing desk routes inquiries to the right metallurgist or
               project lead the same morning. Expect a reply from a real human.
             </p>
@@ -446,7 +450,7 @@ export default function ContactForm() {
               type="button"
               onClick={handleReset}
               data-magnetic
-              className="mt-10 inline-flex min-h-11 items-center gap-2 border border-paper/30 px-6 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-paper transition-colors hover:border-mesh hover:text-mesh"
+              className="type-eyebrow mt-10 inline-flex min-h-11 items-center gap-2 border border-ember px-6 text-ink-accent transition-colors hover:bg-ember hover:text-paper"
             >
               Send another message ↺
             </button>

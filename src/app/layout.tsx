@@ -11,6 +11,7 @@ import MagneticCursor from '@/components/motion/MagneticCursor';
 import PageTransition from '@/components/motion/PageTransition';
 import Header from '@/components/ui/Header';
 import Footer from '@/components/ui/Footer';
+import HeroPreload from '@/components/ui/HeroPreload';
 
 /* ------------------------------------------------------------
  * Optional Plausible analytics. Both env vars are inlined at
@@ -125,39 +126,23 @@ export default function RootLayout({
       lang="en-IN"
       className={`${manrope.variable} ${workSans.variable} ${roboto.variable} antialiased`}
     >
-      <head>
-        {/* The very first hero frame is the LCP candidate on `/`. Preload
-            it with high priority so the canvas can paint without waiting
-            for the bounded-concurrency queue to dequeue it. Media-scoped so
-            a phone preloads the 768-wide frame and a desktop the 1280-wide
-            one — never both — matching the variant the hook picks on mount. */}
-        {/* `fetchPriority` (camelCase) is the React prop name — React 19
-            typings carry it on LinkHTMLAttributes and React lowercases it
-            to the `fetchpriority` HTML attribute on the way out. Spelling
-            it lowercase in JSX made React reject it as an unknown DOM
-            property, drop it, and log a console warning — so the preload
-            silently ran at default priority. */}
-        <link
-          rel="preload"
-          as="image"
-          href="/assets/frames/hero/1280/f-001.webp"
-          type="image/webp"
-          media="(min-width: 1024px)"
-          fetchPriority="high"
-        />
-        <link
-          rel="preload"
-          as="image"
-          href="/assets/frames/hero/768/f-001.webp"
-          type="image/webp"
-          media="(max-width: 1023px)"
-          fetchPriority="high"
-        />
-      </head>
-      <body className="min-h-dvh bg-paper text-graphite">
+      {/* NOTE: no <head> block here on purpose. The hero-frame preload that
+          used to live in it is route-scoped now and lives in <HeroPreload>
+          below — it was firing at high priority on all 12 routes and being
+          used by one. Anything added here is global to every route; if it
+          is only needed by one page, it does not belong in this file. */}
+      {/* v3 is dark-first (§2.1): the ground is graphite and body copy is
+          swarf (6.19:1). Both are also set on html/body in globals.css —
+          repeated here so the utilities win over any element-level rule and
+          so overscroll on iOS reveals graphite, not white. */}
+      <body className="min-h-dvh bg-graphite text-swarf">
         <a href="#main" className="skip-link">
           Skip to content
         </a>
+        {/* Emits the hero LCP preload on `/` only. React 19 hoists the
+            <link> tags it returns into <head>; on every other route it
+            renders nothing at all. */}
+        <HeroPreload />
         <LegacyRedirects />
         {/* CALM_MODE (NEXT_PUBLIC_CALM_MODE=1 at build time) forces every
             Framer-`useReducedMotion()` consumer — PageTransition + all

@@ -25,6 +25,13 @@ export const BRAND_HEX = {
   paper: "#FAFAFA",
   snow: "#FFFFFF",
   renderBg: "#D9D9D9",
+  // v3 dark-ground additions. `graphite` is now the page ground AND the
+  // WebGL clear colour, which is what removes the canvas seam — three.js
+  // needs both of these as literal hex, hence the mirror.
+  // swarf: AA-safe body grey on dark (6.19:1 on graphite, 5.31:1 on slag).
+  swarf: "#9BA1A8",
+  // slag: raised panel / inset surface (1.17:1 on graphite — decorative lift).
+  slag: "#2A2D31",
 } as const;
 
 export type BrandHex = (typeof BRAND_HEX)[keyof typeof BRAND_HEX];

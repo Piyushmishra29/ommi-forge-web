@@ -50,20 +50,20 @@ export default function Error({
     // and every crash arrives with a phantom scrollbar.
     <section
       aria-labelledby="error-heading"
-      className="flex min-h-[calc(100dvh-var(--header-h))] flex-col items-center justify-center bg-paper px-6 py-20 text-center text-graphite"
+      className="flex min-h-[calc(100dvh-var(--header-h))] flex-col items-center justify-center bg-graphite px-6 py-20 text-center"
     >
-      <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.3em] text-ember">
+      {/* saffron, not ember: ember is 2.98:1 on graphite and is forbidden
+          on the dark ground (§2.2). Same substitution below on the rule
+          and the mailto. */}
+      <p className="type-eyebrow">
         {isChunkError ? 'Reconnecting' : 'Something slipped'}
       </p>
-      <h1
-        id="error-heading"
-        className="mt-6 max-w-2xl font-display text-[clamp(32px,5vw,56px)] font-light leading-[1.05]"
-      >
+      <h1 id="error-heading" className="type-display-l mt-6 max-w-2xl text-balance">
         {isChunkError
           ? 'Reloading the page…'
           : 'That didn’t load cleanly.'}
       </h1>
-      <p className="mt-5 max-w-md font-body text-base text-steel">
+      <p className="type-lede mt-6 max-w-[52ch] text-pretty">
         {isChunkError
           ? 'A file dropped on the way in — fetching it again.'
           : 'A one-off hiccup. Give it another try — the rest of the site is fine.'}
@@ -78,25 +78,28 @@ export default function Error({
               type="button"
               onClick={reset}
               data-magnetic
-              className="inline-flex items-center justify-center bg-saffron px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
+              className="type-eyebrow inline-flex min-h-11 items-center justify-center bg-saffron px-8 py-4 text-graphite transition-colors hover:bg-mesh hover:text-graphite"
             >
               Try again
             </button>
             <Link
               href="/"
               data-magnetic
-              className="inline-flex items-center justify-center border border-graphite px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-graphite hover:text-paper"
+              // The v2 `border-graphite` outline was graphite-on-paper; on
+              // graphite it is 1.00:1 and the button simply disappeared.
+              // saffron carries both the edge and the label at 7.57:1.
+              className="type-eyebrow inline-flex min-h-11 items-center justify-center border border-saffron px-8 py-4 text-saffron transition-colors hover:bg-saffron hover:text-graphite"
             >
               Back to the floor →
             </Link>
           </div>
 
-          <span aria-hidden className="mt-14 inline-block h-px w-12 bg-ember" />
-          <p className="mt-4 font-body text-sm text-steel">
+          <span aria-hidden className="mt-14 inline-block h-px w-12 bg-saffron" />
+          <p className="type-small mt-4">
             Still stuck? Email{' '}
             <a
               href="mailto:marketing@ommiforge.com"
-              className="text-ember underline decoration-ember decoration-1 underline-offset-4 transition-colors hover:text-graphite"
+              className="text-saffron underline decoration-1 underline-offset-4 transition-colors hover:text-mesh"
             >
               marketing@ommiforge.com
             </a>
@@ -105,7 +108,9 @@ export default function Error({
             // The digest is the only handle support has on a production
             // stack trace (real messages are stripped in prod builds).
             // Surfacing it turns "it broke" into a searchable report.
-            <p className="mt-3 font-eyebrow text-[10px] uppercase tracking-[0.3em] text-steel">
+            // `steel` was 2.28:1 on graphite — swarf is the dark-ground
+            // grey and the only one that clears AA here.
+            <p className="type-meta mt-3 font-eyebrow uppercase tracking-[0.26em]">
               Ref {error.digest}
             </p>
           ) : null}

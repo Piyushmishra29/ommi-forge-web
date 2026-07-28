@@ -1,20 +1,26 @@
+import PaperCard from '@/components/ui/PaperCard';
 import { MATERIALS, type Material } from '@/data/materials';
-import { cn } from '@/lib/cn';
 
 /**
  * MaterialsTable
  *
- * One large block per family — copy on the left, sub-family grade
- * table on the right. Alternating bg keeps the eye moving down the
- * page.
+ * The four steel families, each as a paper card on the dark ground —
+ * the biggest concentration of light surface on the site (§5.5). v2
+ * alternated four *page-wide* background treatments (paper / graphite /
+ * peach / graphite) and needed a four-entry ACCENTS table to keep each
+ * one's accent above AA. All of that is gone: every family is now the
+ * same printed sheet, so there is exactly one surface to reason about,
+ * and its contrast rules come from `.paper-card` rather than from a
+ * lookup table an author has to keep in sync. Measured inside a card:
+ * graphite 16.14:1, steel 7.07:1, ember 5.42:1, cinder 5.33:1, and the
+ * ash hairlines 4.29:1 — all on snow.
  *
  * The grade list is genuine two-column tabular data (sub-family →
  * example grade designations), so it renders as a real `<table>` with
  * a `<caption>`, a `<th scope="col">` header row and a
  * `<th scope="row">` per sub-family. A screen reader then announces
  * "Low carbon, Example grades: C10, C15…" instead of two unrelated
- * lines. It used to be a `<ul>` of stacked `<div>`s, which carried
- * none of that.
+ * lines.
  *
  * Responsive: the table wraps in an `overflow-x-auto` region rather
  * than collapsing to cards — with only two columns it fits a 375px
@@ -37,140 +43,101 @@ import { cn } from '@/lib/cn';
  * remove it on the grounds that the tables "always fit" — they fit at
  * the default text size only.
  */
-const ACCENTS: ReadonlyArray<{
-  bg: string;
-  text: string;
-  accent: string;
-  border: string;
-}> = [
-  {
-    // Paper bg: small accent text needs the darker ember to pass AA.
-    bg: 'bg-paper',
-    text: 'text-graphite',
-    accent: 'text-ember',
-    border: 'border-graphite/10',
-  },
-  {
-    // Graphite bg: mesh passes contrast on dark — keep it.
-    bg: 'bg-graphite',
-    text: 'text-paper',
-    accent: 'text-mesh',
-    border: 'border-paper/10',
-  },
-  {
-    // Peach card: mesh ≈1.9:1 on peach fails, and ember only reaches
-    // ≈3.3:1 — under AA for the 12px eyebrow and the 20px tagline,
-    // neither of which qualifies as "large text". Graphite clears at
-    // ≈9.8:1 but leaves the peach band with no accent hue at all, so the
-    // accent slot takes `oxide` (≈5.3:1 here) — the darkest step of the
-    // same warm ramp, added for exactly this surface. See globals.css.
-    bg: 'bg-peach',
-    text: 'text-graphite',
-    accent: 'text-oxide',
-    border: 'border-graphite/15',
-  },
-  {
-    bg: 'bg-graphite',
-    text: 'text-paper',
-    accent: 'text-saffron',
-    border: 'border-paper/10',
-  },
-];
-
 export default function MaterialsTable() {
   return (
-    <>
-      {MATERIALS.map((m: Material, i) => {
-        const a = ACCENTS[i % ACCENTS.length];
-        return (
-          <section
-            key={m.slug}
-            id={m.slug}
-            className={cn(a.bg, a.text, 'py-24 md:py-32')}
-          >
-            <div className="mx-auto grid max-w-page grid-cols-1 gap-12 px-6 md:grid-cols-12 md:gap-16 md:px-10">
-              <div className="md:col-span-6">
-                <p
-                  className={cn(
-                    'mb-6 font-eyebrow text-xs font-semibold uppercase tracking-[0.24em]',
-                    a.accent,
-                  )}
-                >
-                  <span aria-hidden className="mr-3 inline-block h-px w-8 align-middle bg-current" />
-                  Family {m.number}
-                </p>
-                <h2 className="font-display text-3xl font-light leading-tight md:text-5xl">
-                  {m.name}
-                </h2>
-                <p className={cn('mt-4 font-display text-lg italic md:text-xl', a.accent)}>
-                  {m.tagline}
-                </p>
-                <p className="mt-8 max-w-lg font-body text-base leading-relaxed opacity-90 md:text-lg md:leading-[1.7]">
-                  {m.blurb}
-                </p>
-              </div>
+    <div className="mx-auto flex max-w-page flex-col gap-16 page-x pb-24 md:gap-24 md:pb-32">
+      {MATERIALS.map((m: Material) => (
+        <PaperCard
+          key={m.slug}
+          as="section"
+          id={m.slug}
+          topRule
+          aria-labelledby={`${m.slug}-name`}
+          className="p-8 md:p-12 lg:p-16"
+        >
+          {/* Sheet header. The eyebrow takes no colour prop — inside a
+              paper card `--color-ink-accent` is already ember. */}
+          <p className="type-eyebrow">
+            <span aria-hidden className="mr-3 inline-block h-px w-8 align-middle bg-current" />
+            Family {m.number}
+          </p>
+          <h2 id={`${m.slug}-name`} className="type-display-l mt-6">
+            {m.name}
+          </h2>
+          <p className="type-display-s mt-4 font-display italic text-ink-accent">
+            {m.tagline}
+          </p>
 
-              <div className="md:col-span-6">
-                <div
-                  role="region"
-                  aria-label={`${m.name} — grades by sub-family`}
-                  tabIndex={0}
-                  className="overflow-x-auto"
-                >
-                  <table className="w-full border-collapse text-left">
-                    <caption className="sr-only">
-                      {`${m.name}: example grade designations for each sub-family.`}
-                    </caption>
-                    <thead>
-                      <tr className={cn('border-b', a.border)}>
+          <div className="mt-10 grid grid-cols-1 gap-10 md:mt-12 md:grid-cols-12 md:gap-12">
+            {/* 5/7, not 6/6 (§2.5). The blurb runs ~52ch at this width. */}
+            <div className="md:col-span-5">
+              <p className="type-body text-pretty">{m.blurb}</p>
+            </div>
+
+            <div className="md:col-span-7">
+              <div
+                role="region"
+                aria-label={`${m.name} — grades by sub-family`}
+                tabIndex={0}
+                className="overflow-x-auto"
+              >
+                <table className="w-full border-collapse text-left">
+                  <caption className="sr-only">
+                    {`${m.name}: example grade designations for each sub-family.`}
+                  </caption>
+                  <thead>
+                    <tr className="border-b border-rule">
+                      <th
+                        scope="col"
+                        className="type-eyebrow w-[38%] pb-3 pr-4 text-left text-ink-muted"
+                      >
+                        Sub-family
+                      </th>
+                      <th
+                        scope="col"
+                        className="type-eyebrow pb-3 text-left text-ink-muted"
+                      >
+                        Example grades
+                      </th>
+                    </tr>
+                  </thead>
+                  {/* Hairline rules sit on the rows themselves, not on a
+                      `divide-y` parent: preflight resets every element to
+                      `border: 0 solid`, so a colour set on the parent never
+                      reaches the divided children and the rules render at
+                      full-strength currentColor instead of the intended
+                      hairline. */}
+                  <tbody>
+                    {m.families.map((f) => (
+                      <tr
+                        key={f.name}
+                        className="border-b border-rule last:border-b-0"
+                      >
                         <th
-                          scope="col"
-                          className="w-[42%] pb-3 pr-4 text-left font-eyebrow text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80"
+                          scope="row"
+                          className="type-display-s py-5 pr-4 text-left align-baseline"
                         >
-                          Sub-family
+                          {f.name}
                         </th>
-                        <th
-                          scope="col"
-                          className="pb-3 text-left font-eyebrow text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80"
-                        >
-                          Example grades
-                        </th>
+                        {/* The `spec` type role (§2.4): Roboto 600, 14px,
+                            tabular-nums — so the digits in C10 / C45 /
+                            42CrMo4 sit on a common width and the column
+                            reads as a column. v2 set these uppercase with
+                            0.18em tracking, which turned real grade
+                            designations into decoration and made
+                            "SS 304L" a size wider than it is. */}
+                        <td className="type-spec py-5 align-baseline text-ink">
+                          {f.grades}
+                        </td>
                       </tr>
-                    </thead>
-                    {/* Hairline rules sit on the rows themselves, not on a
-                        `divide-y` parent: preflight resets every element to
-                        `border: 0 solid`, so a colour set on the parent never
-                        reaches the divided children and the rules render at
-                        full-strength currentColor instead of the intended
-                        /10 hairline. */}
-                    <tbody>
-                      {m.families.map((f) => (
-                        <tr
-                          key={f.name}
-                          className={cn('border-b last:border-b-0', a.border)}
-                        >
-                          <th
-                            scope="row"
-                            className="py-5 pr-4 text-left align-baseline font-display text-xl font-light md:text-2xl"
-                          >
-                            {f.name}
-                          </th>
-                          {/* tabular-nums keeps the digits in C10 / C45 /
-                              42CrMo4 on a common width so the column reads
-                              as a column, not a ragged sentence. */}
-                          <td className="py-5 align-baseline font-eyebrow text-xs font-semibold uppercase tracking-[0.12em] tabular-nums opacity-80 md:tracking-[0.18em]">
-                            {f.grades}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </section>
-        );
-      })}
-    </>
+          </div>
+        </PaperCard>
+      ))}
+    </div>
   );
 }

@@ -48,6 +48,49 @@
   --color-snow:       #FFFFFF;
   --color-render-bg:  #D9D9D9;
 
+  /* ----- v3 dark-ground additions (two tokens, nothing redefined) ----- */
+
+  /* The AA-safe body grey on the dark ground. Every existing grey fails here:
+     steel 2.28:1, cinder 3.03:1, ash 3.76:1 — all under AA 4.5:1 for normal
+     text on graphite. This is the exact mirror of the ash → cinder relationship
+     the light palette already documents, one step further up the ramp.
+     Measured 6.19:1 on graphite, 5.31:1 on slag, 4.13:1 on the 3D floor tone
+     (#3A3E44 — so never put swarf text over the canvas floor band). */
+  --color-swarf: #9BA1A8;
+
+  /* Raised surface on graphite: cards, inset panels, sticky rails. At 1.17:1
+     it is a *decorative* lift, not a boundary — any panel whose edge carries
+     meaning (a selected state, a form field, a focusable card) also gets a
+     1px cinder hairline, which measures 3.03:1 and clears WCAG 1.4.11.
+     Measured caveat the palette table does not state: that 3.03:1 is cinder
+     against the graphite GROUND. Against the slag FILL cinder is only 2.60:1,
+     and 1.4.11 wants 3:1 against both adjacent colours — so a *slag* panel
+     whose edge carries meaning takes `ash` instead (3.76:1 on graphite,
+     3.22:1 on slag, clears on both sides). Cinder stays correct for hairlines
+     drawn directly on the graphite ground. */
+  --color-slag: #2A2D31;
+
+  /* ----- Surface-scoped semantic ink (the datasheet boundary, §2.3) -----
+     These six resolve differently on the dark ground and inside a paper
+     card. The defaults below are the DARK ground; `.paper-card` re-declares
+     all six for its subtree (see the paper-card block further down), which
+     is what makes "inside a paper card the v2 light-mode contrast system
+     applies verbatim" a property of the cascade rather than a rule an
+     author has to remember.
+
+     Tailwind v4 compiles `text-ink` to `color: var(--color-ink)` — it emits
+     the variable reference, not the resolved value — so overriding the
+     variable on an ancestor really does re-point every utility beneath it.
+     Reach for these in anything that renders on BOTH grounds (Eyebrow, the
+     type-role classes). Single-ground components should keep naming the
+     concrete token; it reads better and measures the same. */
+  --color-ink:        var(--color-paper);   /* headings, primary text  15.46:1 dark · 15.46:1 paper */
+  --color-ink-body:   var(--color-swarf);   /* body copy                6.19:1 dark ·  6.77:1 paper (steel) */
+  --color-ink-muted:  var(--color-swarf);   /* tertiary/hint            6.19:1 dark ·  5.11:1 paper (cinder) */
+  --color-ink-accent: var(--color-saffron); /* warm accent              7.57:1 dark ·  5.19:1 paper (ember) */
+  --color-rule:       var(--color-cinder);  /* hairline                 3.03:1 dark ·  4.29:1 paper (ash) */
+  --color-surface:    var(--color-graphite);/* the ground under all of the above */
+
   /* ----- Typography (CSS vars are injected by next/font in layout.tsx) ----- */
   --font-display: var(--font-display);
   --font-eyebrow: var(--font-eyebrow);
@@ -81,15 +124,59 @@
 }
 
 /* ------------------------------------------------------------
- * Base layer
+ * Page gutters (§2.5) — 20px < 768 · 32px ≥ 768 · 48px ≥ 1280.
+ * Exposed as a variable rather than hard-coded `px-*` because the
+ * paper-card full-bleed break below needs to cancel exactly one
+ * gutter, and it can only do that if it knows the current value.
  * ------------------------------------------------------------ */
 :root {
-  color-scheme: light only;
+  --page-gutter: 20px;
+}
+@media (min-width: 768px) {
+  :root { --page-gutter: 32px; }
+}
+@media (min-width: 1280px) {
+  :root { --page-gutter: 48px; }
 }
 
+/* ------------------------------------------------------------
+ * Base layer — v3 is dark-first (§2.1). The ground is graphite,
+ * which is already the v2 header/footer colour, so the site reads
+ * as "the header ate the page" rather than as a new brand.
+ *
+ * CASCADE LAYERS — read this before adding a rule below.
+ * `@import "tailwindcss"` declares `theme, base, components, utilities`
+ * in that order, and CSS written *outside* any layer outranks all four.
+ * v2 wrote its element defaults unlayered, which meant the global
+ * `h1–h6 { line-height: 1.15 }` silently beat every `leading-*` and
+ * `text-[clamp(...)]` utility any component put on a heading — §2.4's
+ * "override per-role, don't change the global" was not actually
+ * possible. So:
+ *
+ *   @layer base       — element defaults (html, body, headings). Any
+ *                       utility or type-role class can override them.
+ *   @layer components — the `.type-*` roles, section rhythm, `.page-x`,
+ *                       `.paper-card`. Beat the base defaults, lose to
+ *                       a per-instance utility, which is exactly the
+ *                       precedence a design system wants.
+ *   unlayered         — `:focus-visible`, `::selection`, `.skip-link`,
+ *                       Lenis, the reduced-motion overrides. These are
+ *                       deliberately unbeatable: the two-tone focus ring
+ *                       must not be overridable by a stray utility.
+ * ------------------------------------------------------------ */
+:root {
+  /* Was `light only`. Native UI (scrollbars, form controls, autofill,
+     the tel/email keyboards' accessory bars) must follow the page.
+     `.paper-card` sets `color-scheme: light` back for its subtree so
+     the contact form's controls stay light inside their datasheet. */
+  color-scheme: dark;
+}
+
+@layer base {
+
 html {
-  background: var(--color-paper);
-  color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-swarf);
   /* Reserve the scrollbar slot so toggling overflow:hidden on the body
      (mobile menu open, modals, etc.) doesn't shift the layout sideways
      on Windows/macOS-with-classic-scrollbars. */
@@ -97,8 +184,11 @@ html {
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-graphite);
+  background: var(--color-graphite);
+  /* swarf, not paper: this is the default for BODY copy, and body copy on
+     dark is swarf at 6.19:1 (§2.2). Headings opt back up to `--color-ink`
+     immediately below. */
+  color: var(--color-swarf);
   font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   font-weight: 400;
   line-height: 1.55;
@@ -112,7 +202,225 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 300;
   line-height: 1.15;
   letter-spacing: -0.01em;
+  /* Headings sit one step above body copy on whichever ground they land
+     on: paper on graphite (15.46:1), graphite on snow (16.14:1). Living in
+     @layer base, this is a floor rather than a lock — the .type-display-*
+     roles and any per-instance utility both outrank it, which is what
+     §2.4's "override per-role, don't change the global" requires. */
+  color: var(--color-ink);
 }
+
+} /* @layer base */
+
+@layer components {
+
+.page-x {
+  padding-inline: var(--page-gutter);
+}
+
+/* ------------------------------------------------------------
+ * Type roles (§2.4)
+ *
+ * Named classes rather than per-component `text-[clamp(...)]` so four
+ * agents building in parallel cannot drift into four hero scales.
+ * Every value here comes straight from the §2.4 table.
+ *
+ * THE HALATION FLOOR — light-on-dark text optically gains weight, so:
+ *   · never render Manrope below 300 on dark;
+ *   · never render Manrope 300 below 24px on dark — use 400. That is why
+ *     display-m steps to 400 and display-s to 500 rather than staying at
+ *     the 300 the global h1–h6 rule sets;
+ *   · never set `snow` (#FFFFFF) on graphite below 15px — `.type-small`
+ *     and `.type-meta` resolve to `--color-ink-body` (swarf), which is
+ *     dimmer and therefore sharper at those sizes.
+ * ------------------------------------------------------------ */
+.type-display-xl,
+.type-display-l,
+.type-display-m,
+.type-display-s {
+  font-family: var(--font-display), system-ui, sans-serif;
+  color: var(--color-ink);
+}
+
+/* Home h1 only. */
+.type-display-xl {
+  font-weight: 300;
+  font-size: clamp(52px, 9.5vw, 132px);
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+}
+
+/* Page h1, section h2. */
+.type-display-l {
+  font-weight: 300;
+  font-size: clamp(36px, 5.2vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* h3. Weight 400 — the bottom of this clamp is 26px, close enough to the
+   24px halation floor that 300 starts losing its stems on graphite. */
+.type-display-m {
+  font-weight: 400;
+  font-size: clamp(26px, 2.6vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* h4, card title. Wholly below the 24px floor, so weight 500. */
+.type-display-s {
+  font-weight: 500;
+  font-size: clamp(19px, 1.5vw, 23px);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.type-lede,
+.type-body,
+.type-small,
+.type-meta {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 400;
+  color: var(--color-ink-body);
+}
+
+.type-lede {
+  font-size: clamp(18px, 1.5vw, 22px);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+.type-body {
+  font-size: 16px;
+  line-height: 1.65;
+  letter-spacing: 0;
+}
+
+.type-small {
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.type-meta {
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+/* Eyebrow — saffron on dark, ember inside a paper card, via --color-ink-accent.
+   v2 drifted between 0.20em and 0.30em tracking; 0.26em is the standard. */
+.type-eyebrow {
+  font-family: var(--font-eyebrow), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--color-ink-accent);
+}
+@media (min-width: 1024px) {
+  .type-eyebrow { font-size: 12px; }
+}
+
+/* Real figures only — stats, tonnage, years. `tabular-nums` is load-bearing:
+   NumberCounter reflowed on every tick as proportional glyph widths changed. */
+.type-data {
+  font-family: var(--font-eyebrow), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(40px, 6vw, 88px);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+/* Grade codes, dimensions, part numbers. */
+.type-spec {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------
+ * Section rhythm (§2.5). Vertical padding, top and bottom.
+ * ------------------------------------------------------------ */
+.section-y-sm { padding-block: clamp(64px, 8vw, 96px); }
+.section-y    { padding-block: clamp(96px, 11vw, 144px); }
+.section-y-lg { padding-block: clamp(128px, 15vw, 200px); }
+
+/* ------------------------------------------------------------
+ * The datasheet rule (§2.3) — the only light surfaces on the site.
+ *
+ * A paper card is a printed sheet of COLD TECHNICAL INFORMATION lying on
+ * the dark ground: grade tables, the contact form, the location block,
+ * spec lists. It is not a "card" in the UI sense and it is emphatically
+ * not a chip — hence the 480px floor, the ≤2px corners and the absent
+ * shadow, all of which are enforced here rather than left to authors.
+ *
+ * The important part is the variable block: re-declaring the six semantic
+ * inks makes the v2 light-mode contrast system apply verbatim inside this
+ * subtree, so the v2 accessibility work is *carried forward by the
+ * cascade* instead of being re-derived per component. A component written
+ * against `--color-ink-accent` gets saffron on graphite and ember on
+ * paper with no branch; a component written against the concrete v2
+ * tokens (`text-graphite`, `text-ember`, `text-steel`, `text-cinder`) —
+ * i.e. the whole existing contact form — is already correct in here and
+ * needs no edit at all. That is the boundary doing the work.
+ * ------------------------------------------------------------ */
+.paper-card {
+  --color-ink:        var(--color-graphite); /* 16.14:1 on snow */
+  --color-ink-body:   var(--color-steel);    /*  7.07:1 on snow */
+  --color-ink-muted:  var(--color-cinder);   /*  5.33:1 on snow — the v2 AA-safe tertiary */
+  --color-ink-accent: var(--color-ember);    /*  5.42:1 on snow — mesh/saffron fail here */
+  --color-rule:       var(--color-ash);      /*  4.29:1 on snow — decorative ink, per v2 */
+  --color-surface:    var(--color-snow);
+
+  /* Native controls inside the sheet stay light even though :root is dark —
+     without this the contact form's inputs render with a dark UA background
+     under a graphite text colour. */
+  color-scheme: light;
+
+  position: relative;
+  background: var(--color-surface);
+  color: var(--color-ink-body);
+  /* "No rounded corners > 2px. No drop shadow. It is a printed sheet, not a
+     floating card." Declared, not merely documented, so a stray utility has
+     to be a deliberate override rather than an accident. */
+  border-radius: 2px;
+  box-shadow: none;
+  /* Below 480px it must become a full-bleed light band, never a small white
+     chip. `min()` keeps it from overflowing a narrower parent; the media
+     query below turns that into a real full-bleed break. */
+  min-width: min(480px, 100%);
+}
+
+/* `paper` rather than `snow` for the sheet — §2.3 permits either. */
+.paper-card[data-tone='paper'] {
+  --color-surface: var(--color-paper);
+}
+
+/* The one permitted warm accent on a sheet: a single 4px saffron rule along
+   the top edge. Nothing else warm (§2.3). */
+.paper-card[data-rule='saffron'] {
+  border-top: 4px solid var(--color-saffron);
+}
+
+/* 480px sheet + two 20px gutters = 520px. Under that the sheet cancels the
+   container gutter and runs edge to edge, which is the specified behaviour
+   and also the only way to keep a 480px minimum on a 375px phone. */
+@media (max-width: 519.98px) {
+  .paper-card {
+    min-width: 0;
+    margin-inline: calc(-1 * var(--page-gutter));
+    border-radius: 0;
+  }
+}
+
+} /* @layer components */
 
 /* ------------------------------------------------------------
  * Focus styles — two-tone ring (WCAG 1.4.11, 3:1 non-text contrast)
@@ -129,6 +437,14 @@ h1, h2, h3, h4, h5, h6 {
  * box; the saffron outline (offset 2px, width 2px) paints on top of its
  * outer half. Net result is a 2px graphite hairline hugging the element
  * inside a 2px saffron ring — 4px total, no fat halo.
+ *
+ * v3 (dark ground) re-measured, unchanged: on graphite the saffron half
+ * carries it at 7.57:1 and the graphite half vanishes; on a slag panel
+ * saffron carries at 6.49:1; on a saffron CTA the graphite half carries
+ * at 7.57:1; on a paper card the graphite half carries at 16.14:1. Every
+ * surface v3 introduces is still covered by one half or the other, so
+ * this block does not move. Do not add a local ring, do not add
+ * `outline-none`.
  * ------------------------------------------------------------ */
 :focus-visible {
   outline: 2px solid var(--color-saffron);
@@ -136,6 +452,19 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 2px;
   box-shadow: 0 0 0 4px var(--color-graphite);
 }
+
+/* KNOWN GAP, deliberately not papered over: the Google Maps embed on
+   /contact is a tab stop that shows no focus indicator. Measured in
+   Chromium — while the <iframe> is `document.activeElement`, it matches
+   NONE of `:focus`, `:focus-visible` or `:focus-within`, because tabbing
+   into an iframe delegates focus to its nested browsing context and we
+   cannot style across that boundary on a cross-origin frame. All three
+   selectors were tried and all three computed to `outline: 0px none`, so
+   there is no CSS fix; a rule here would be dead code that reads like a
+   solved problem. The mitigation is content-side and already in place:
+   the "Open in Google Maps" link directly beneath the embed offers the
+   same destination, is fully keyboard-reachable, and carries the normal
+   two-tone ring at 7.57:1. Predates v3 — the same embed shipped in v2. */
 
 /* <main> is a programmatic focus target (skip link + the SPA route
    change in RouteResetEffects), not an interactive control. The full
