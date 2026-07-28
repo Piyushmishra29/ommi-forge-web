@@ -1,3 +1,5 @@
+import { statSync } from "node:fs";
+import { join } from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -7,6 +9,27 @@ import {
 } from "@/data/renders";
 import { StlViewer } from "@/components/three/lazy";
 import Eyebrow from "@/components/ui/Eyebrow";
+
+/** `2.9 MB` — binary MiB, matching how file managers/browsers show size. */
+function formatFileSize(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * File sizes aren't in `data/renders.ts` (single source of truth for the
+ * catalog, not asset metadata), so we read them straight off disk. This
+ * page is fully static-exported — `generateStaticParams` pre-renders every
+ * slug at build time — so `fs` only ever runs on the build machine, never
+ * in a browser or at request time. Falls back to `undefined` (link/label
+ * just omits the size) rather than failing the build if a file's missing.
+ */
+function statSizeBytes(publicRelativePath: string): number | undefined {
+  try {
+    return statSync(join(process.cwd(), "public", publicRelativePath)).size;
+  } catch {
+    return undefined;
+  }
+}
 
 export async function generateStaticParams() {
   return generateRenderParams();
@@ -41,12 +64,18 @@ export default async function RenderDetailPage({
   const next =
     index < RENDERS.length - 1 ? RENDERS[index + 1] : RENDERS[0];
 
+  const stlSizeBytes = statSizeBytes(render.stl);
+  const modelSizeBytes = statSizeBytes(render.model);
+  const stlLinkLabel = stlSizeBytes
+    ? `Download STL · ${formatFileSize(stlSizeBytes)}`
+    : "Download STL";
+
   return (
     <div className="min-h-screen bg-paper text-graphite">
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto max-w-[1140px] px-6 pt-12"
+        className="mx-auto max-w-page px-6 pt-12"
       >
         <ol className="flex items-center gap-2 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-steel">
           <li>
@@ -69,12 +98,14 @@ export default async function RenderDetailPage({
             src={render.model}
             title={render.title}
             productName={render.productName}
+            description={render.blurb}
+            modelSizeBytes={modelSizeBytes}
           />
         </div>
       </section>
 
       {/* Description */}
-      <section className="mx-auto max-w-[1140px] px-6 py-16">
+      <section className="mx-auto max-w-page px-6 py-16">
         <div className="grid gap-10 md:grid-cols-[1fr_2fr]">
           <div>
             <Eyebrow>{`RENDER ${slug.toUpperCase()}`}</Eyebrow>
@@ -97,12 +128,17 @@ export default async function RenderDetailPage({
               ))}
             </ul>
             <p className="mt-8">
+              {/* File type + size spelled out in the link text itself —
+                  not just aria-label — so "what am I about to download"
+                  is answered without relying on a title-attribute hover or
+                  screen-reader-only text. Bumped to py-3.5 so the tap
+                  target clears the 44px minimum (was py-2, ~32px). */}
               <a
                 href={render.stl}
                 download
-                className="inline-flex items-center gap-2 bg-graphite px-5 py-2 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-snow transition hover:bg-mesh"
+                className="inline-flex items-center gap-2 bg-graphite px-5 py-3.5 font-eyebrow text-[11px] uppercase tracking-[0.25em] text-snow transition hover:bg-mesh"
               >
-                Download STL
+                {stlLinkLabel}
                 <span aria-hidden="true">↓</span>
               </a>
             </p>
@@ -111,7 +147,7 @@ export default async function RenderDetailPage({
       </section>
 
       {/* Sibling nav */}
-      <section className="mx-auto max-w-[1140px] px-6 pb-24">
+      <section className="mx-auto max-w-page px-6 pb-24">
         <div className="grid grid-cols-1 gap-4 border-t border-black/10 pt-8 sm:grid-cols-2">
           <Link
             href={`/renders/${prev.slug}`}

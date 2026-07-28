@@ -53,9 +53,13 @@ export function RendersGrid({ renders }: { renders: Render[] }) {
             onMouseEnter={() => prefetchModel(render.model)}
             onFocus={() => prefetchModel(render.model)}
           >
+            {/* No `ariaLabel` here on purpose: this tile sits inside a
+                <Link> whose own text content (title + product name below)
+                already gives the link its accessible name. Passing one
+                would make `<StlPreview>` announce a second, near-duplicate
+                `role="img"` label — see the prop's doc comment. */}
             <StlPreview
               src={render.model}
-              ariaLabel={`${render.title} — ${render.productName}`}
               className="transition-transform duration-700 group-hover:scale-[1.02]"
             />
             <div className="flex items-start justify-between gap-4 px-5 py-4">
