@@ -1,33 +1,42 @@
-import { RENDERS } from "@/data/renders";
-import Eyebrow from "@/components/ui/Eyebrow";
-import { RendersGrid } from "./renders-grid";
+import type { Metadata } from 'next';
+import { Scene3DProvider } from '@/components/three3';
+import Eyebrow from '@/components/ui/Eyebrow';
+import RendersShowroom from '@/components/sections/renders/RendersShowroom';
 
-export const metadata = {
-  title: "3D Renders — Forged parts in motion",
+export const metadata: Metadata = {
+  title: '3D Renders — Forged parts in motion',
   description:
-    "Engineered in metal, explored in motion — interactive 3D renders of forged industrial parts.",
+    'Engineered in metal, explored in motion — nine forged parts from the Ommi Forge tooling library, inspectable in 3D and downloadable as STL.',
 };
 
+/**
+ * `/renders` — the hub (§5.6).
+ *
+ * `<Scene3DProvider>` sits here, once, as high in the route as it can go: it
+ * owns the single `<Canvas>` this route is allowed, and that canvas is not
+ * created until a `<SceneSlot>` reports it is approaching the viewport.
+ * Everything above the fold is HTML, type and a 3 KB poster.
+ *
+ * No `<main>` here — `layout.tsx` provides the one this page fills.
+ */
 export default function RendersHubPage() {
   return (
-    <div className="min-h-screen bg-paper text-graphite">
-      <section className="mx-auto max-w-page px-6 pt-32 pb-12 md:pt-44">
-        <Eyebrow>3D Renders</Eyebrow>
-        <h1 className="mt-8 font-display font-light leading-[0.98] text-graphite text-[clamp(48px,8vw,110px)]">
-          Engineered in metal,
-          <br />
-          explored in motion.
-        </h1>
-        <p className="mt-10 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]">
-          Drag, rotate, zoom — each render below is a real STL pulled from our
-          tooling library. Use them to inspect geometry before we get to a
-          drawing.
-        </p>
+    <Scene3DProvider>
+      <section className="section-y-lg relative">
+        <div className="mx-auto max-w-page page-x">
+          <Eyebrow>3D Renders</Eyebrow>
+          <h1 className="type-display-l mt-8 max-w-[14ch]">
+            Engineered in metal, explored in motion.
+          </h1>
+          <p className="type-lede mt-10 max-w-[60ch]">
+            Every part below is a real forging from our tooling library — turn
+            the geometry over and look at it before anyone draws a print. Each
+            one ships with its STL.
+          </p>
+        </div>
       </section>
 
-      <section className="mx-auto max-w-page px-6 pb-32">
-        <RendersGrid renders={RENDERS} />
-      </section>
-    </div>
+      <RendersShowroom />
+    </Scene3DProvider>
   );
 }

@@ -5,24 +5,24 @@ import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { gsap } from '@/lib/gsap';
 import { PRODUCTS } from '@/data/products';
 import Eyebrow from '@/components/ui/Eyebrow';
-import SplitText from '@/components/motion/SplitText';
 
 /**
  * Products hero.
  *
- * Editorial top frame for `/products`:
- *  - Eyebrow with a saffron count chip.
- *  - Display headline split per-char and swept in via GSAP on mount.
- *  - Subhead lifted from the source site copy.
- *  - "Browse all" cue that, on click, fires a `lenis:scrollto` custom
- *    event so the smooth-scroll controller drifts the page to the
- *    featured gallery. Falls back to a same-page `#gallery` anchor when
- *    Lenis is disabled (reduced-motion users) — `<a href>` keeps the
- *    keyboard target legitimate for assistive tech either way.
+ * Editorial top frame for `/products`: eyebrow with a live part count,
+ * display headline, subhead lifted from the source site copy, and a "browse
+ * all" cue that hands the scroll to Lenis when Lenis is running.
  *
- * Reduced-motion: GSAP timeline is skipped so the headline renders at
- * rest. The scroll cue still works (browser handles native scroll on
- * the anchor jump).
+ * **No `SplitText` here.** §4.4 restricts the per-character reveal (GSAP
+ * preset #9) to `h1` on `/` and `/about` — one headline treatment on the
+ * whole site, so the entrance reads as an event rather than a house style.
+ * This page gets the site-wide default instead: preset #4, retuned to the
+ * `press` curve at the component band (480ms, `y: 16`).
+ *
+ * Reduced motion: the timeline is skipped entirely and the section renders
+ * at rest. It is not frozen mid-animation — `gsap.from()` would leave the
+ * headline at `opacity: 0` if the tween never ran, which is precisely the
+ * class of bug the v2 pass found twice.
  */
 export default function ProductsHero() {
   const root = useRef<HTMLElement | null>(null);
@@ -34,38 +34,27 @@ export default function ProductsHero() {
     if (!el) return;
 
     const ctx = gsap.context(() => {
-      const chars = el.querySelectorAll('[data-products-headline] [data-char]');
-      const fades = el.querySelectorAll('[data-fade]');
-
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-      tl.from(chars, {
-        yPercent: 110,
+      gsap.from(el.querySelectorAll('[data-fade]'), {
+        y: 16,
         opacity: 0,
-        duration: 1.1,
-        ease: 'power4.out',
-        stagger: 0.012,
-      }).from(
-        fades,
-        {
-          y: 24,
-          opacity: 0,
-          duration: 0.8,
-          stagger: 0.12,
-        },
-        '-=0.6',
-      );
+        duration: 0.48,
+        // `press` — expo.out. Anything that *arrives* uses this curve.
+        ease: 'expo.out',
+        // 40ms per item, §4.2. Four items, so the cap of 8 never bites here.
+        stagger: 0.04,
+      });
     }, el);
 
     return () => ctx.revert();
   }, [reduced]);
 
   const handleBrowseAll = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Look up the live gallery anchor position at click time — its
-    // offset depends on whatever's above it (sticky header etc.).
+    // Look up the live gallery anchor position at click time — its offset
+    // depends on whatever's above it (sticky header etc.).
     const target = document.getElementById('gallery');
     if (!target) return;
-    // If Lenis is running we let the smooth-scroll bridge handle it.
-    // The presence of `lenis-smooth` on <html> is the contract from
+    // If Lenis is running we let the smooth-scroll bridge handle it. The
+    // presence of `lenis-smooth` on <html> is the contract from
     // LenisProvider; if it's missing (reduced-motion) we let the native
     // anchor jump happen by NOT calling preventDefault.
     if (!document.documentElement.classList.contains('lenis-smooth')) return;
@@ -79,64 +68,56 @@ export default function ProductsHero() {
   };
 
   return (
-    <section
-      ref={root}
-      className="relative bg-paper pt-32 pb-16 md:pt-44 md:pb-24"
-    >
-      <div className="mx-auto max-w-page px-6 md:px-10">
-        <Eyebrow data-fade>
-          {/* Counted, not typed — the gallery below is rendered straight
-              from PRODUCTS, so a hardcoded 13 silently goes stale the
-              first time a part is added. */}
-          <span className="text-ember">
+    <section ref={root} className="section-y-lg relative">
+      <div className="mx-auto max-w-page page-x">
+        {/* The wrapper, not the <Eyebrow>, carries `data-fade`: `Eyebrow`
+            does not spread unknown props, so the v2 `<Eyebrow data-fade>`
+            was silently dropped and that item never animated. TypeScript
+            does not catch it — hyphenated JSX attributes are exempt from
+            prop checking. */}
+        <div data-fade>
+          <Eyebrow>
+            {/* Counted, not typed — the gallery below renders straight from
+                PRODUCTS, so a hardcoded 13 goes stale the first time a part
+                is added. */}
             Catalogue · {PRODUCTS.length} forged parts
-          </span>
-        </Eyebrow>
+          </Eyebrow>
+        </div>
 
-        <h1
-          data-products-headline
-          className="mt-8 font-display font-light leading-[0.98] text-graphite"
-          style={{ fontSize: 'clamp(56px, 9vw, 110px)' }}
-        >
-          <SplitText as="span">{`Forged products to meet your expectations.`}</SplitText>
+        <h1 data-fade className="type-display-l mt-8 max-w-[16ch]">
+          Forged products to meet your expectations.
         </h1>
 
-        <p
-          data-fade
-          className="mt-10 max-w-2xl font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]"
-        >
+        <p data-fade className="type-lede mt-10 max-w-[60ch]">
           Through the talents and can-do initiatives of our employees, the
           science of metallurgy and the latest advances in metal forging
           technology — we provide forged products that perform as promised.
         </p>
 
-        <div
-          data-fade
-          className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-4"
-        >
+        <div data-fade className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-4">
           <a
             href="#gallery"
             data-magnetic
             data-cursor-label="Browse"
             onClick={handleBrowseAll}
-            // min-h-11 = the 44px minimum target. 12px type on its own
-            // gives this scroll cue a ~15px tall hit area.
-            // A hover colour has to clear 4.5:1 too — mesh is 3.05:1 on
-            // paper, so the hover state is ember. The dash below keeps
-            // group-hover:bg-mesh: it is non-text ink at 3:1.
-            className="group inline-flex min-h-11 items-center gap-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-ember"
+            // min-h-11 = the 44px minimum target; 12px type on its own gives
+            // this scroll cue a ~15px tall hit area.
+            className="type-eyebrow group inline-flex min-h-11 items-center gap-3 text-snow transition-colors hover:text-saffron"
           >
             <span
               aria-hidden
-              className="inline-block h-px w-10 bg-saffron transition-all duration-500 group-hover:w-16 group-hover:bg-mesh"
+              className="inline-block h-px w-10 bg-saffron transition-all duration-500 group-hover:w-16"
             />
             Browse all
-            <span aria-hidden className="transition-transform duration-500 group-hover:translate-x-1">
+            <span
+              aria-hidden
+              className="transition-transform duration-500 group-hover:translate-x-1"
+            >
               →
             </span>
           </a>
-          <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.32em] text-steel">
-            Tap any part for the 3D viewer
+          <span className="type-meta uppercase tracking-[0.26em]">
+            Open any part for the 3D viewer
           </span>
         </div>
       </div>

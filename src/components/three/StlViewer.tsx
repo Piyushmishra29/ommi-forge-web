@@ -1,21 +1,20 @@
-"use client";
+'use client';
 
+import { useId, useRef, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
+import { BRAND_HEX } from '@/lib/brand';
+import { cn } from '@/lib/cn';
 import {
-  Suspense,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Canvas, useLoader } from "@react-three/fiber";
-import { ContactShadows, OrbitControls, useProgress } from "@react-three/drei";
-import { useReducedMotion } from "@/lib/use-reduced-motion";
-import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { configureGltfLoader, extractGeometry } from "./glb";
-import { BRAND_HEX } from "@/lib/brand";
-import { CanvasErrorBoundary } from "./CanvasErrorBoundary";
+  ForgedSteelMaterial,
+  MODEL_PRIORITY,
+  useModelGeometry,
+} from '@/components/three3/scene';
+import { useModelProgress } from '@/components/three3/useModelProgress';
+import { CanvasErrorBoundary } from './CanvasErrorBoundary';
+import ForgeStage from './ForgeStage';
+import { STAGE_CAMERA, poseFor } from './stage-rig';
 
 type OrbitControlsHandle = React.ComponentRef<typeof OrbitControls>;
 
@@ -41,137 +40,107 @@ function formatFileSize(bytes: number): string {
 }
 
 /**
- * Auto-frames the loaded STL into a roughly 100-unit viewbox and re-centers it.
- * Caches per src so we don't recompute the bounding sphere on every re-render.
+ * The part, framed and lit.
+ *
+ * Loading goes through `useModelGeometry` rather than v2's `useLoader`, for
+ * the two reasons `three3/useModel` documents: Suspense can only say
+ * "loading", and this viewer needs a real percentage on a multi-megabyte
+ * part; and a suspending component unmounts its siblings' DOM while it
+ * waits, which would tear down the toolbar mid-load. The geometry is
+ * cache-owned and shared with the `/renders` hub stage — hence
+ * `dispose={null}`, without which R3F's unmount cleanup would free a buffer
+ * the hub is still drawing from.
  */
-function StlModel({ src }: { src: string }) {
-  const gltf = useLoader(GLTFLoader, src, configureGltfLoader);
+function PartMesh({ src }: { src: string }) {
+  const { geometry } = useModelGeometry(src, {
+    priority: MODEL_PRIORITY.hero,
+    // The unit rig: bounding-sphere radius 1, so light positions and camera
+    // distances are the same small numbers everywhere in this lane. (v2
+    // normalised to 50 with the camera at 200; the two conventions must
+    // never share a scene.)
+    targetRadius: 1,
+    shading: 'smooth',
+  });
 
-  const geometry = useMemo(() => {
-    const geom = extractGeometry(gltf);
-    geom.computeBoundingBox();
-    geom.computeBoundingSphere();
+  const [rx, ry, rz] = poseFor(src);
 
-    // Center the part around the origin.
-    if (geom.boundingBox) {
-      const center = new THREE.Vector3();
-      geom.boundingBox.getCenter(center);
-      geom.translate(-center.x, -center.y, -center.z);
-    }
-
-    // Re-compute after translation, then normalize scale so the part fits
-    // a viewbox ~100 units across (the camera at z=200 with fov 35 will see it).
-    geom.computeBoundingSphere();
-    if (geom.boundingSphere && geom.boundingSphere.radius > 0) {
-      const targetRadius = 50; // viewbox of ~100 across
-      const scale = targetRadius / geom.boundingSphere.radius;
-      geom.scale(scale, scale, scale);
-    }
-
-    geom.computeVertexNormals();
-    return geom;
-  }, [gltf]);
-
-  // Dispose the cloned geometry on unmount / src change so we don't
-  // leak GPU buffers across navigations.
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  if (!geometry) return <AnvilWireframe />;
 
   return (
-    <mesh geometry={geometry} castShadow receiveShadow>
-      <meshStandardMaterial
-        color={BRAND_HEX.mesh}
-        metalness={0.7}
-        roughness={0.35}
-        envMapIntensity={1}
-      />
+    <mesh geometry={geometry.geometry} dispose={null} rotation={[rx, ry, rz]}>
+      {/* §3.2 state B, MACHINED — this is the one place on the site where
+          the visitor's job is to *inspect*, so they get the bright, legible
+          state rather than as-forged mill scale. The shared preset, not a
+          local spread: per-lane material copies are how roughness drifted to
+          0.24 in one place and 0.42 in another. */}
+      <ForgedSteelMaterial state="machined" />
     </mesh>
   );
 }
 
 /**
- * Placeholder shown while the STL streams in: two crossed thin torus rings
- * holding the brand mesh color. Cheap, on-brand, no external assets.
+ * Placeholder while the GLB streams in: two crossed thin torus rings in
+ * saffron. Grandfathered by §6.7 as a deliberate anvil abstraction inside a
+ * loading state — it is not a hero object, and nothing else on this site is
+ * allowed to be a rotating primitive.
+ *
+ * Must be built from three.js primitives, not DOM: this renders as a child
+ * of `<Canvas>`, whose reconciler only understands scene-graph nodes.
  */
 function AnvilWireframe() {
   return (
     <group>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[40, 1.2, 16, 80]} />
-        <meshBasicMaterial color={BRAND_HEX.mesh} wireframe />
+        <torusGeometry args={[0.8, 0.02, 12, 64]} />
+        <meshBasicMaterial color={BRAND_HEX.saffron} wireframe />
       </mesh>
       <mesh rotation={[0, Math.PI / 2, 0]}>
-        <torusGeometry args={[40, 1.2, 16, 80]} />
-        <meshBasicMaterial color={BRAND_HEX.mesh} wireframe />
+        <torusGeometry args={[0.8, 0.02, 12, 64]} />
+        <meshBasicMaterial color={BRAND_HEX.saffron} wireframe />
       </mesh>
     </group>
   );
 }
 
 /**
- * Static fallback swapped in for the entire `<Canvas>` by
- * `CanvasErrorBoundary` when WebGL context creation itself fails (GPU
- * disabled, too many live contexts, ancient/locked-down browser). Reuses
- * the wireframe motif so it reads as "part unavailable to preview", not
- * "site broken" — plain DOM/SVG, safe here because it renders *outside*
- * the R3F reconciler, unlike `AnvilWireframe` above.
+ * Swapped in for the whole `<Canvas>` by `CanvasErrorBoundary` when WebGL
+ * context creation throws — GPU disabled, context limit hit, locked-down
+ * browser.
+ *
+ * §4.5: this is a designed state, not a fallback. The visitor loses the live
+ * render and nothing else — they still get the part, rendered from the same
+ * rig offline, and the download link beside it never needed WebGL anyway.
  */
 function WebglUnavailable() {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-      <svg
-        width="72"
-        height="72"
-        viewBox="0 0 100 100"
-        className="text-mesh opacity-70"
-        aria-hidden="true"
-      >
-        <ellipse
-          cx="50"
-          cy="50"
-          rx="34"
-          ry="12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-        />
-        <ellipse
-          cx="50"
-          cy="50"
-          rx="12"
-          ry="34"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-        />
-      </svg>
-      <p className="max-w-[26ch] font-eyebrow text-[11px] uppercase leading-relaxed tracking-[0.15em] text-steel">
-        3D preview isn&apos;t available in this browser — use the download
-        button to get the model file instead.
-      </p>
-    </div>
+    <p className="type-meta absolute inset-x-0 bottom-0 z-10 bg-graphite/80 px-6 py-3 text-center backdrop-blur">
+      Live 3D isn&apos;t available in this browser. What you can see is a
+      static render of the same part — the download is the real geometry.
+    </p>
   );
 }
 
 /**
- * Real load progress for the meshopt GLB. `useProgress` reads three's
- * DefaultLoadingManager (which `useLoader` feeds), so this DOM overlay tracks
- * the actual byte/decoder progress rather than the old frozen wireframe-only
- * wait. Rendered as a sibling of the Canvas — the `AnvilWireframe` Suspense
- * fallback stays behind it while the geometry streams in.
+ * Byte-accurate load readout (§6.16 rejects a spinner: we have real progress
+ * and a percentage is more honest).
+ *
+ * Reads the v3 model queue rather than drei's `useProgress`, which watches
+ * three's `DefaultLoadingManager` — a manager `useModelGeometry` deliberately
+ * does not go through. It lives outside the `<Canvas>` so it costs no
+ * three.js and can be plain DOM.
  */
-function LoadProgress() {
-  const { active, progress } = useProgress();
+function LoadProgress({ active, progress }: { active: boolean; progress: number }) {
   if (!active) return null;
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-10 sm:items-center sm:pb-0">
-      <span className="inline-flex items-center gap-2 bg-snow/70 px-4 py-2 font-eyebrow text-[10px] uppercase tracking-[0.3em] text-graphite backdrop-blur">
-        Loading
-        {/* The chip is bg-snow/70 over the near-white render stage, so it
-            composites to ≈#F4F4F4–#FFFFFF. saffron measures 1.9–2.1:1
-            there — this is the one accent on the site sitting on an
-            almost-white surface, and the percentage is real information,
-            not decoration. ember is 4.9–5.4:1 across that range. */}
-        <span className="text-ember">{Math.round(progress)}%</span>
+    <div
+      role="status"
+      className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-6"
+    >
+      {/* The one blur on the site (§6.2): a legibility scrim over a canvas,
+          which is what blur is actually for. saffron on graphite/70 over the
+          dark stage stays above 7:1. */}
+      <span className="type-eyebrow inline-flex items-center gap-2 bg-graphite/70 px-4 py-2 backdrop-blur">
+        Loading {Math.round(progress * 100)}%
       </span>
     </div>
   );
@@ -252,6 +221,24 @@ const DownloadIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+/**
+ * The inspection viewer (§5.7).
+ *
+ * Structurally unchanged from v2 — the tap-to-activate gate, the toolbar,
+ * the download, the `aria-describedby` blurb and the `canvasFailed` handling
+ * were all correct and are load-bearing. What changed is the register: the
+ * stage is graphite rather than near-white, the material is the house
+ * MACHINED steel under the shared forge rig instead of a hand-rolled
+ * three-point setup, and the geometry comes from the shared cache.
+ *
+ * This is the **only** route where `OrbitControls` and auto-rotate exist
+ * (§4.3): here the visitor's job is to look at the part from every side, so
+ * a turntable is an inspection tool. Everywhere else, motion is scroll-driven.
+ *
+ * It keeps its own `<Canvas>` rather than joining the shared one — one
+ * context per route either way, and orbit controls need a camera of their
+ * own, which a scissored `<View>` does not have.
+ */
 export function StlViewer({
   src,
   title,
@@ -271,6 +258,12 @@ export function StlViewer({
   // rotate/reset/fullscreen/tap-to-activate controls — only Download stays,
   // since it works regardless of whether the canvas ever rendered.
   const [canvasFailed, setCanvasFailed] = useState(false);
+
+  // Byte-accurate progress for this one model. Read here rather than only in
+  // the readout because it also decides when the stage stops being
+  // see-through — see the wrapper's background below.
+  const { active: loading, progress } = useModelProgress([src]);
+  const ready = progress >= 1;
 
   // The effective auto-rotate value is derived from the prop + the user's
   // reduced-motion preference; we never mirror this into state, which keeps
@@ -292,14 +285,12 @@ export function StlViewer({
   // drives drag/zoom, and `data-lenis-prevent` keeps Lenis from fighting it.
   const [active, setActive] = useState(false);
 
-  const downloadName = src.split("/").pop() ?? "render.glb";
+  const downloadName = src.split('/').pop() ?? 'render.glb';
 
   const handleToggleRotate = () => setManualRotate(!rotating);
 
   const handleReset = () => {
-    if (controlsRef.current) {
-      controlsRef.current.reset();
-    }
+    controlsRef.current?.reset();
   };
 
   const handleFullscreen = () => {
@@ -312,16 +303,15 @@ export function StlViewer({
     }
   };
 
-  const stageBackground = `radial-gradient(circle at center, ${BRAND_HEX.snow} 0%, ${BRAND_HEX.renderBg} 70%)`;
-
   // Accessible name + (optional) description for the whole widget. A
   // `<canvas>` is opaque to assistive tech and the toolbar buttons only
   // label themselves individually, so the group as a whole needs its own
   // name — this is what a screen reader announces on entering the region.
-  const viewerLabel = [title, productName].filter(Boolean).join(" — ") || "3D model viewer";
+  const viewerLabel =
+    [title, productName].filter(Boolean).join(' — ') || '3D model viewer';
   const downloadLabel = modelSizeBytes
     ? `Download 3D model (.glb, ${formatFileSize(modelSizeBytes)})`
-    : "Download 3D model (.glb)";
+    : 'Download 3D model (.glb)';
 
   return (
     <div
@@ -331,12 +321,23 @@ export function StlViewer({
       aria-describedby={description ? descId : undefined}
       // `data-lenis-prevent` only while active so Lenis stops intercepting
       // wheel/touch and lets OrbitControls own the gesture during inspection.
-      {...(active ? { "data-lenis-prevent": "" } : {})}
-      className={[
-        "relative isolate h-full w-full overflow-hidden",
-        className ?? "",
-      ].join(" ")}
-      style={{ background: stageBackground }}
+      {...(active ? { 'data-lenis-prevent': '' } : {})}
+      // §3.6: the stage is graphite — the page colour — with no border, no
+      // radius and no shadow, so there is no visible rectangle. Depth comes
+      // from the vignette overlay below.
+      //
+      // The background is TRANSPARENT until the model has landed, and that is
+      // load-bearing rather than cosmetic. The caller renders this part's
+      // poster behind this box; the canvas clears to transparent, so what the
+      // visitor sees while the GLB streams is the still — the same part, same
+      // pose, same rig (§5.9). When the real geometry arrives it draws in
+      // exactly that position and the ground fades up to graphite underneath
+      // it, so the swap from image to canvas has nothing to see.
+      className={cn(
+        'relative isolate h-full w-full overflow-hidden transition-colors duration-500',
+        ready && !canvasFailed ? 'bg-graphite' : 'bg-transparent',
+        className,
+      )}
     >
       {description && (
         <p id={descId} className="sr-only">
@@ -349,53 +350,27 @@ export function StlViewer({
         onError={() => setCanvasFailed(true)}
       >
         <Canvas
-          dpr={[1, 1.5]}
-          camera={{ position: [0, 0, 200], fov: 35 }}
-          shadows
+          dpr={[1, 1.75]}
+          // The unit rig from `stage-rig`, identical to the hub stage's
+          // per-slot camera and to the offline poster renderer, so a part is
+          // the same size whichever surface it appears on.
+          camera={{
+            position: [...STAGE_CAMERA.position],
+            fov: STAGE_CAMERA.fov,
+            near: STAGE_CAMERA.near,
+            far: STAGE_CAMERA.far,
+          }}
+          // `alpha: true` so the poster behind this box shows through until
+          // the part is drawn over it.
+          gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
           // Inactive: canvas ignores pointers so vertical swipes scroll the
           // page. Active: it captures gestures and `touch-action: none` keeps
           // the browser from hijacking the drag for native scroll.
-          className={active ? "pointer-events-auto" : "pointer-events-none"}
-          style={{ touchAction: active ? "none" : "pan-y" }}
+          className={active ? 'pointer-events-auto' : 'pointer-events-none'}
+          style={{ touchAction: active ? 'none' : 'pan-y' }}
         >
-          <color attach="background" args={[BRAND_HEX.renderBg]} />
-          {/*
-            Hand-rolled three-point lighting (was: HDRI Environment). The
-            previous `<Environment files="/assets/hdr/empty_warehouse_01_1k.hdr">`
-            added ~1.6 MB to every /renders/[slug] mount just for image-
-            based lighting on the metalness shader. Three explicit lights
-            give the model a clean, slightly more dramatic read — a strong
-            key from upper-right, a peach warm fill from front-left, and a
-            cool rim from behind — without the HDR payload.
-          */}
-          <ambientLight intensity={0.85} />
-          <directionalLight
-            position={[10, 20, 10]}
-            intensity={1.6}
-            castShadow
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
-          />
-          <directionalLight
-            position={[-15, 8, 8]}
-            intensity={0.55}
-            color={BRAND_HEX.peach}
-          />
-          <directionalLight
-            position={[0, 6, -18]}
-            intensity={0.35}
-            color="#A8C0D6"
-          />
-          <Suspense fallback={<AnvilWireframe />}>
-            <StlModel src={src} />
-          </Suspense>
-          <ContactShadows
-            position={[0, -50, 0]}
-            opacity={0.6}
-            scale={150}
-            blur={2.5}
-            far={50}
-          />
+          <ForgeStage />
+          <PartMesh src={src} />
           <OrbitControls
             ref={controlsRef}
             enabled={active}
@@ -403,14 +378,27 @@ export function StlViewer({
             enableZoom
             autoRotate={rotating}
             autoRotateSpeed={1.2}
-            minDistance={80}
-            maxDistance={350}
+            // Unit-rig distances. The part has a bounding-sphere radius of 1,
+            // so 2.2 is as close as you can dolly before clipping into it and
+            // 9 is far enough to see it whole with room around it.
+            minDistance={2.2}
+            maxDistance={9}
           />
         </Canvas>
       </CanvasErrorBoundary>
 
-      {/* Real streaming progress over the wireframe fallback. */}
-      {!canvasFailed && <LoadProgress />}
+      {/* §3.6 — depth from a CSS vignette over the canvas, never from a
+          different clear colour. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 45%, transparent 45%, var(--color-graphite) 100%)',
+        }}
+      />
+
+      {!canvasFailed && <LoadProgress active={loading} progress={progress} />}
 
       {/* Tap-to-activate gate. While inactive this transparent button sits
           over the (pointer-events-none) canvas; a tap flips `active` so the
@@ -421,11 +409,13 @@ export function StlViewer({
         <button
           type="button"
           onClick={() => setActive(true)}
-          aria-label={`Tap to interact with the 3D model of ${title ?? productName ?? "this part"}`}
-          style={{ touchAction: "pan-y" }}
-          className="absolute inset-0 z-10 flex items-end justify-center pb-6 sm:items-center sm:pb-0"
+          aria-label={`Tap to interact with the 3D model of ${title ?? productName ?? 'this part'}`}
+          style={{ touchAction: 'pan-y' }}
+          // Bottom-aligned at every size: centred, the chip lands squarely on
+          // the part it is inviting you to inspect.
+          className="absolute inset-0 z-10 flex items-end justify-center pb-6"
         >
-          <span className="pointer-events-none inline-flex items-center gap-2 bg-graphite/80 px-4 py-2 font-eyebrow text-[10px] uppercase tracking-[0.25em] text-snow backdrop-blur">
+          <span className="type-eyebrow pointer-events-none inline-flex items-center gap-2 bg-graphite/70 px-4 py-2 backdrop-blur">
             <RotateIcon className="h-4 w-4" />
             Tap to interact
           </span>
@@ -437,7 +427,7 @@ export function StlViewer({
         <button
           type="button"
           onClick={() => setActive(false)}
-          className="pointer-events-auto absolute bottom-4 left-1/2 z-10 -translate-x-1/2 bg-graphite/80 px-4 py-2 font-eyebrow text-[10px] uppercase tracking-[0.22em] text-snow backdrop-blur transition hover:bg-graphite"
+          className="type-eyebrow pointer-events-auto absolute bottom-4 left-1/2 z-10 -translate-x-1/2 bg-graphite/70 px-4 py-2 backdrop-blur transition hover:bg-graphite"
         >
           Drag to rotate · tap here to scroll
         </button>
@@ -450,7 +440,7 @@ export function StlViewer({
         {!canvasFailed && (
           <>
             <ToolbarButton
-              label={rotating ? "Pause rotation" : "Auto-rotate"}
+              label={rotating ? 'Pause rotation' : 'Auto-rotate'}
               onClick={handleToggleRotate}
             >
               <RotateIcon />
@@ -469,11 +459,11 @@ export function StlViewer({
           // `before:` extends the hit area to ~44×44 (the visual 36×36
           // circle stays compact) without changing how the toolbar looks —
           // see quick-reference.md §2 `touch-target-size`.
-          className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-snow/70 text-graphite shadow-sm backdrop-blur transition before:absolute before:-inset-1 before:content-[''] hover:bg-snow"
+          className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-graphite/70 text-snow backdrop-blur transition before:absolute before:-inset-1 before:content-[''] hover:bg-graphite hover:text-saffron"
           aria-label={downloadLabel}
         >
           <DownloadIcon />
-          <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded bg-graphite px-2 py-1 font-eyebrow text-[10px] uppercase tracking-wider text-snow opacity-0 transition group-hover:opacity-100">
+          <span className="type-meta pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap bg-graphite px-2 py-1 uppercase tracking-wider text-snow opacity-0 transition group-hover:opacity-100">
             {downloadLabel}
           </span>
         </a>
@@ -481,19 +471,10 @@ export function StlViewer({
 
       {/* Text overlay */}
       {(title || productName) && (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-xs bg-snow/55 px-4 py-3 backdrop-blur-md">
-          <div className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.2em] text-steel">
-            Render
-          </div>
-          {title && (
-            <div className="mt-1 font-display text-lg uppercase tracking-wide text-graphite">
-              {title}
-            </div>
-          )}
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-xs bg-graphite/70 px-4 py-3 backdrop-blur">
+          <p className="type-eyebrow">{title ?? 'Render'}</p>
           {productName && (
-            <div className="font-display text-sm text-steel">
-              {productName}
-            </div>
+            <p className="type-display-s mt-2">{productName}</p>
           )}
         </div>
       )}
@@ -517,10 +498,10 @@ function ToolbarButton({
       aria-label={label}
       // See the download link's comment above — same 44×44 hit-area
       // extension via an invisible `::before`, visual size unchanged.
-      className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-snow/70 text-graphite shadow-sm backdrop-blur transition before:absolute before:-inset-1 before:content-[''] hover:bg-snow"
+      className="pointer-events-auto group relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-graphite/70 text-snow backdrop-blur transition before:absolute before:-inset-1 before:content-[''] hover:bg-graphite hover:text-saffron"
     >
       {children}
-      <span className="pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded bg-graphite px-2 py-1 font-eyebrow text-[10px] uppercase tracking-wider text-snow opacity-0 transition group-hover:opacity-100">
+      <span className="type-meta pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap bg-graphite px-2 py-1 uppercase tracking-wider text-snow opacity-0 transition group-hover:opacity-100">
         {label}
       </span>
     </button>

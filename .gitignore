@@ -51,3 +51,7 @@ next-env.d.ts
 # Local master assets — kept on disk, never shipped or committed
 /_masters/
 .gstack/
+
+# Poster masters — lossless PNGs from scripts/build-posters.py. The shipped
+# AVIF/WebP pair under public/assets/posters/ IS committed; these are not.
+/scripts/posters/out/

@@ -1,11 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AnimatePresence,
-  motion,
-  type Variants,
-} from 'framer-motion';
+import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import {
   APPLICATION_LABEL,
   PRODUCTS,
@@ -14,17 +10,19 @@ import {
   type ProductApplication,
   type ProductItem,
 } from '@/data/products';
-// Single source of truth for lazy-loaded three components — keeps
-// three.js in one shared async chunk instead of duplicating it per route.
-import { StlPreview, StlViewer } from '@/components/three/lazy';
+// The overlay is the page's ONE 3D moment: one viewer, one context, on
+// demand. Lazy so three.js never lands in this route's first-paint chunk.
+import { StlViewer } from '@/components/three/lazy';
+import PartPoster from '@/components/three/PartPoster';
 import { withExt } from '@/lib/image-formats';
+import { cn } from '@/lib/cn';
 import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
  * Explicit pixel dimensions per aspect — keep these in lockstep with
- * `aspectClass` so `<img width/height>` always declares a box matching
- * the rendered aspect ratio. Concrete numbers prevent CLS while the
- * lazy-loaded JPGs decode.
+ * `aspectClass` so `<img width/height>` always declares a box matching the
+ * rendered aspect ratio. Concrete numbers prevent CLS while the lazy-loaded
+ * JPGs decode. (Poster tiles get theirs from `PartPoster`.)
  */
 const aspectSize: Record<ProductItem['aspect'], { w: number; h: number }> = {
   tall: { w: 600, h: 800 },
@@ -45,11 +43,9 @@ const overlayVariants: Variants = {
 };
 
 /**
- * Close glyph — Lucide `x` geometry, inlined rather than pulled from an
- * icon package because this is the only icon on the route. Sized to the
- * 12px eyebrow type it sits beside, drawn in `currentColor` so it
- * inherits the button's hover transition. Decorative: the button's own
- * text label ("Close") is the accessible name.
+ * Close glyph — Lucide `x` geometry, inlined rather than pulled from an icon
+ * package because this is the only icon on the route. Decorative: the
+ * button's own text label ("Close") is the accessible name.
  */
 function CloseIcon() {
   return (
@@ -74,39 +70,23 @@ function CloseIcon() {
 interface SectionHeaderProps {
   /**
    * Id for the `<h2>`. Required — each band's `<section>` points its
-   * `aria-labelledby` at this, so a missing id silently leaves the
-   * landmark unnamed.
+   * `aria-labelledby` at this, so a missing id silently leaves the landmark
+   * unnamed.
    */
   id: string;
   eyebrow: string;
   title: string;
   intro?: string;
-  align?: 'left' | 'center';
 }
 
-function SectionHeader({ id, eyebrow, title, intro, align = 'left' }: SectionHeaderProps) {
+function SectionHeader({ id, eyebrow, title, intro }: SectionHeaderProps) {
   return (
-    <header
-      className={
-        align === 'center'
-          ? 'mx-auto max-w-3xl text-center'
-          : 'max-w-3xl'
-      }
-    >
-      <Eyebrow>
-        <span className="text-ember">{eyebrow}</span>
-      </Eyebrow>
-      <h2
-        id={id}
-        className="mt-6 font-display text-3xl font-light leading-[1.05] text-graphite md:text-5xl"
-      >
+    <header className="max-w-[46ch]">
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h2 id={id} className="type-display-l mt-6">
         {title}
       </h2>
-      {intro ? (
-        <p className="mt-5 font-body text-base leading-relaxed text-steel md:text-lg md:leading-[1.7]">
-          {intro}
-        </p>
-      ) : null}
+      {intro ? <p className="type-lede mt-5">{intro}</p> : null}
     </header>
   );
 }
@@ -118,10 +98,19 @@ function SectionHeader({ id, eyebrow, title, intro, align = 'left' }: SectionHea
 interface TileProps {
   item: ProductItem;
   onOpen: (slug: string) => void;
-  /** Featured tiles use a heavier label + 33vh desktop height. */
+  /** Featured tiles use a heavier label + a taller desktop box. */
   featured?: boolean;
 }
 
+/**
+ * A catalogue tile.
+ *
+ * **No canvas.** §5.3 is explicit that a grid of `<Canvas>` tiles is N WebGL
+ * contexts and is the exact regression this project already shipped once, so
+ * every `kind: 'stl'` item renders its offline poster instead — the same
+ * still, from the same rig, at 3–8 KB. The live 3D on this page is the one
+ * viewer that mounts when a tile is opened.
+ */
 function ProductTile({ item, onOpen, featured = false }: TileProps) {
   return (
     <motion.button
@@ -131,124 +120,102 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
       onClick={() => onOpen(item.slug)}
       // Explicit name. Without it the button's accessible name is the
       // concatenation of everything inside it — code, name, the "View →"
-      // arrow and (on mobile) the duplicate caption strip, which
-      // announces the part name twice and never says what the button
-      // does.
+      // arrow and (on mobile) the duplicate caption strip, which announces
+      // the part name twice and never says what the button does.
       aria-label={`${item.name}, part ${item.code} — open detail`}
       // No local focus ring. This used to override the global one with
-      // `focus:outline-none` + a saffron-only `ring-2`, which is the
-      // weakest possible indicator here: tiles sit on render-bg and on
-      // photography, where saffron alone measures ~2.2:1. The global
-      // two-tone graphite+saffron ring in globals.css carries the 3:1
-      // floor on every surface in the palette — let it through.
-      className="group relative block w-full overflow-hidden bg-render-bg text-left"
+      // `focus:outline-none` + a saffron-only `ring-2`, which is the weakest
+      // possible indicator here: tiles sit on the dark render stage and on
+      // photography, where saffron alone measures ~2.2:1. The global two-tone
+      // graphite+saffron ring in globals.css carries the 3:1 floor on every
+      // surface in the palette — let it through.
+      className="group relative block w-full overflow-hidden bg-graphite text-left"
     >
       <div
-        className={
-          featured
-            ? 'aspect-[4/5] md:aspect-auto md:h-[33vh]'
-            : aspectClass[item.aspect]
-        }
-      >
-        {item.kind === 'stl' ? (
-          <StlPreview
-            src={item.model}
-            ariaLabel={`${item.name} 3D preview`}
-            className="h-full w-full"
-          />
-        ) : (
-          <picture>
-            <source srcSet={withExt(item.src, 'avif')} type="image/avif" />
-            <source srcSet={withExt(item.src, 'webp')} type="image/webp" />
-            {/* The blurb, not the name: both image-kind items are plant
-                photographs ("Power Hammer Bay", "Heat Treatment") whose
-                names describe the subject, not the picture. The blurb
-                describes what is actually in frame. */}
-            <img
-              src={item.src}
-              alt={item.blurb}
-              width={aspectSize[item.aspect].w}
-              height={aspectSize[item.aspect].h}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          </picture>
+        className={cn(
+          'overflow-hidden',
+          featured ? 'aspect-[4/5] md:aspect-auto md:h-[36vh]' : aspectClass[item.aspect],
         )}
+      >
+        {/* §5.3's one permitted hover on this page: scale to 1.02 on the
+            `mass` curve at the micro band. No tilt, no parallax, no
+            magnetic 3D card (§6.15). */}
+        <div className="h-full w-full transition-transform duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] group-hover:scale-[1.02]">
+          {item.kind === 'stl' ? (
+            // `contain`, not `cover`: these boxes are 3:4, 4:3 and 1:1, and
+            // cropping a square master into the first two eats the framing
+            // margin the render leaves. On a graphite tile over a graphite
+            // render there is no visible letterbox either way — the only
+            // difference is whether the part gets clipped.
+            //
+            // alt is empty: the caption below and the button's own
+            // aria-label already name the part.
+            <PartPoster model={item.model} fit="contain" />
+          ) : (
+            <picture>
+              <source srcSet={withExt(item.src, 'avif')} type="image/avif" />
+              <source srcSet={withExt(item.src, 'webp')} type="image/webp" />
+              {/* The blurb, not the name: both image-kind items are plant
+                  photographs ("Power Hammer Bay", "Heat Treatment") whose
+                  names describe the subject, not the picture. The blurb
+                  describes what is actually in frame. */}
+              <img
+                src={item.src}
+                alt={item.blurb}
+                width={aspectSize[item.aspect].w}
+                height={aspectSize[item.aspect].h}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
+            </picture>
+          )}
+        </div>
       </div>
 
-      {/* Hover label — richer treatment for featured tiles. */}
       {featured ? (
         <>
-          {/* Top-left meta strip — always visible on featured so the
-              section reads with rhythm even at rest. */}
+          {/* Top strip — always visible on featured, so the band reads with
+              rhythm even at rest. */}
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-5 md:p-6">
-            <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-paper [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
-              Featured
-            </p>
+            <p className="type-eyebrow">Featured</p>
             <span
               aria-hidden
               className="h-px w-10 translate-y-2 bg-saffron transition-all duration-500 group-hover:w-16"
             />
           </div>
-          {/* Bottom slab with full label, slides up on hover. */}
-          <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite/90 via-graphite/55 to-transparent p-6 opacity-95 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 md:p-8">
-              <div>
-                <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-saffron">
-                  {item.code}
-                </p>
-                {/* <p>, not <h3>: every label in this tile lives inside
-                    the <button>, whose content model is phrasing only.
-                    A heading nested in a button is invalid and isn't
-                    exposed as a heading by screen readers anyway — the
-                    band's <h2> is the real landmark. */}
-                <p className="mt-2 font-display text-2xl font-light leading-tight text-paper md:text-3xl">
-                  {item.name}
-                </p>
-              </div>
-              <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-paper">
-                View →
-              </span>
+          {/* Bottom slab with the full label, slides up on hover. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite via-graphite/70 to-transparent p-6 transition-transform duration-500 group-hover:translate-y-0 md:p-8">
+            <div>
+              <p className="type-eyebrow">{item.code}</p>
+              {/* <p>, not <h3>: every label in this tile lives inside the
+                  <button>, whose content model is phrasing only. A heading
+                  nested in a button is invalid and isn't exposed as a
+                  heading by screen readers anyway — the band's <h2> is the
+                  real landmark. */}
+              <p className="type-display-m mt-2">{item.name}</p>
             </div>
+            <span className="type-eyebrow text-snow">View →</span>
+          </div>
         </>
       ) : (
-        // Revealed on focus as well as hover, so a keyboard user
-        // tabbing the grid sees the same label a mouse user does.
-        <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent p-5 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+        // Revealed on focus as well as hover, so a keyboard user tabbing the
+        // grid sees the same label a mouse user does.
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between gap-4 bg-gradient-to-t from-graphite via-graphite/70 to-transparent p-5 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
           <div>
-            {/* saffron, matching the featured tile's part code above.
-                These captions float on a graphite gradient over
-                photography/renders, so the backing is variable — at the
-                scrim's own bottom stop mesh measures ≈3.4:1 while
-                saffron reaches ≈5.1:1, and saffron beats mesh on every
-                dark surface in the palette. Same label, same treatment,
-                so it now uses the same accent. */}
-            <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-saffron">
-              {item.code}
-            </p>
-            <p className="mt-1 font-display text-xl font-light text-paper md:text-2xl">
-              {item.name}
-            </p>
+            <p className="type-eyebrow">{item.code}</p>
+            <p className="type-display-s mt-1">{item.name}</p>
           </div>
-          <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-paper">
-            View →
-          </span>
+          <span className="type-eyebrow text-snow">View →</span>
         </div>
       )}
 
-      {/* Always-on caption strip — touch / no-hover. Skipped for
-          featured because their bottom slab is already visible. */}
+      {/* Always-on caption strip — touch / no-hover. Skipped for featured,
+          whose bottom slab is already visible. */}
       {!featured ? (
-        <div className="bg-paper p-4 md:hidden">
-          {/* Same part code as the desktop hover slab above, but this strip
-              is opaque paper, not a graphite scrim — so it takes ember
-              (5.19:1) where the slab keeps mesh. */}
-          <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-ember">
-            {item.code}
-          </p>
-          <p className="mt-1 font-display text-lg font-light text-graphite">
-            {item.name}
-          </p>
+        <div className="bg-slag p-4 md:hidden">
+          <p className="type-eyebrow">{item.code}</p>
+          <p className="type-display-s mt-1">{item.name}</p>
         </div>
       ) : null}
     </motion.button>
@@ -256,30 +223,26 @@ function ProductTile({ item, onOpen, featured = false }: TileProps) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Gallery (owns modal state + renders three sections)                       */
+/*  Gallery (owns modal state + renders three bands)                          */
 /* -------------------------------------------------------------------------- */
 
 /**
  * ProductsGallery
  *
- * Three editorial bands stacked vertically:
- *  1. Featured (3-up, 33vh desktop tiles).
- *  2. Catalogue (CSS-columns masonry of the rest, gap-4 for a tighter
- *     read than the previous gap-6).
- *  3. By application (Auto / Industrial / Agricultural) — a small
- *     compact list of chips so visitors can navigate the catalogue by
- *     industry, not just by part name.
+ * Three editorial bands: featured 3-up, the catalogue masonry, and a
+ * by-application index. The modal overlay is shared across all three —
+ * `layoutId` lives on each card regardless of which band it sits in, so the
+ * open interaction works uniformly.
  *
- * The modal overlay is shared across all three sections — `layoutId`
- * lives on each card, regardless of which band it sits in, so the
- * tap-to-zoom interaction works uniformly.
+ * The overlay is the page's only WebGL context, mounted on demand and
+ * unmounted on close.
  */
 export default function ProductsGallery() {
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const active = PRODUCTS.find((p) => p.slug === activeSlug) ?? null;
 
-  // Pre-bucket items once per render. Memoising means the by-application
-  // groups don't re-allocate on every modal open/close.
+  // Pre-bucket items once. Memoising means the by-application groups don't
+  // re-allocate on every modal open/close.
   const { featured, catalogue, byApplication } = useMemo(() => {
     const featured = PRODUCTS.filter((p) => productCategory(p) === 'featured');
     const catalogue = PRODUCTS.filter((p) => productCategory(p) !== 'featured');
@@ -292,7 +255,7 @@ export default function ProductsGallery() {
     return { featured, catalogue, byApplication };
   }, []);
 
-  // Close on Escape + lock body scroll + focus-trap inside the modal.
+  // Close on Escape + lock scroll + focus-trap inside the modal.
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -303,9 +266,9 @@ export default function ProductsGallery() {
     document.body.style.overflow = 'hidden';
 
     // `overflow: hidden` on <body> does NOT stop Lenis — it drives the
-    // scroll position itself, so the page keeps gliding behind the
-    // overlay. Same contract the mobile nav uses: pause the instance,
-    // which also applies `.lenis-stopped { overflow: clip }` to <html>.
+    // scroll position itself, so the page keeps gliding behind the overlay.
+    // Same contract the mobile nav uses: pause the instance, which also
+    // applies `.lenis-stopped { overflow: clip }` to <html>.
     const setLenisPaused = (paused: boolean) => {
       document.dispatchEvent(
         new CustomEvent('lenis:setpaused', { detail: { paused } }),
@@ -313,11 +276,12 @@ export default function ProductsGallery() {
     };
     setLenisPaused(true);
 
-    // Save the element that opened the modal so we can return focus to it on close.
+    // Save the element that opened the modal so focus can return to it.
     lastFocusedRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    // Move focus into the dialog on the next frame (layoutId animation needs the node).
+    // Move focus into the dialog on the next frame (the layout animation
+    // needs the node to exist first).
     const focusFrame = requestAnimationFrame(() => {
       const node = dialogRef.current;
       if (!node) return;
@@ -364,12 +328,8 @@ export default function ProductsGallery() {
   return (
     <>
       {/* ----- Featured band ------------------------------------------------ */}
-      <section
-        id="gallery"
-        aria-labelledby="featured-heading"
-        className="bg-paper pt-4 pb-20 md:pt-8 md:pb-28"
-      >
-        <div className="mx-auto max-w-page px-6 md:px-10">
+      <section id="gallery" aria-labelledby="featured-heading" className="section-y-sm">
+        <div className="mx-auto max-w-page page-x">
           <SectionHeader
             id="featured-heading"
             eyebrow="Featured · Three hero parts"
@@ -378,28 +338,23 @@ export default function ProductsGallery() {
           />
         </div>
 
-        <div className="mt-12 md:mt-16">
-          <div className="grid grid-cols-1 gap-1 md:grid-cols-3 md:gap-1">
-            {featured.map((p) => (
-              <div key={p.slug} id={`product-${p.slug}`}>
-                <ProductTile item={p} onOpen={setActiveSlug} featured />
-              </div>
-            ))}
-          </div>
+        <div className="mt-12 grid grid-cols-1 gap-px bg-cinder/40 md:mt-16 md:grid-cols-3">
+          {featured.map((p) => (
+            <div key={p.slug} id={`product-${p.slug}`}>
+              <ProductTile item={p} onOpen={setActiveSlug} featured />
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ----- Catalogue masonry ------------------------------------------- */}
-      <section
-        aria-labelledby="catalogue-heading"
-        className="bg-paper pb-24 md:pb-32"
-      >
-        <div className="mx-auto max-w-page px-6 md:px-10">
+      <section aria-labelledby="catalogue-heading" className="section-y">
+        <div className="mx-auto max-w-page page-x">
           <SectionHeader
             id="catalogue-heading"
             eyebrow="Full catalogue"
             title="Every named part we forge."
-            intro="Levers, links, valve bodies and process photography — tap any tile for the full 3D viewer."
+            intro="Levers, links, valve bodies and process photography — open any tile for the full 3D viewer."
           />
 
           <div className="mt-12 columns-1 gap-4 md:columns-2 lg:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid md:mt-16">
@@ -415,24 +370,22 @@ export default function ProductsGallery() {
       {/* ----- By application ---------------------------------------------- */}
       <section
         aria-labelledby="by-application-heading"
-        className="border-t border-graphite/10 bg-paper pb-24 pt-20 md:pb-32 md:pt-24"
+        className="section-y-sm border-t border-cinder"
       >
-        <div className="mx-auto max-w-page px-6 md:px-10">
+        <div className="mx-auto max-w-page page-x">
           <SectionHeader
             id="by-application-heading"
             eyebrow="By application"
             title="What industry are you serving?"
-            intro="Same parts, grouped by the industries they typically land in. Click a chip to zoom the 3D viewer."
+            intro="Same parts, grouped by the industries they typically land in."
           />
 
-          <div className="mt-12 grid grid-cols-1 gap-10 md:mt-16 md:grid-cols-3 md:gap-12">
+          <div className="mt-12 grid grid-cols-1 gap-10 md:mt-16 md:grid-cols-3 md:gap-8">
             {byApplication.map((group) => (
-              <div key={group.key} className="border-t border-graphite/15 pt-6">
+              <div key={group.key} className="border-t border-cinder pt-6">
                 <div className="flex items-baseline justify-between">
-                  <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-graphite">
-                    {group.label}
-                  </p>
-                  <span className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.28em] text-steel">
+                  <p className="type-eyebrow text-snow">{group.label}</p>
+                  <span className="type-spec text-swarf">
                     {group.items.length.toString().padStart(2, '0')}
                   </span>
                 </div>
@@ -446,15 +399,12 @@ export default function ProductsGallery() {
                         aria-label={`${p.name}, part ${p.code} — open detail`}
                         // min-h-11 = 44px. At 11px type these chips were
                         // ~29px tall and sat in a wrapped grid, which is
-                        // exactly the case the minimum target size
-                        // exists for.
-                        className="group inline-flex min-h-11 items-center gap-2 border border-graphite/15 bg-paper px-3 py-2 font-eyebrow text-[11px] font-semibold uppercase tracking-[0.16em] text-graphite transition-colors hover:border-mesh hover:bg-mesh hover:text-paper"
+                        // exactly the case the minimum target size exists
+                        // for.
+                        className="type-meta group inline-flex min-h-11 items-center gap-2 border border-cinder px-3 py-2 uppercase tracking-[0.16em] text-snow transition-colors hover:border-saffron hover:text-saffron"
                       >
                         <span>{p.name}</span>
-                        <span
-                          aria-hidden
-                          className="font-eyebrow text-[9px] font-semibold text-steel transition-colors group-hover:text-paper/70"
-                        >
+                        <span aria-hidden className="text-swarf transition-colors group-hover:text-saffron">
                           {p.code}
                         </span>
                       </button>
@@ -477,11 +427,11 @@ export default function ProductsGallery() {
             animate="animate"
             exit="exit"
             transition={{ duration: 0.3 }}
-            // Scrolls internally: on a phone the square render plus the
-            // spec column is taller than the viewport, and the panel
-            // used to be centre-cropped with the CTA unreachable.
-            // `data-lenis-prevent` keeps that wheel/touch scroll on the
-            // overlay instead of leaking to the (paused) page beneath.
+            // Scrolls internally: on a phone the square render plus the spec
+            // column is taller than the viewport, and the panel used to be
+            // centre-cropped with the CTA unreachable. `data-lenis-prevent`
+            // keeps that wheel/touch scroll on the overlay instead of leaking
+            // to the (paused) page beneath.
             data-lenis-prevent
             className="fixed inset-0 z-[1100] overflow-y-auto overscroll-contain bg-graphite/85 p-4 backdrop-blur-sm md:p-10"
             onClick={() => setActiveSlug(null)}
@@ -497,32 +447,41 @@ export default function ProductsGallery() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="product-dialog-title"
-                className="relative grid w-full max-w-5xl grid-cols-1 overflow-hidden bg-paper md:grid-cols-12"
+                className="relative grid w-full max-w-5xl grid-cols-1 border border-cinder bg-slag md:grid-cols-12"
               >
-                <div className="relative aspect-square w-full bg-render-bg md:col-span-7 md:aspect-auto md:min-h-[560px]">
+                <div className="relative aspect-square w-full bg-graphite md:col-span-7 md:aspect-auto md:min-h-[560px]">
                   {active.kind === 'stl' ? (
-                    <StlViewer
-                      src={active.model}
-                      title={active.name}
-                      productName={active.code}
-                      autoRotate
-                      className="h-full w-full"
-                    />
+                    <>
+                      {/* The still goes in first and the viewer sits on top
+                          with a transparent ground until the GLB lands, so
+                          the panel is never an empty rectangle and the
+                          canvas replaces the image with the same picture. */}
+                      <div className="absolute inset-0">
+                        <PartPoster
+                          model={active.model}
+                          alt={`${active.name} — render of the forged part`}
+                          fit="contain"
+                        />
+                      </div>
+                      <div className="absolute inset-0">
+                        <StlViewer
+                          src={active.model}
+                          title={active.name}
+                          productName={active.code}
+                          description={active.blurb}
+                          autoRotate={false}
+                        />
+                      </div>
+                    </>
                   ) : (
                     <picture>
-                      <source
-                        srcSet={withExt(active.src, 'avif')}
-                        type="image/avif"
-                      />
-                      <source
-                        srcSet={withExt(active.src, 'webp')}
-                        type="image/webp"
-                      />
+                      <source srcSet={withExt(active.src, 'avif')} type="image/avif" />
+                      <source srcSet={withExt(active.src, 'webp')} type="image/webp" />
                       {/* Identification only here — unlike the tile, the
                           blurb is rendered as visible copy beside this
-                          image, so repeating it in `alt` would just make
-                          a screen reader say it twice. */}
-                      <img
+                          image, so repeating it in `alt` would just make a
+                          screen reader say it twice. */}
+                              <img
                         src={active.src}
                         alt={`${active.name}, part ${active.code}`}
                         width={aspectSize[active.aspect].w}
@@ -536,23 +495,16 @@ export default function ProductsGallery() {
 
                 <div className="flex flex-col justify-between p-8 md:col-span-5 md:p-10">
                   <div>
-                    <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-ember">
-                      Catalogue · {active.code}
-                    </p>
-                    <h2
-                      id="product-dialog-title"
-                      className="mt-4 font-display text-3xl font-light leading-tight text-graphite md:text-4xl"
-                    >
+                    <Eyebrow>Catalogue · {active.code}</Eyebrow>
+                    <h2 id="product-dialog-title" className="type-display-m mt-4">
                       {active.name}
                     </h2>
-                    <p className="mt-6 font-body text-base leading-relaxed text-steel md:text-lg">
-                      {active.blurb}
-                    </p>
+                    <p className="type-body mt-6">{active.blurb}</p>
                     <ul className="mt-6 flex flex-wrap gap-2">
                       {productApplications(active).map((app) => (
                         <li
                           key={app}
-                          className="border border-graphite/20 px-2.5 py-1 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.18em] text-graphite"
+                          className="type-meta border border-cinder px-2.5 py-1 uppercase tracking-[0.16em] text-snow"
                         >
                           {APPLICATION_LABEL[app]}
                         </li>
@@ -566,7 +518,7 @@ export default function ProductsGallery() {
                     <a
                       href="/contact/"
                       data-magnetic
-                      className="inline-flex min-h-11 items-center justify-center bg-saffron px-6 py-3 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-graphite transition-colors hover:bg-mesh hover:text-paper"
+                      className="type-eyebrow inline-flex min-h-11 items-center justify-center bg-saffron px-6 py-3 text-graphite transition-colors hover:bg-mesh hover:text-paper"
                     >
                       Request a Quote
                     </a>
@@ -574,7 +526,7 @@ export default function ProductsGallery() {
                       type="button"
                       onClick={() => setActiveSlug(null)}
                       data-magnetic
-                      className="inline-flex min-h-11 items-center justify-center gap-2 px-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-steel transition-colors hover:text-graphite"
+                      className="type-eyebrow inline-flex min-h-11 items-center justify-center gap-2 px-2 text-swarf transition-colors hover:text-snow"
                     >
                       Close
                       <CloseIcon />

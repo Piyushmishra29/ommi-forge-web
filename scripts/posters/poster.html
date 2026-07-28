@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ommi Forge — offline poster rig</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #1f2124;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/node_modules/three/build/three.module.js",
+          "three/addons/": "/node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      /**
+       * Offline renderer for the §5.9 poster images.
+       *
+       * This page is NOT shipped. It is loaded by `scripts/build-posters.py`
+       * in a headless Chromium, once, to produce the stills under
+       * `public/assets/posters/`.
+       *
+       * THIS FILE HOLDS NO RIG VALUES. That is deliberate and it is the
+       * second version of this design. It used to carry its own defaults for
+       * the environment, the lights and the material, which the driver then
+       * overrode — so the file *read* as the rig while the actual numbers
+       * came from somewhere else, and anyone auditing it drew the wrong
+       * conclusion about what had been baked. Every value now arrives from
+       * `build-posters.py`, which is the single mirror of
+       * `src/components/three/stage-rig.ts`, and `renderPart` throws if one
+       * is missing rather than quietly substituting something plausible.
+       *
+       * What lives here is only *structure* — the panel geometry, the
+       * geometry pipeline, the render call — mirrored from
+       * `three3/ForgeEnvironment`, `glb.ts` and `geometryCache`, because a
+       * plain browser module cannot import TSX. Structure changes rarely;
+       * values change often. Keeping them apart is what stops the two
+       * drifting silently.
+       */
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+      import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
+
+      /**
+       * The clear colour, and the only hex this file is allowed to know.
+       * It is not a rig value: §3.6 requires the stage to clear to the page
+       * ground exactly, so a poster whose background differed from
+       * `--color-graphite` would show a seam no rig change could fix.
+       */
+      const GRAPHITE = '#1F2124';
+
+      /** Fail loudly rather than bake a plausible-looking wrong picture. */
+      function required(value, name) {
+        if (value === undefined || value === null) {
+          throw new Error(
+            `poster.html: missing \`${name}\`. Every rig value must come from ` +
+              'build-posters.py — this file deliberately has no defaults.',
+          );
+        }
+        return value;
+      }
+
+      function buildEnvScene(o) {
+        const scene = new THREE.Scene();
+        const shell = new THREE.Mesh(
+          new THREE.BoxGeometry(20, 12, 20),
+          new THREE.MeshBasicMaterial({
+            color: new THREE.Color(GRAPHITE).multiplyScalar(o.roomIntensity),
+            side: THREE.BackSide,
+          }),
+        );
+        scene.add(shell);
+
+        const panels = [
+          // Overhead roof light. `warmColor`, not a hardcoded white: three3
+          // made the same change so that a `warmColor` prop which did not
+          // colour the roof light stopped being a lie. It is the brightest
+          // panel in the rig, so this is a real shift, not a tidy-up — the
+          // posters were re-baked for it.
+          { size: [9, 6], position: [0, 5.4, 1], rotation: [-Math.PI / 2, 0, 0], color: o.warmColor, intensity: o.keyIntensity },
+          { size: [1.1, 8], position: [6, 0.5, 1.5], rotation: [0, -Math.PI / 2, 0], color: o.warmColor, intensity: o.rakeIntensity },
+          { size: [6, 6], position: [-6, 0, 1], rotation: [0, Math.PI / 2, 0], color: o.warmColor, intensity: o.rakeIntensity * 0.28 },
+          { size: [7, 2.4], position: [0, 1.2, -6.5], rotation: [0, 0, 0], color: o.coolColor, intensity: o.rimIntensity },
+          { size: [18, 18], position: [0, -4.2, 0], rotation: [-Math.PI / 2, 0, 0], color: GRAPHITE, intensity: o.roomIntensity * 2.5 },
+        ];
+
+        for (const p of panels) {
+          const mesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(p.size[0], p.size[1]),
+            new THREE.MeshBasicMaterial({
+              color: new THREE.Color(p.color).multiplyScalar(p.intensity),
+              side: THREE.DoubleSide,
+            }),
+          );
+          mesh.position.set(...p.position);
+          mesh.rotation.set(...p.rotation);
+          scene.add(mesh);
+        }
+        return scene;
+      }
+
+      /** Mirrors `glb.ts` `dequantize()` — the int16 → float32 pass without
+       *  which every mesh on this site collapses to a sliver. */
+      function dequantize(source) {
+        const geom = new THREE.BufferGeometry();
+        const pos = source.attributes.position;
+        const arr = new Float32Array(pos.count * 3);
+        for (let i = 0; i < pos.count; i += 1) {
+          arr[3 * i] = pos.getX(i);
+          arr[3 * i + 1] = pos.getY(i);
+          arr[3 * i + 2] = pos.getZ(i);
+        }
+        geom.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+        if (source.index) geom.setIndex(source.index.clone());
+        return geom;
+      }
+
+      /** Mirrors `glb.ts` `extractGeometry()`. */
+      function extractGeometry(gltf) {
+        gltf.scene.updateMatrixWorld(true);
+        let mesh = null;
+        gltf.scene.traverse((o) => {
+          if (!mesh && o.isMesh) mesh = o;
+        });
+        if (!mesh) throw new Error('glTF scene contained no mesh geometry');
+        const geom = dequantize(mesh.geometry);
+        geom.applyMatrix4(mesh.matrixWorld);
+        return geom;
+      }
+
+      /** Mirrors `geometryCache.ts` `prepareGeometry()`. */
+      function prepareGeometry(gltf, { targetRadius = 1, shading = 'smooth', creaseAngleDeg = 40 } = {}) {
+        let geom = extractGeometry(gltf);
+        geom.computeBoundingBox();
+        if (geom.boundingBox) {
+          const c = new THREE.Vector3();
+          geom.boundingBox.getCenter(c);
+          geom.translate(-c.x, -c.y, -c.z);
+        }
+        geom.computeBoundingSphere();
+        if (geom.boundingSphere && geom.boundingSphere.radius > 0) {
+          const s = targetRadius / geom.boundingSphere.radius;
+          geom.scale(s, s, s);
+        }
+        if (shading === 'creased') {
+          const creased = toCreasedNormals(geom, THREE.MathUtils.degToRad(creaseAngleDeg));
+          geom.dispose();
+          geom = creased;
+        } else {
+          geom.computeVertexNormals();
+        }
+        geom.computeBoundingBox();
+        geom.computeBoundingSphere();
+        const size = new THREE.Vector3();
+        geom.boundingBox.getSize(size);
+        const index = geom.getIndex();
+        const triangles = index ? index.count / 3 : geom.attributes.position.count / 3;
+        return { geometry: geom, size, triangles };
+      }
+
+      const loader = new GLTFLoader();
+      loader.setMeshoptDecoder(MeshoptDecoder);
+
+      let renderer = null;
+      const envTextures = new Map();
+
+      function getRenderer(size) {
+        if (!renderer) {
+          const canvas = document.createElement('canvas');
+          document.body.appendChild(canvas);
+          renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            alpha: false,
+            preserveDrawingBuffer: true,
+            powerPreference: 'high-performance',
+          });
+          // r3f 9 defaults: ACESFilmic + sRGB output. Match them exactly.
+          renderer.toneMapping = THREE.ACESFilmicToneMapping;
+          renderer.toneMappingExposure = 1;
+          renderer.outputColorSpace = THREE.SRGBColorSpace;
+        }
+        renderer.setPixelRatio(1);
+        renderer.setSize(size, size, false);
+        return renderer;
+      }
+
+      /** One PMREM per option set — same caching contract as ForgeEnvironment. */
+      function getEnvTexture(gl, env) {
+        const o = required(env, 'env');
+        const key = JSON.stringify(o);
+        const hit = envTextures.get(key);
+        if (hit) return hit;
+        const pmrem = new THREE.PMREMGenerator(gl);
+        const envScene = buildEnvScene(o);
+        const texture = pmrem.fromScene(envScene, 0.04).texture;
+        pmrem.dispose();
+        envTextures.set(key, texture);
+        return texture;
+      }
+
+      /**
+       * Render one part and hand back a PNG data URL.
+       *
+       * Every rig field is REQUIRED. See the file header: this module holds
+       * no defaults, so a caller that forgets one gets an exception rather
+       * than a poster baked from stale values.
+       *
+       * @param {object} opts
+       * @param {string} opts.url        GLB path, e.g. /assets/models/part-g.glb
+       * @param {number} opts.size       square edge in px
+       * @param {number[]} opts.rotation base pose, radians [x, y, z]
+       * @param {string} opts.shading    'smooth' | 'creased'
+       * @param {number} opts.spinY      INDEX sweep about WORLD Y, radians
+       * @param {object} opts.env        ForgeEnvironment options
+       * @param {number} opts.envIntensity  scene.environmentIntensity
+       * @param {object} opts.lights     ambient / key / fill / rim
+       * @param {object} opts.material   MeshStandardMaterial parameters
+       * @param {object} opts.camera     { fov, z, near, far }
+       */
+      window.renderPart = async function renderPart({
+        url,
+        size = 1000,
+        rotation,
+        shading = 'smooth',
+        spinY = 0,
+        envIntensity,
+        env,
+        material,
+        lights,
+        camera,
+      }) {
+        const gl = getRenderer(size);
+        const gltf = await loader.loadAsync(url);
+        const prepared = prepareGeometry(gltf, { shading });
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(GRAPHITE);
+        scene.environment = getEnvTexture(gl, env);
+        scene.environmentIntensity = required(envIntensity, 'envIntensity');
+
+        const rig = required(lights, 'lights');
+        scene.add(
+          new THREE.AmbientLight(new THREE.Color(rig.ambient.color), rig.ambient.intensity),
+        );
+        for (const key of ['key', 'fill', 'rim']) {
+          const l = required(rig[key], `lights.${key}`);
+          const light = new THREE.DirectionalLight(new THREE.Color(l.color), l.intensity);
+          light.position.set(...l.position);
+          scene.add(light);
+        }
+
+        const mesh = new THREE.Mesh(
+          prepared.geometry,
+          new THREE.MeshStandardMaterial(required(material, 'material')),
+        );
+        mesh.rotation.set(...required(rotation, 'rotation'));
+
+        // The INDEX sweep is the PARENT of the framing pose, never a term
+        // inside it. Setting `rotation.set(px, py + index, pz)` on one node
+        // composes as Rx·Ry·Rz, so the Y term turns about the part's own
+        // tilted axis and the part wobbles instead of turning — and on a flat
+        // part it can swing edge-on and vanish. A parent group rotated about
+        // world Y is literally §4.3's "part on an inspection turntable".
+        // Mirrors `StageScene`.
+        const spin = new THREE.Group();
+        spin.rotation.y = spinY;
+        spin.add(mesh);
+        scene.add(spin);
+
+        const cam = required(camera, 'camera');
+        const camera3 = new THREE.PerspectiveCamera(cam.fov, 1, cam.near, cam.far);
+        camera3.position.set(0, 0, cam.z);
+        camera3.lookAt(0, 0, 0);
+
+        gl.render(scene, camera3);
+        const dataUrl = gl.domElement.toDataURL('image/png');
+
+        prepared.geometry.dispose();
+        mesh.material.dispose();
+
+        return {
+          dataUrl,
+          triangles: Math.round(prepared.triangles),
+          size: [prepared.size.x, prepared.size.y, prepared.size.z].map((n) => Number(n.toFixed(3))),
+        };
+      };
+
+      window.__posterRigReady = true;
+    </script>
+  </body>
+</html>

@@ -4,22 +4,26 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { gsap } from '@/lib/gsap';
-import SplitText from '@/components/motion/SplitText';
 import Eyebrow from '@/components/ui/Eyebrow';
 
 /**
  * ProductsClosingCta
  *
- * Saffron slab pinned to the foot of `/products`. SplitText headline
- * sweeps in via GSAP when the section reaches 70% viewport — same
- * cadence as the home page closer for visual consistency.
+ * The foot of `/products`.
  *
- * The whole tile is a magnetic link to `/contact/` (the magnetic ring
- * is handled globally by `MagneticCursor` reading `data-magnetic`).
- * Subtle ambient hammer-mark glyph sits behind the headline so the
- * slab isn't a flat field of colour.
+ * v2 made this a full-bleed **saffron slab**. On the v3 dark ground that is
+ * the one thing §6.3 rules out — a fully saturated colour used as a *fill*
+ * reads as neon, and §6.4 is explicit that "one 4px saffron rule is the
+ * entire accent vocabulary". So the slab becomes a `slag` panel on graphite
+ * with a single saffron rule along its top edge and a saffron button; the
+ * warmth is now a light source and an accent rather than a wall of colour.
  *
- * Reduced-motion: no GSAP timeline; headline renders at rest.
+ * No `SplitText` either — §4.4 keeps the per-character reveal to `h1` on `/`
+ * and `/about`. This is an `h2` on a third page, so it gets the site default
+ * (preset #4 at the `press` curve, component band).
+ *
+ * Reduced motion: no timeline, and nothing is left at `opacity: 0` waiting
+ * for a ScrollTrigger that will never fire.
  */
 export default function ProductsClosingCta() {
   const root = useRef<HTMLElement | null>(null);
@@ -31,29 +35,13 @@ export default function ProductsClosingCta() {
     if (!el) return;
 
     const ctx = gsap.context(() => {
-      gsap.from(el.querySelectorAll('[data-pcta-headline] [data-char]'), {
-        y: 60,
-        opacity: 0,
-        duration: 0.9,
-        ease: 'power3.out',
-        stagger: 0.035,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 75%',
-          once: true,
-        },
-      });
       gsap.from(el.querySelectorAll('[data-pcta-fade]'), {
+        y: 16,
         opacity: 0,
-        y: 24,
-        duration: 0.8,
-        ease: 'power3.out',
-        stagger: 0.1,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 75%',
-          once: true,
-        },
+        duration: 0.48,
+        ease: 'expo.out',
+        stagger: 0.04,
+        scrollTrigger: { trigger: el, start: 'top 85%', once: true },
       });
     }, el);
 
@@ -61,65 +49,43 @@ export default function ProductsClosingCta() {
   }, [reduced]);
 
   return (
-    <section
-      ref={root}
-      className="relative isolate overflow-hidden bg-saffron text-graphite"
-    >
-      {/* Ambient glyph — an outsized infinity mark bled off the right
-          edge at graphite/5, so it reads as paper texture rather than
-          as an icon. Purely decorative, hence aria-hidden.
-          NB: the sibling closers (home + /solutions) use gradient
-          vignettes instead; this slab is the only one carrying a
-          glyph. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-12 top-1/2 -translate-y-1/2 font-display text-[clamp(360px,55vw,720px)] font-light leading-none text-graphite/5 select-none"
-      >
-        ∞
-      </span>
+    <section ref={root} className="section-y relative">
+      <div className="mx-auto max-w-page page-x">
+        <div className="border-t-4 border-saffron bg-slag p-8 md:p-14">
+          <div className="flex flex-col gap-12 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-2xl">
+              <div data-pcta-fade>
+                <Eyebrow>Still scoping a part?</Eyebrow>
+              </div>
 
-      <div className="relative mx-auto flex max-w-page flex-col gap-12 px-6 py-24 md:flex-row md:items-end md:justify-between md:px-10 md:py-32">
-        <div className="max-w-3xl">
-          <Eyebrow data-pcta-fade>
-            <span className="text-graphite">Still scoping a part?</span>
-          </Eyebrow>
+              <h2 data-pcta-fade className="type-display-l mt-8">
+                Talk to a metallurgist
+              </h2>
 
-          <div data-pcta-headline className="mt-8">
-            <SplitText
-              as="h2"
-              className="font-display font-light leading-[0.95] text-graphite"
-              charClassName="text-[clamp(48px,9vw,128px)]"
-            >
-              {`Talk to a metallurgist`}
-            </SplitText>
+              <p data-pcta-fade className="type-lede mt-6 max-w-[54ch]">
+                Bring a drawing, a CAD file or a rough sketch on the back of a
+                workshop note. We&rsquo;ll come back with material, tonnage and
+                heat-treat in one reply.
+              </p>
+            </div>
+
+            <div data-pcta-fade className="shrink-0">
+              <Link
+                href="/contact/"
+                data-magnetic
+                data-cursor-label="Talk →"
+                className="type-eyebrow group inline-flex min-h-11 items-center gap-5 bg-saffron px-8 py-6 text-graphite transition-colors hover:bg-mesh hover:text-paper md:px-10 md:py-8"
+              >
+                Talk to a metallurgist
+                <span
+                  aria-hidden
+                  className="text-2xl leading-none transition-transform duration-500 group-hover:translate-x-2"
+                >
+                  →
+                </span>
+              </Link>
+            </div>
           </div>
-          <p
-            data-pcta-fade
-            className="mt-6 max-w-xl font-body text-base leading-relaxed text-graphite/80 md:text-lg md:leading-[1.6]"
-          >
-            Bring a drawing, a CAD file or a rough sketch on the back of a
-            workshop note. We&rsquo;ll come back with material, tonnage and
-            heat-treat in one reply.
-          </p>
-        </div>
-
-        <div data-pcta-fade className="shrink-0">
-          <Link
-            href="/contact/"
-            data-magnetic
-            data-cursor-label="Talk →"
-            className="group inline-flex items-center gap-5 border border-graphite bg-graphite px-8 py-6 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-paper transition-colors hover:bg-paper hover:text-graphite md:px-10 md:py-8"
-          >
-            <span className="text-[clamp(14px,1.4vw,18px)] tracking-[0.18em]">
-              Talk to a metallurgist
-            </span>
-            <span
-              aria-hidden
-              className="text-2xl leading-none transition-transform duration-500 group-hover:translate-x-2 md:text-3xl"
-            >
-              →
-            </span>
-          </Link>
         </div>
       </div>
     </section>

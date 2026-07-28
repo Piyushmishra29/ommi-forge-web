@@ -1,90 +1,108 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { StlPreview } from "@/components/three/lazy";
-import type { Render } from "@/data/renders";
+import Link from 'next/link';
+import { cn } from '@/lib/cn';
+import PartPoster from '@/components/three/PartPoster';
+import type { Render } from '@/data/renders';
 
-// Models already asked for this session — so hovering a tile twice, or two
-// tiles that share a GLB, injects at most one <link rel="prefetch">.
-const prefetched = new Set<string>();
+export type RendersGridProps = {
+  renders: Render[];
+  /** Slug currently promoted to the stage. Marked, not styled differently. */
+  activeSlug: string;
+  /**
+   * Fired on hover-intent or keyboard focus. The dwell timing and the model
+   * preload live in `RendersShowroom` — this component only reports intent.
+   */
+  onIntent: (slug: string) => void;
+  onIntentEnd: () => void;
+};
 
 /**
- * On hover/focus intent, warm the browser cache for a tile's GLB so the
- * detail route's <StlViewer> has it ready. Fire-and-forget; deduped.
+ * The nine catalogue tiles (§5.6).
+ *
+ * **Static posters, not canvases.** Nine `<Canvas>` tiles is nine WebGL
+ * contexts; the browser caps at 8–16 and evicts the oldest, which is how a
+ * grid like this goes blank after a couple of navigations. The one live part
+ * is the stage behind this grid.
+ *
+ * Each tile is a `<Link>` to the detail route, so the grid is navigable and
+ * indexable with no JS at all; promoting a part to the stage is an
+ * enhancement layered on hover/focus, never the only way to see a part.
  */
-function prefetchModel(href: string) {
-  if (typeof document === "undefined" || prefetched.has(href)) return;
-  prefetched.add(href);
-  const link = document.createElement("link");
-  link.rel = "prefetch";
-  link.href = href;
-  document.head.appendChild(link);
-}
-
-export function RendersGrid({ renders }: { renders: Render[] }) {
+export function RendersGrid({
+  renders,
+  activeSlug,
+  onIntent,
+  onIntentEnd,
+}: RendersGridProps) {
   return (
-    <motion.ul
-      className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
-      variants={{
-        hidden: {},
-        visible: { transition: { staggerChildren: 0.08 } },
-      }}
-    >
-      {renders.map((render) => (
-        <motion.li
-          key={render.slug}
-          variants={{
-            hidden: { opacity: 0, y: 24 },
-            visible: {
-              opacity: 1,
-              y: 0,
-              transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
-            },
-          }}
-        >
-          <Link
-            href={`/renders/${render.slug}`}
-            className="group block overflow-hidden bg-paper ring-1 ring-black/5 transition hover:ring-mesh/40"
-            data-magnetic
-            onMouseEnter={() => prefetchModel(render.model)}
-            onFocus={() => prefetchModel(render.model)}
-          >
-            {/* No `ariaLabel` here on purpose: this tile sits inside a
-                <Link> whose own text content (title + product name below)
-                already gives the link its accessible name. Passing one
-                would make `<StlPreview>` announce a second, near-duplicate
-                `role="img"` label — see the prop's doc comment. */}
-            <StlPreview
-              src={render.model}
-              className="transition-transform duration-700 group-hover:scale-[1.02]"
-            />
-            <div className="flex items-start justify-between gap-4 px-5 py-4">
-              <div>
-                <div className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.25em] text-steel">
-                  {render.title}
-                </div>
-                <h2 className="mt-1 font-display text-lg font-light text-graphite">
-                  {render.productName}
-                </h2>
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6">
+      {renders.map((render) => {
+        const active = render.slug === activeSlug;
+        return (
+          <li key={render.slug}>
+            <Link
+              href={`/renders/${render.slug}`}
+              data-magnetic
+              // No local focus ring: the global two-tone ring in globals.css
+              // is the one indicator that clears 3:1 on graphite, on saffron
+              // and on a poster's own dark ground. A saffron-only ring here
+              // measures ~2.2:1 against the render stage.
+              className="group block"
+              // `pointerType` gates this instead of a `hover: hover` media
+              // query, so a hybrid laptop still gets the behaviour from its
+              // mouse and never from its touchscreen — §5.6: do not fake
+              // hover on tap.
+              onPointerEnter={(e) => {
+                if (e.pointerType === 'mouse') onIntent(render.slug);
+              }}
+              onPointerLeave={onIntentEnd}
+              // Focus is a deliberate act, so it commits immediately rather
+              // than waiting out a dwell the keyboard cannot express.
+              onFocus={() => onIntent(render.slug)}
+              onBlur={onIntentEnd}
+            >
+              <div
+                className={cn(
+                  'relative aspect-square overflow-hidden bg-graphite',
+                  // A hairline, not a box: `cinder` is 3.03:1 on graphite and
+                  // clears 1.4.11, and it goes saffron on the promoted tile so
+                  // the grid says which part the stage is currently showing.
+                  'border transition-colors duration-200',
+                  active ? 'border-saffron' : 'border-cinder/50 group-hover:border-cinder',
+                )}
+              >
+                {/* alt="" (the default) on purpose: the caption immediately
+                    below names the part, and it is inside the same link, so
+                    the link's accessible name already carries it. A repeated
+                    alt makes a screen reader announce it twice. */}
+                <PartPoster model={render.model} fit="cover" />
               </div>
-              <ul className="flex flex-wrap justify-end gap-1.5">
-                {render.tags.map((tag) => (
-                  <li
-                    key={tag}
-                    className="bg-snow px-2 py-0.5 font-eyebrow text-[10px] uppercase tracking-wider text-steel ring-1 ring-black/5"
-                  >
-                    {tag}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Link>
-        </motion.li>
-      ))}
-    </motion.ul>
+
+              <div className="mt-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="type-eyebrow">{render.title}</p>
+                  <h3 className="type-display-s mt-2 truncate">
+                    {render.productName}
+                  </h3>
+                </div>
+                <span
+                  aria-hidden
+                  className={cn(
+                    'type-meta shrink-0 pt-1 transition-transform duration-200',
+                    'group-hover:translate-x-1',
+                    active ? 'text-saffron' : 'text-swarf',
+                  )}
+                >
+                  →
+                </span>
+              </div>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
+
+export default RendersGrid;
