@@ -1,25 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from '@/lib/gsap';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { withExt } from '@/lib/image-formats';
-
-/* -------------------------------------------------------------------------- */
-/*  Reduced-motion subscription                                               */
-/* -------------------------------------------------------------------------- */
-function subscribeRM(cb: () => void) {
-  if (typeof window === 'undefined') return () => {};
-  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-  mq.addEventListener('change', cb);
-  return () => mq.removeEventListener('change', cb);
-}
-function getRMSnapshot() {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-function getRMServer() {
-  return false;
-}
 
 interface PhotoBreakProps {
   /** Source path under `/assets/images/`, with `.jpg` extension. */
@@ -29,23 +13,24 @@ interface PhotoBreakProps {
   /** Optional caption rendered low-left on the plate. */
   caption?: string;
   /**
-   * Plate height. Defaults to `60vh` on desktop, `48vh` on mobile —
-   * a punctuation beat between editorial sections, not a hero.
+   * Plate height. `tall` is a beat between two sections; `short` is
+   * punctuation. Neither is a hero.
    */
   tone?: 'tall' | 'short';
 }
 
 /**
- * PhotoBreak
+ * PhotoBreak — a full-bleed editorial photo plate between sections.
  *
- * A full-bleed editorial photo plate used between sections of
- * `/about/`. Uses native `<picture>` with AVIF / WebP siblings (via
- * `withExt`) for performance; the JPG only serves as a fallback for
- * browsers that decode neither modern format.
+ * Native `<picture>` with AVIF / WebP siblings via `withExt`; the JPG only
+ * serves browsers that decode neither. Every image is a real Ommi
+ * photograph (§6.24) — there is no stock abstraction anywhere on this site.
  *
- * Parallax: the image translates upward at `scrollY * 0.18` while the
- * plate is on-screen, capped to the plate height so the bottom edge
- * never reveals an empty seam. Honours `prefers-reduced-motion`.
+ * Parallax is capped at ±8% of the plate height, one direction, per §4.4's
+ * #13/#14 entry. v2 ran it at 0.18, which on a 72vh plate is a visible
+ * slide rather than depth. It culls itself when the plate is off-screen, and
+ * it does not run at all under reduced motion — the plate is then simply a
+ * photograph, which loses nothing.
  */
 export default function PhotoBreak({
   src,
@@ -53,11 +38,7 @@ export default function PhotoBreak({
   caption,
   tone = 'tall',
 }: PhotoBreakProps) {
-  const reduced = useSyncExternalStore(
-    subscribeRM,
-    getRMSnapshot,
-    getRMServer,
-  );
+  const reduced = useReducedMotion();
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const pictureRef = useRef<HTMLDivElement | null>(null);
 
@@ -68,7 +49,10 @@ export default function PhotoBreak({
     const picture = pictureRef.current;
     if (!section || !picture) return;
 
-    const setY = gsap.quickSetter(picture, 'y', 'px');
+    // `quickSetter` rather than a tween: this writes one transform per
+    // scroll frame and never needs to interpolate — a tween here would be a
+    // second animation engine running alongside the scroll.
+    const setY = gsap.quickSetter(picture, 'yPercent');
     let rafId = 0;
     let pending = false;
 
@@ -76,17 +60,14 @@ export default function PhotoBreak({
       pending = false;
       const rect = section.getBoundingClientRect();
       const vh = window.innerHeight;
-      // Cull when entirely off-screen so we don't burn CPU on
-      // mobiles with multiple breaks below the fold.
+      // Cull when entirely off-screen, so a page with three plates does not
+      // pay for the two nobody is looking at.
       if (rect.bottom < -200 || rect.top > vh + 200) return;
-      // Map "section center vs viewport center" to a parallax offset.
-      // When the plate is dead-center, offset = 0. When the plate is
-      // about to leave the top, offset is negative (image pushed up).
-      const sectionCenter = rect.top + rect.height / 2;
-      const delta = sectionCenter - vh / 2;
-      const max = section.offsetHeight * 0.18;
-      const y = Math.max(-max, Math.min(max, -delta * 0.18));
-      setY(y);
+      // Plate centre against viewport centre, normalised to ±1, then scaled
+      // to the ±8% cap. Dead-centre is zero offset.
+      const centre = rect.top + rect.height / 2;
+      const delta = (centre - vh / 2) / (vh / 2 + rect.height / 2);
+      setY(Math.max(-8, Math.min(8, -delta * 8)));
     };
 
     const onScroll = () => {
@@ -108,18 +89,19 @@ export default function PhotoBreak({
   const avif = withExt(src, 'avif');
   const webp = withExt(src, 'webp');
 
+  // `svh`, not `vh`: the mobile URL bar resizing `vh` mid-scroll changes the
+  // page height, which re-fires every ScrollTrigger measurement on the page.
   const heightCls =
     tone === 'tall'
-      ? 'h-[60vh] min-h-[420px] md:h-[72vh]'
-      : 'h-[44vh] min-h-[320px] md:h-[56vh]';
+      ? 'h-[60svh] min-h-[420px] md:h-[72svh]'
+      : 'h-[44svh] min-h-[320px] md:h-[56svh]';
 
   return (
     <div
       ref={sectionRef}
       className={`relative w-full overflow-hidden bg-graphite ${heightCls}`}
     >
-      {/* Over-drawn picture so the parallax translate range never
-          reveals an empty edge. */}
+      {/* Over-drawn so the ±8% travel never reveals an empty edge. */}
       <div
         ref={pictureRef}
         className="absolute inset-x-0 -top-[10%] h-[120%]"
@@ -137,14 +119,18 @@ export default function PhotoBreak({
           />
         </picture>
       </div>
-      {/* Lower-edge gradient so the next section's headline sits on
-          a calmer ground. */}
+
+      {/* Lower-edge gradient so the next section's headline lands on a
+          calmer ground. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-graphite/35 to-transparent"
+        className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-graphite/60 to-transparent"
       />
+
       {caption ? (
-        <p className="absolute bottom-6 left-6 font-eyebrow text-[10px] font-semibold uppercase tracking-[0.24em] text-paper md:bottom-8 md:left-10">
+        // paper, not saffron: this caption sits on an unpredictable
+        // photograph, and only a near-white holds its contrast over one.
+        <p className="page-x type-meta absolute inset-x-0 bottom-6 uppercase tracking-[0.26em] text-paper md:bottom-8">
           {caption}
         </p>
       ) : null}

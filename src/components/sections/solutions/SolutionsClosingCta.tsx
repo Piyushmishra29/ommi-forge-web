@@ -2,29 +2,32 @@
 
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
-import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { gsap } from '@/lib/gsap';
-import SplitText from '@/components/motion/SplitText';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import Eyebrow from '@/components/ui/Eyebrow';
 import { SOLUTIONS_CLOSING_CTA } from '@/data/solutions';
 
 /**
- * SolutionsClosingCta
+ * SolutionsClosingCta — the page's last beat.
  *
- * Full-viewport saffron slab that closes the `/solutions` page.
- * Headline sweeps in via SplitText with a per-char y-rise stagger when
- * the section enters the viewport. The primary CTA is the magnetic
- * "Send us a spec sheet →" target linking to `/contact/`.
+ * v2 built this as a full-bleed saffron slab. That does not survive the
+ * move to a dark ground: §6.3 rules out any colour at full saturation used
+ * as a *fill* on graphite, and §2.2 gives saffron exactly two jobs — a light
+ * source, or a hairline. A wall of it is neither, and next to the cold steel
+ * of the act above it read as a different website.
  *
- * Mirrors the `<ClosingCta>` pattern used on the home page so the two
- * end-of-route slabs feel like the same brand beat.
+ * So the slab is gone and the warmth moves to where it is earned: the
+ * primary button (a control, and the one surface the two-tone focus ring
+ * was specifically measured against at 7.57:1) and a single hairline. The
+ * page ends on the same graphite it started on, which is the point — the
+ * part cooled, the shop is still dark.
  *
- * Reduced-motion: the stagger never runs and everything renders at
- * rest.
+ * Reduced motion: one tree, entrance skipped. Nothing here is conditional
+ * on a tween.
  */
 export default function SolutionsClosingCta() {
   const root = useRef<HTMLElement | null>(null);
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     if (reduced) return;
@@ -32,28 +35,19 @@ export default function SolutionsClosingCta() {
     if (!el) return;
 
     const ctx = gsap.context(() => {
-      gsap.from(el.querySelectorAll('[data-cta-headline] [data-char]'), {
-        y: 80,
+      // §4.4 preset #4, retuned to our numbers: 480ms, y 16, `press`.
+      // `play none none reverse` so scrolling back up re-arms it instead of
+      // leaving a half-played state behind.
+      gsap.from(el.querySelectorAll('[data-rise]'), {
+        y: 16,
         opacity: 0,
-        duration: 0.9,
-        ease: 'power3.out',
-        stagger: 0.045,
+        duration: 0.48,
+        ease: 'expo.out',
+        stagger: 0.04,
         scrollTrigger: {
           trigger: el,
-          start: 'top 70%',
-          once: true,
-        },
-      });
-      gsap.from(el.querySelectorAll('[data-cta-fade]'), {
-        y: 24,
-        opacity: 0,
-        duration: 0.7,
-        ease: 'power3.out',
-        stagger: 0.1,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 65%',
-          once: true,
+          start: 'top 85%',
+          toggleActions: 'play none none reverse',
         },
       });
     }, el);
@@ -62,69 +56,38 @@ export default function SolutionsClosingCta() {
   }, [reduced]);
 
   return (
-    <section
-      ref={root}
-      className="relative flex w-full items-center justify-center overflow-hidden bg-saffron py-32 text-graphite md:py-48"
-    >
-      {/* Subtle diagonal hairline texture — barely visible, gives the
-          slab the same "machined" feel as the rest of the route. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(45deg, transparent 0 14px, var(--color-graphite) 14px 15px)',
-        }}
-      />
+    <section ref={root} className="relative bg-graphite">
+      {/* The one warm mark in the block. A hairline, not a fill. */}
+      <div aria-hidden className="h-px w-full bg-saffron/60" />
 
-      {/* Graphite vignette top + bottom — softens the pure-saffron slab
-          into a band rather than a wall, without losing the brand moment. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-graphite/15 to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-graphite/15 to-transparent"
-      />
-
-      <div className="relative mx-auto flex w-full max-w-page flex-col items-start px-6 md:px-10">
-        <Eyebrow data-cta-fade>
-          <span className="text-graphite">{SOLUTIONS_CLOSING_CTA.eyebrow}</span>
-        </Eyebrow>
-
-        <div data-cta-headline className="mt-8 max-w-[18ch]">
-          <SplitText
-            as="h2"
-            className="block font-display font-light leading-[0.95] tracking-tight"
-            charClassName="text-[clamp(40px,7vw,88px)]"
-          >
-            {SOLUTIONS_CLOSING_CTA.headline}
-          </SplitText>
+      <div className="page-x section-y-lg mx-auto max-w-page">
+        <div data-rise>
+          <Eyebrow>{SOLUTIONS_CLOSING_CTA.eyebrow}</Eyebrow>
         </div>
 
-        <p
-          data-cta-fade
-          className="mt-8 max-w-2xl font-body text-lg text-graphite/85 md:text-xl md:leading-[1.6]"
-        >
+        <h2 className="type-display-l mt-8 max-w-[14ch] text-balance" data-rise>
+          {SOLUTIONS_CLOSING_CTA.headline}
+        </h2>
+
+        <p className="type-lede mt-8 max-w-[68ch] text-pretty" data-rise>
           {SOLUTIONS_CLOSING_CTA.subhead}
         </p>
 
         <div
-          data-cta-fade
           className="mt-12 flex flex-col items-start gap-4 sm:flex-row sm:items-center"
+          data-rise
         >
           <Link
             href={SOLUTIONS_CLOSING_CTA.primary.href}
             data-magnetic
-            className="inline-flex items-center justify-center bg-graphite px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-paper transition-colors hover:bg-paper hover:text-graphite"
+            className="type-eyebrow inline-flex min-h-11 items-center justify-center bg-saffron px-8 py-4 text-graphite transition-colors duration-200 hover:bg-mesh"
           >
             {SOLUTIONS_CLOSING_CTA.primary.label}
           </Link>
           <Link
             href={SOLUTIONS_CLOSING_CTA.secondary.href}
             data-magnetic
-            className="inline-flex items-center justify-center border border-graphite px-8 py-4 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:bg-graphite hover:text-paper"
+            className="type-eyebrow inline-flex min-h-11 items-center justify-center border border-cinder px-8 py-4 transition-colors duration-200 hover:border-mesh hover:text-mesh"
           >
             {SOLUTIONS_CLOSING_CTA.secondary.label}
           </Link>

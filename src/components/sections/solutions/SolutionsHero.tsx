@@ -1,30 +1,36 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { gsap } from '@/lib/gsap';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
-import { gsap, ScrollTrigger } from '@/lib/gsap';
 import Eyebrow from '@/components/ui/Eyebrow';
-import SplitText from '@/components/motion/SplitText';
 import { SOLUTIONS_HERO } from '@/data/solutions';
 
 /**
- * SolutionsHero
+ * SolutionsHero — the opening frame above the pinned methods act.
  *
- * Editorial opening frame above the pinned methods. Hero pattern:
- *  - Eyebrow ("FOUR METHODS · ONE FLOOR")
- *  - Large two-line SplitText headline (clamp 56 → 110px) that animates
- *    in on mount via a per-char y-rise stagger.
- *  - Subhead pulled from the source ommiforge.com Solutions copy.
- *  - A subtle scroll-driven fade-out + lift as the user scrolls toward
- *    `<MethodsPinned>` below, so the hero relinquishes the viewport
- *    gracefully instead of just disappearing under the next section.
+ * Deliberately quiet. `/solutions` spends its whole motion budget on the
+ * four-panel act below (§5.4), and a second spectacle above it would just
+ * make the visitor scroll past both. So this is §4.4 preset #5 — a section
+ * header with its eyebrow and rule — and nothing else.
  *
- * Reduced-motion: skip both the mount stagger AND the scroll-driven
- * fade. Everything renders at rest.
+ * No `SplitText` here on purpose: §4.4 restricts the per-character h1
+ * stagger to `/` and `/about`. Reserving it for two pages is what keeps it
+ * feeling like a decision rather than a default.
+ *
+ * The v2 version also ran a `scrub: true` fade-out as the hero left the
+ * viewport. That is gone twice over: §4.2 bans `scrub: true` (instant
+ * tracking is weightless), and a second ScrollTrigger sitting immediately
+ * above a 560vh pin is one more thing to re-measure on every refresh for a
+ * fade nobody asked for.
+ *
+ * Reduced motion: the entrance simply does not run. The layout is identical
+ * either way — nothing here depends on a tween having fired, so there is no
+ * second tree to keep in sync.
  */
 export default function SolutionsHero() {
   const root = useRef<HTMLElement | null>(null);
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     if (reduced) return;
@@ -32,103 +38,70 @@ export default function SolutionsHero() {
     if (!el) return;
 
     const ctx = gsap.context(() => {
-      // Line 1 animates per-char; the italic line 2 is split per-WORD
-      // (italic glyphs slant past their box, so per-char inline-block
-      // spans mangle thin letters like "ill" in "billet"). Animate both.
-      const chars = el.querySelectorAll(
-        '[data-hero-headline] [data-char], [data-hero-headline] [data-word]',
-      );
-      const fades = el.querySelectorAll('[data-hero-fade]');
-
-      // Mount-in stagger.
-      const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
-      intro
-        .from(chars, {
-          yPercent: 110,
-          opacity: 0,
-          duration: 0.9,
-          stagger: 0.014,
-        })
-        .from(
-          fades,
-          { y: 16, opacity: 0, duration: 0.6, stagger: 0.08 },
-          '-=0.5',
-        );
-
-      // Scroll-driven fade-out as the user scrolls past the hero into
-      // <MethodsPinned>. Pinning never starts until the trigger element
-      // hits the top of the viewport, so we want the hero fully gone by
-      // then.
-      gsap.to(el.querySelector('[data-hero-inner]'), {
+      // §4.2 component band: 480ms on `press` (expo.out), 40ms stagger.
+      // Nothing overshoots — §4.1 bans `back`/`elastic`/`bounce` outright.
+      gsap.from(el.querySelectorAll('[data-rise]'), {
+        y: 16,
         opacity: 0,
-        y: -40,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: el,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true,
-        },
+        duration: 0.48,
+        ease: 'expo.out',
+        stagger: 0.04,
       });
-
-      // Force a refresh once the layout settles (helps when the page
-      // mounts mid-scroll, e.g. after a client-side route hop).
-      ScrollTrigger.refresh();
+      gsap.from(el.querySelector('[data-rule]'), {
+        scaleX: 0,
+        transformOrigin: 'left center',
+        duration: 0.62,
+        ease: 'expo.out',
+        delay: 0.18,
+      });
     }, el);
 
     return () => ctx.revert();
   }, [reduced]);
 
   return (
+    /* No `bg-*` anywhere on this route: the page ground is already graphite
+       (html/body, globals.css), and an opaque section background would paint
+       over the shared canvas layer the methods act below draws into.
+       `<main>` already carries `padding-top: var(--header-h)`, so the padding
+       here is only the section's own air on top of that. */
     <section
       ref={root}
-      className="relative bg-paper pt-32 pb-20 md:pt-40 md:pb-32"
+      className="relative pb-[clamp(64px,8vw,96px)] pt-[clamp(72px,9vw,128px)]"
     >
-      <div
-        data-hero-inner
-        className="mx-auto max-w-page px-6 md:px-10"
-      >
-        <Eyebrow data-hero-fade>
-          <span className="text-ember">{SOLUTIONS_HERO.eyebrow}</span>
-        </Eyebrow>
+      <div className="page-x mx-auto max-w-page">
+        {/* Wrapper, not `<Eyebrow data-rise>`: `Eyebrow` takes a closed prop
+            set and drops anything else, so the attribute would never reach
+            the DOM and the selector below would silently miss it. */}
+        <div data-rise>
+          <Eyebrow>{SOLUTIONS_HERO.eyebrow}</Eyebrow>
+        </div>
 
-        <h1
-          data-hero-headline
-          className="mt-8 max-w-5xl font-display font-light leading-[0.98] text-graphite"
-        >
-          <SplitText
-            as="span"
-            className="block text-[clamp(56px,10vw,110px)]"
-          >
-            {SOLUTIONS_HERO.headlineLine1}
-          </SplitText>
-          <SplitText
-            as="span"
-            byWord
-            className="block text-[clamp(56px,10vw,110px)] italic text-mesh"
-          >
-            {SOLUTIONS_HERO.headlineLine2}
-          </SplitText>
+        {/* Page h1 → `display-l`, per §2.4. `display-xl` is the home h1 and
+            nothing else on the site is allowed to claim it. */}
+        <h1 className="type-display-l mt-8 max-w-[16ch] text-balance" data-rise>
+          {SOLUTIONS_HERO.headlineLine1}{' '}
+          <span className="text-saffron">{SOLUTIONS_HERO.headlineLine2}</span>
         </h1>
 
         <div className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-12">
+          {/* 68ch measure — the 7-column track alone runs past 75ch on the
+              tablet widths just under `md:`. */}
           <p
-            data-hero-fade
-            className="font-body text-base leading-relaxed text-steel md:col-span-7 md:text-lg md:leading-[1.7]"
+            className="type-lede max-w-[68ch] text-pretty md:col-span-7"
+            data-rise
           >
             {SOLUTIONS_HERO.subhead}
           </p>
 
-          <div
-            data-hero-fade
-            className="md:col-span-4 md:col-start-9 md:self-end"
-          >
-            <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.24em] text-graphite">
+          <div className="md:col-span-4 md:col-start-9 md:self-end" data-rise>
+            <p className="type-meta uppercase tracking-[0.26em] text-ink-body">
               Scroll for each method
             </p>
             <span
               aria-hidden
-              className="mt-4 block h-px w-16 bg-mesh"
+              data-rule
+              className="mt-4 block h-px w-16 bg-saffron"
             />
           </div>
         </div>
