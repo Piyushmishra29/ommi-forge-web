@@ -6,6 +6,13 @@ import RevealHeading from '@/components/motion/RevealHeading';
 import { STATS } from '@/data/home';
 
 /**
+ * Same locale + grouping as NumberCounter's internal formatter, so the
+ * invisible "ghost" below measures exactly the string the counter will
+ * finish on ("1,000+", not "1000+").
+ */
+const statFormatter = new Intl.NumberFormat('en-IN');
+
+/**
  * StatsCounter
  *
  * Graphite slab section with paper text. Four counters set in
@@ -20,7 +27,7 @@ import { STATS } from '@/data/home';
 export default function StatsCounter() {
   return (
     <section className="bg-graphite py-32 text-paper md:py-40">
-      <div className="mx-auto max-w-[1140px] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow className="text-paper">OUR POWER IS NUMBERS</Eyebrow>
         <RevealHeading
           as="h2"
@@ -44,15 +51,29 @@ export default function StatsCounter() {
                   into the next column — capped at 72px so "1,000+" lands
                   ~221px wide, leaving a comfortable gutter. Single-digit
                   stats still read large. gap-12 everywhere for air. */}
+              {/* `grid` (not `block`) stacks an invisible ghost of the FINAL
+                  string under the live counter in the same cell, so the box
+                  is sized for "1,000+" from first paint. Without it the
+                  counter mounts at "0" and the element's width grows through
+                  the whole 1.6 s tween — reserve-space / CLS. tabular-nums
+                  alone only equalises digit WIDTH, not digit COUNT. */}
               <span
-                className="block font-display font-bold leading-[0.92] text-saffron tabular-nums"
+                className="grid font-display font-bold leading-[0.92] text-saffron tabular-nums"
                 style={{
                   fontSize: 'clamp(52px, 5.5vw, 72px)',
                   letterSpacing: '-0.03em',
                   textShadow: '0 0 36px rgba(255,153,51,0.18)',
                 }}
               >
-                <NumberCounter to={stat.value} suffix={stat.suffix} />
+                <span
+                  aria-hidden
+                  className="invisible col-start-1 row-start-1"
+                >
+                  {`${statFormatter.format(stat.value)}${stat.suffix}`}
+                </span>
+                <span className="col-start-1 row-start-1">
+                  <NumberCounter to={stat.value} suffix={stat.suffix} />
+                </span>
               </span>
               <p className="font-eyebrow text-sm font-semibold uppercase tracking-[0.22em] text-paper">
                 {stat.label}

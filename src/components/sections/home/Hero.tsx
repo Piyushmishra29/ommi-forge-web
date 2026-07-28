@@ -62,17 +62,20 @@ function buildHammerPulse(steps = 60): number[] {
  * move in lockstep. Reduced-motion: bars rest at 50% height.
  */
 function AudioPulseBars({ reduced }: { reduced: boolean }) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const groupRef = useRef<SVGGElement | null>(null);
   const wave = useMemo(() => buildHammerPulse(60), []);
 
   useEffect(() => {
     if (reduced) return;
+    const svg = svgRef.current;
     const node = groupRef.current;
-    if (!node) return;
+    if (!svg || !node) return;
     const bars = Array.from(node.querySelectorAll<SVGRectElement>('rect'));
     if (bars.length === 0) return;
 
     let rafId = 0;
+    let running = false;
     const phases = [0, 12, 24, 36]; // step offsets so bars desync
 
     const tick = () => {
@@ -85,13 +88,53 @@ function AudioPulseBars({ reduced }: { reduced: boolean }) {
       rafId = window.requestAnimationFrame(tick);
     };
 
-    rafId = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(rafId);
+    // The cue lives in the hero, but the page is a ~10-viewport scroll
+    // narrative — an unconditional RAF loop would keep waking the main
+    // thread with SVG attribute writes for every one of those viewports,
+    // competing with the canvas scrubs for the 16 ms frame budget. Gate
+    // it on visibility: on-screen AND tab-foregrounded.
+    const start = () => {
+      if (running) return;
+      running = true;
+      rafId = window.requestAnimationFrame(tick);
+    };
+    const stop = () => {
+      if (!running) return;
+      running = false;
+      window.cancelAnimationFrame(rafId);
+    };
+
+    const sync = (onScreen: boolean) => {
+      if (onScreen && !document.hidden) start();
+      else stop();
+    };
+
+    let onScreenNow = true;
+    const io =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver((entries) => {
+            for (const entry of entries) onScreenNow = entry.isIntersecting;
+            sync(onScreenNow);
+          })
+        : null;
+    if (io) io.observe(svg);
+    const onVisibility = () => sync(onScreenNow);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // No IntersectionObserver → behave as before (always running).
+    sync(onScreenNow);
+
+    return () => {
+      stop();
+      io?.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [reduced, wave]);
 
   // Initial (reduced-motion) heights: 50%.
   return (
     <svg
+      ref={svgRef}
       width={60}
       height={20}
       viewBox="0 0 60 20"
@@ -207,7 +250,7 @@ export default function Hero() {
       />
 
       {/* Foreground */}
-      <div className="relative z-10 mx-auto flex w-full max-w-[1140px] flex-col items-center px-6 text-center text-paper [text-shadow:0_2px_24px_rgba(0,0,0,0.45)]">
+      <div className="relative z-10 mx-auto flex w-full max-w-page flex-col items-center px-6 text-center text-paper [text-shadow:0_2px_24px_rgba(0,0,0,0.45)]">
         <Eyebrow className="text-paper">{HERO_COPY.eyebrow}</Eyebrow>
 
         <div

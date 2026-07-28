@@ -109,7 +109,7 @@ function TimelineTrack() {
                 <h3 className="mt-6 font-display text-2xl font-light leading-tight text-graphite md:text-4xl">
                   {m.title}
                   {m.inProgress && (
-                    <span className="ml-3 align-middle font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-mesh">
+                    <span className="ml-3 align-middle font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-ember">
                       (in progress)
                     </span>
                   )}
@@ -129,7 +129,7 @@ function TimelineTrack() {
 function StaticList() {
   return (
     <section className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-[1140px] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow>ACT 05 · HERITAGE</Eyebrow>
         <h2 className="mt-4 font-display text-3xl font-light leading-[1.1] text-graphite md:text-5xl">
           Fifty-one years on the floor.
@@ -144,7 +144,7 @@ function StaticList() {
               <h3 className="mt-4 font-display text-2xl font-light leading-tight text-graphite">
                 {m.title}
                 {m.inProgress && (
-                  <span className="ml-3 align-middle font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-mesh">
+                  <span className="ml-3 align-middle font-eyebrow text-xs font-semibold uppercase tracking-[0.18em] text-ember">
                     (in progress)
                   </span>
                 )}

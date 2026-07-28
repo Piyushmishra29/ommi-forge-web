@@ -77,20 +77,40 @@ function MarqueeRow({ tiles, direction, duration, reduced }: MarqueeRowProps) {
   const pause = () => tweenRef.current?.pause();
   const resume = () => tweenRef.current?.resume();
 
-  const items = [...tiles, ...tiles];
+  // Under reduced-motion the track never moves, so everything past the
+  // first few tiles would be permanently clipped by `overflow-hidden` —
+  // the catalogue becomes unreachable rather than merely still. Turning
+  // the row into a real scroll container (focusable, so it can be driven
+  // with the arrow keys) keeps the content available without motion.
+  const items = reduced ? tiles : [...tiles, ...tiles];
 
   return (
     <div
-      className="relative overflow-hidden"
+      className={`relative ${reduced ? 'overflow-x-auto' : 'overflow-hidden'}`}
+      {...(reduced
+        ? {
+            tabIndex: 0,
+            role: 'group' as const,
+            'aria-label': 'Forged product catalogue — scroll horizontally',
+          }
+        : null)}
       onMouseEnter={pause}
       onMouseLeave={resume}
       onTouchStart={pause}
       onTouchEnd={resume}
+      // Focus pause as well as hover: a keyboard user tabbing into
+      // anything inside the row must not have it slide out from under
+      // them. React's onFocus/onBlur bubble, so this covers descendants.
+      onFocus={pause}
+      onBlur={resume}
     >
       <div
         ref={trackRef}
         className="flex w-max gap-6"
-        style={{ willChange: 'transform' }}
+        // Only hint the compositor when something actually tweens —
+        // under reduced-motion the track is static, and a permanent
+        // will-change would hold a layer for no reason.
+        style={reduced ? undefined : { willChange: 'transform' }}
       >
         {items.map((tile, i) => (
           <ProductTile key={`${tile.name}-${i}`} tile={tile} />
@@ -126,10 +146,12 @@ function ProductTile({ tile }: { tile: Tile }) {
             decoding="async"
             // Subtle ~5 % cover-zoom on tile hover. The marquee row
             // pauses on enter (so the tile is held still long enough
-            // to read the move), the parent's overflow-hidden clips
-            // the overage, and a 700 ms power-out feel keeps it
-            // tactile, not bouncy.
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+            // to read the move) and the parent's overflow-hidden clips
+            // the overage. 300 ms ease-out: this is a hover
+            // micro-interaction, not scroll choreography, so it sits in
+            // the 150–300 ms band and shares its timing with the caption
+            // below — at 700 ms the zoom visibly trailed the caption.
+            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05]"
             onError={() => setImageOk(false)}
           />
         </picture>
@@ -139,7 +161,7 @@ function ProductTile({ tile }: { tile: Tile }) {
         // broken-image icon.
         <div
           aria-hidden
-          className="h-full w-full bg-[linear-gradient(135deg,#D9D9D9_0%,#FAFAFA_100%)]"
+          className="h-full w-full bg-gradient-to-br from-render-bg to-paper"
         />
       )}
       {/* Name caption — slides up + fades in on hover. Uses a soft
@@ -147,9 +169,14 @@ function ProductTile({ tile }: { tile: Tile }) {
           photo. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent px-5 pb-4 pt-12 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100"
+        className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-4 bg-gradient-to-t from-graphite/85 via-graphite/40 to-transparent px-5 pb-4 pt-12 opacity-0 transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100"
       >
-        <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.22em] text-mesh">
+        {/* saffron, not mesh — same reasoning as the gallery tile
+            captions: on a gradient scrim over photography saffron holds
+            the most headroom of any accent in the palette. Note the
+            scrim itself is the weaker link here; this label sits in the
+            `pt-12` fade, not the opaque band. */}
+        <p className="font-eyebrow text-[10px] font-semibold uppercase tracking-[0.22em] text-saffron">
           Forged
         </p>
         <p className="mt-1 font-display text-base font-light leading-tight text-paper">
@@ -166,7 +193,7 @@ export default function ProductsMarquee() {
 
   return (
     <section className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-[1140px] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow>ACT 04 · CATALOGUE</Eyebrow>
         <RevealHeading
           as="h2"

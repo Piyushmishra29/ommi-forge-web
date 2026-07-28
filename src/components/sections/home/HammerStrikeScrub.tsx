@@ -166,8 +166,19 @@ export default function HammerStrikeScrub() {
       {/* Overlay copy */}
       <div className="absolute inset-0 z-10 flex flex-col justify-center px-6 md:px-12 lg:px-20">
         <Eyebrow className="text-paper">ACT 01 · IMPACT</Eyebrow>
+        {/* The act's only text is three aria-hidden spans cross-fading over an
+            aria-hidden canvas — so without this the whole full-viewport
+            section is a hole in both the heading outline and the screen-reader
+            reading order. `aria-label` on the bare wrapper <div> below did NOT
+            fix that: aria-label is ignored on a generic element with no role.
+            A real (visually hidden) h2 keeps h1 → h2 sequential and gives the
+            act a spoken equivalent of the footage. */}
+        <h2 className="sr-only">
+          Heat. Strike. Forge. — a power hammer working a glowing steel bar on
+          the Malur floor.
+        </h2>
         <div
-          aria-label="Heat. Strike. Forge."
+          aria-hidden
           className="relative mt-6 h-[40vh] w-full md:h-[55vh]"
         >
           {HAMMER_INTRO_WORDS.map((word, i) => (

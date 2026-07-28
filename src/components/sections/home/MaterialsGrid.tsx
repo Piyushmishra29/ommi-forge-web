@@ -35,9 +35,15 @@ function flatGrades(m: Material): string[] {
 
 function FrontFace({ m }: { m: Material }) {
   return (
+    // The card front paints on `render-bg` (#D9D9D9), not paper — mesh
+    // measures only 2.25:1 there, which misses even the 3:1 large-text
+    // floor, and ember reaches 3.84:1 (fine for the 96px numeral, short
+    // of AA for the 11px tagline). `oxide` is the accent that clears
+    // 4.5:1 on this surface, so both slots take it and the card keeps one
+    // accent instead of two reds. See --color-oxide in globals.css.
     <article className="absolute inset-0 flex h-full flex-col justify-between bg-render-bg p-8 text-graphite md:p-10">
       <div>
-        <p className="font-display text-[96px] font-light leading-none text-mesh">
+        <p className="font-display text-[96px] font-light leading-none text-oxide">
           {m.number}
         </p>
         <h3 className="mt-6 font-display text-3xl font-light leading-tight md:text-4xl">
@@ -48,7 +54,7 @@ function FrontFace({ m }: { m: Material }) {
         <p className="font-body text-sm leading-relaxed text-graphite/85 md:text-base">
           {m.blurb}
         </p>
-        <p className="mt-6 font-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em] text-mesh">
+        <p className="mt-6 font-eyebrow text-[11px] font-semibold uppercase tracking-[0.22em] text-oxide">
           {m.tagline}
         </p>
       </div>
@@ -82,7 +88,9 @@ function BackFace({ m }: { m: Material }) {
           href={`/materials/#${m.slug}`}
           data-magnetic
           data-cursor-label="Explore"
-          className="inline-flex items-center gap-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-saffron hover:text-paper transition-colors"
+          // min-h-11: 12px uppercase text is an ~18px tall hit area on its
+          // own, under the 44×44 minimum. The card back has room to spare.
+          className="inline-flex min-h-11 items-center gap-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-saffron hover:text-paper transition-colors"
         >
           Explore materials <span aria-hidden>→</span>
         </Link>
@@ -180,7 +188,7 @@ export default function MaterialsGrid() {
 
   return (
     <section className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-[1140px] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow>ACT 02 · MATERIALS</Eyebrow>
         <RevealHeading
           as="h2"
@@ -199,7 +207,7 @@ export default function MaterialsGrid() {
           className="
             flex flex-col gap-8 px-6 md:px-10
             lg:flex-row lg:overflow-x-auto lg:scroll-smooth lg:snap-x lg:snap-mandatory
-            lg:gap-10 lg:px-[max(2.5rem,calc((100vw-1140px)/2))] lg:pb-6
+            lg:gap-10 lg:px-[max(2.5rem,calc((100vw-var(--container-page))/2))] lg:pb-6
           "
         >
           {MATERIALS.map((m) => (

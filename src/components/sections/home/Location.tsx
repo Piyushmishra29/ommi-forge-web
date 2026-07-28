@@ -16,7 +16,7 @@ import { LOCATION } from '@/data/home';
 export default function Location() {
   return (
     <section className="bg-paper py-32 md:py-40">
-      <div className="mx-auto max-w-[1140px] px-6 md:px-10">
+      <div className="mx-auto max-w-page px-6 md:px-10">
         <Eyebrow>FIND US</Eyebrow>
         <RevealHeading
           as="h2"
@@ -29,7 +29,7 @@ export default function Location() {
           {/* Address block */}
           <div className="flex flex-col gap-8">
             <div>
-              <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-mesh">
+              <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-ember">
                 Plant
               </p>
               <address className="mt-3 not-italic font-display text-2xl font-light leading-snug text-graphite md:text-3xl">
@@ -46,10 +46,17 @@ export default function Location() {
                 <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-steel">
                   Phone
                 </p>
+                {/* min-h-11 (44px): a bare inline link at text-lg is only
+                    ~27px tall, under the 44×44 minimum — and these two are
+                    the section's primary "call / email us" actions on a
+                    phone. inline-flex so the box grows, not the text. */}
                 <a
                   href={LOCATION.phoneHref}
                   data-magnetic
-                  className="mt-2 inline-block font-body text-lg text-graphite transition-colors hover:text-mesh"
+                  // 18px non-bold is NOT WCAG "large text" (that needs 24px,
+                  // or 18.66px bold), so the hover colour has to clear the
+                  // full 4.5:1 — mesh is 3.05:1 on paper, ember 5.19:1.
+                  className="mt-1 inline-flex min-h-11 items-center font-body text-lg text-graphite transition-colors hover:text-ember"
                 >
                   {LOCATION.phone}
                 </a>
@@ -61,7 +68,7 @@ export default function Location() {
                 <a
                   href={LOCATION.emailHref}
                   data-magnetic
-                  className="mt-2 inline-block break-all font-body text-lg text-graphite transition-colors hover:text-mesh"
+                  className="mt-1 inline-flex min-h-11 items-center break-all font-body text-lg text-graphite transition-colors hover:text-ember"
                 >
                   {LOCATION.email}
                 </a>
@@ -103,7 +110,9 @@ export default function Location() {
               target="_blank"
               rel="noopener noreferrer"
               data-magnetic
-              className="mt-4 inline-flex items-center gap-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-mesh"
+              // min-h-11: 12px uppercase text alone gives an ~18px tall
+              // hit area — well under the 44×44 minimum.
+              className="mt-2 inline-flex min-h-11 items-center gap-2 font-eyebrow text-xs font-semibold uppercase tracking-[0.22em] text-graphite transition-colors hover:text-ember"
             >
               Open in Maps
               <span aria-hidden>→</span>

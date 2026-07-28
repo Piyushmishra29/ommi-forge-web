@@ -57,7 +57,7 @@ export default function ClosingCta() {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-graphite/15 to-transparent"
       />
 
-      <div className="relative mx-auto flex max-w-[1140px] flex-col items-center px-6 text-center md:px-10">
+      <div className="relative mx-auto flex max-w-page flex-col items-center px-6 text-center md:px-10">
         <div data-cta-headline>
           <SplitText
             as="h2"
