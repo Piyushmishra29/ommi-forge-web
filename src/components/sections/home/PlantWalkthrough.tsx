@@ -1,87 +1,60 @@
 'use client';
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Eyebrow from '@/components/ui/Eyebrow';
-import { useScrollImageSequence } from '@/components/motion/useScrollImageSequence';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 
 /**
  * PlantWalkthrough (Act 03)
  *
- * Scroll-scrubbed plant-floor walkthrough rendered as a WebP image
- * sequence drawn onto a <canvas> (the Apple AirPods technique, same as
- * the Hero) — reliable "crawl to play" on iOS Safari, where MP4
- * currentTime seeking paints white.
+ * An autoplaying 1280×720 clip of the Malur plant floor.
  *
- * Lazy mounted: the canvas + the frame preload don't fire until the
- * section is within ~600 px of the viewport (IntersectionObserver). Saves
- * network on first paint for users who never scroll past Act 01.
+ * Why this is a <video> when the rest of the site's motion is canvas
+ * -----------------------------------------------------------------
+ * The other scrub acts are WebP image sequences painted on a <canvas>
+ * because MP4 `currentTime` seeking paints white on iOS Safari. That
+ * constraint is about SCRUBBING — driving playback position from scroll.
+ * This act no longer scrubs, it plays, and plain autoplay has none of that
+ * problem. So the canvas technique buys nothing here and costs a lot:
  *
- * Two responsive encodes with identical numbering (f-001 … f-108): 960-wide
- * for desktop, 640-wide for mobile — the hook picks one on mount.
+ *   before  108 WebP frames @ 960×540, 3.58 MB, pinned over `+=220%`
+ *   after   one H.264 clip  @ 1280×720, 2.2 MB, 17 s, no pin
+ *
+ * That is 39 % fewer bytes for 78 % more pixels. The frames were the single
+ * largest asset on the route and they were being upscaled from 960 px wide
+ * to a full-bleed desktop viewport, which is where the softness came from.
+ * Dropping the pin also removes 2.2 viewports of scrolling that the visitor
+ * had to work through to get past this one section.
+ *
+ * The 960/640 plant frame tiers under `public/assets/frames/plant/` are no
+ * longer referenced by anything.
  */
-/**
- * 108 frames (decimated from 216) — halves the payload on a slow origin
- * while the hook's nearest-frame drawing keeps the scrub visually smooth.
- * `end: +=220%` is a share of viewport, so scroll length / feel is
- * independent of frame count. Lazy-mounted so the payload only loads when
- * the section nears viewport.
- */
-const PLANT_FRAME_COUNT = 108;
-const plantFrame = (dir: 960 | 640) => (i: number) =>
-  `/assets/frames/plant/${dir}/f-${String(i + 1).padStart(3, '0')}.webp`;
-const plantSrc = plantFrame(960);
-const plantSrcMobile = plantFrame(640);
 
-/**
- * PlantCanvas mounts only after the parent section enters the lazy-load
- * window. The scroll-image-sequence hook needs to pin the OUTER <section>
- * (normal-flow element) — we pass its ref in via props rather than
- * creating our own, otherwise ScrollTrigger would try to pin an
- * absolutely-positioned div and the pin wouldn't anchor.
- */
-function PlantCanvas({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useScrollImageSequence({
-    canvasRef,
-    sectionRef,
-    count: PLANT_FRAME_COUNT,
-    src: plantSrc,
-    srcMobile: plantSrcMobile,
-    end: '+=220%',
-  });
-
-  return (
-    <>
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${plantFrame(960)(0)}')` }}
-      />
-      <canvas
-        ref={canvasRef}
-        aria-hidden
-        className="absolute inset-0 h-full w-full"
-      />
-    </>
-  );
-}
+/** Poster doubles as the reduced-motion still and the pre-load paint. */
+const POSTER = '/assets/video/plant-walkthrough-poster.webp';
+const CLIP = '/assets/video/plant-walkthrough.mp4';
 
 export default function PlantWalkthrough() {
   const sectionRef = useRef<HTMLElement | null>(null);
-  const [active, setActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const reduced = useReducedMotion();
+
+  // Gates the <video> element itself, not just playback: until the section
+  // is near the viewport we render the poster alone, so a visitor who never
+  // scrolls past Act 01 never fetches 2.2 MB of clip.
+  const [armed, setArmed] = useState(false);
 
   useEffect(() => {
     const el = sectionRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') {
-      setActive(true);
+      setArmed(true);
       return;
     }
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            setActive(true);
+            setArmed(true);
             io.disconnect();
             break;
           }
@@ -90,36 +63,85 @@ export default function PlantWalkthrough() {
       { rootMargin: '600px' },
     );
     io.observe(el);
-    // Defensive fallback: if the observer hasn't fired by 2.5 s — which can
-    // happen on fast momentum scroll or deep-link landings that skip the
-    // rootMargin window in some browsers — force the canvas to mount so the
-    // section is never permanently blank.
-    //
-    // Gated on proximity, which it was not before: an unconditional timer
-    // fetched all 108 frames (3.6 MB, the single biggest asset on the route)
-    // 2.5 s after landing, for every visitor, including the ones who never
-    // scrolled past the hero. Measured on the exported build — it is why the
-    // plant sequence showed up in a first-visit trace.
-    const fallback = window.setTimeout(() => {
-      const box = el.getBoundingClientRect();
-      if (box.top < window.innerHeight + 1200) setActive(true);
-    }, 2500);
-    return () => {
-      io.disconnect();
-      window.clearTimeout(fallback);
-    };
+    return () => io.disconnect();
   }, []);
+
+  // Play only while on screen and the tab is foregrounded. A 17 s loop left
+  // running behind nine viewports of scroll decodes every frame for nothing
+  // and competes with the 3D acts for the frame budget — the same reason the
+  // hero's pulse loop is visibility-gated.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || reduced) return;
+
+    let onScreen = false;
+    const sync = () => {
+      if (onScreen && !document.hidden) void video.play().catch(() => {});
+      else video.pause();
+    };
+
+    const io =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) onScreen = entry.isIntersecting;
+              sync();
+            },
+            { threshold: 0.01 },
+          )
+        : null;
+    if (io) io.observe(video);
+    else onScreen = true;
+
+    const onVisibility = () => sync();
+    document.addEventListener('visibilitychange', onVisibility);
+    sync();
+
+    return () => {
+      io?.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+      video.pause();
+    };
+  }, [armed, reduced]);
 
   return (
     <section
       ref={sectionRef}
       // `100svh`, not `100dvh`: a mobile URL bar collapsing changes `dvh`
-      // mid-pin, which moves the pinned box under the visitor. The small
+      // mid-section, which moves the box under the visitor. The small
       // viewport unit is stable for the whole gesture (§2.5).
       className="relative h-[100svh] w-full overflow-hidden bg-graphite"
       style={{ contain: 'layout style paint' }}
     >
-      {active ? <PlantCanvas sectionRef={sectionRef} /> : null}
+      {/* Poster sits underneath permanently: it is what paints before the
+          clip has buffered, what a reduced-motion visitor keeps, and what
+          shows if the video fails to decode. No blank frame in any path. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url('${POSTER}')` }}
+      />
+
+      {armed && !reduced ? (
+        <video
+          ref={videoRef}
+          // Decorative: the heading and paragraph beside it carry the
+          // meaning, so announcing the clip would just repeat them.
+          aria-hidden
+          muted
+          loop
+          playsInline
+          // `autoPlay` is deliberately absent — the visibility effect owns
+          // play/pause. Setting both means the browser starts playback the
+          // moment it can, off-screen, before the effect has a say.
+          preload="metadata"
+          poster={POSTER}
+          className="absolute inset-0 h-full w-full object-cover"
+        >
+          <source src={CLIP} type="video/mp4" />
+        </video>
+      ) : null}
+
       <div className="absolute inset-0 bg-graphite/30" aria-hidden />
 
       {/* A flat scrim, not a blur: this is the one job blur is actually for
