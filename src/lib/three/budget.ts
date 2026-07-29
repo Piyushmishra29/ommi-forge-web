@@ -44,12 +44,19 @@ export const PERF_BUDGET = {
   maxConcurrentModelLoads: 2,
 
   /**
-   * Device pixel ratio clamp passed to `<Canvas dpr>`. 1 is the floor
-   * (below it the brushed-metal specular aliases badly); 2 is the ceiling
-   * (3x on a modern phone quadruples fill cost for no perceptible gain on
-   * a 5" screen). `SceneCanvas` walks *within* this range under load.
+   * Device pixel ratio clamp passed to `<Canvas dpr>`. `SceneCanvas` walks
+   * *within* this range under load.
+   *
+   * Raised from [1, 2] after the hero part read as visibly rough-edged. The
+   * floor was the problem more than the ceiling: the adaptive controller
+   * sheds resolution to protect the frame budget, and at DPR 1 a creased
+   * 99k-triangle silhouette aliases badly against the dark ground — the
+   * part looked chipped rather than forged. 1.25 keeps a sensible worst
+   * case; 2.5 lets a high-DPI display actually resolve the edge it has the
+   * pixels for. Fill cost at the ceiling is ~56% over DPR 2, which is why
+   * the controller still owns the decision rather than pinning it high.
    */
-  dpr: [1, 2] as [min: number, max: number],
+  dpr: [1.25, 2.5] as [min: number, max: number],
 
   /**
    * Frame budget in milliseconds. 16.7 ms is 60 fps; the adaptive DPR

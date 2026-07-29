@@ -33,22 +33,26 @@ import { withExt } from '@/lib/image-formats';
 const LineScene = dynamicScene(() => import('./LineScene'));
 
 /** Real names, from `src/data/renders.ts` and the model filenames. */
-const LINE_PARTS = 'Forged Sprocket · Hub · Trunnion 85000103';
+const LINE_PARTS =
+  'Connecting Rod · Forged Sprocket · Hub · Trunnion 85000103 · Crank · Lever';
 
 /** Offline renders of the three parts, through the same rig the canvas uses. */
 const LINE_POSTERS = [
+  { src: '/assets/posters/part-i', alt: 'Connecting Rod — a closed-die forging in grey steel.' },
   { src: '/assets/posters/part-g', alt: 'Forged Sprocket — a closed-die forging in grey steel.' },
   { src: '/assets/posters/part-h', alt: 'Hub — a forged wheel hub in grey steel.' },
   {
     src: '/assets/posters/trunnion-85000103',
     alt: 'Trunnion 85000103 — a forged trunnion in grey steel.',
   },
+  { src: '/assets/posters/part-f', alt: 'Crank — a forged crank in grey steel.' },
+  { src: '/assets/posters/part-e', alt: 'Lever — a forged lever in grey steel.' },
 ] as const;
 const LINE_DESCRIPTION =
-  'Three forged parts cross a dark stage in single file, the way they cross ' +
-  'the floor: a forged sprocket leaves to the left, a wheel hub follows it ' +
-  'in from the right, then trunnion 85000103. All three are cold, ' +
-  'as-forged grey steel.';
+  'Six forged parts cross a dark stage in single file, the way they cross ' +
+  'the floor: the connecting rod from the opening leads, a forged sprocket ' +
+  'follows it in from the right, then a wheel hub, trunnion 85000103, a ' +
+  'crank, and a lever. All six are cold, as-forged grey steel.';
 
 interface Tile {
   src: string;
@@ -242,13 +246,23 @@ export default function ProductsMarquee() {
           className="h-full w-full"
           onApproach={() => {
             // Warmed on approach, not on mount: half a screen of warning is
-            // enough to hide 975 KB behind the scroll, and a visitor who
+            // enough to hide the fetch behind the scroll, and a visitor who
             // never gets here never pays for it.
+            //
+            // Listed in travel order, which is also the order they are
+            // needed. The loader's concurrency cap is 2, so these queue
+            // rather than arriving together — the part that enters first
+            // finishes first. `MODELS.i` is absent deliberately: the rod
+            // leads the line but is already resident from the opening act,
+            // and asking for it again would only take a slot in that queue.
+            preloadModel(MODELS.g.url, MODEL_PRIORITY.approaching);
             preloadModel(MODELS.h.url, MODEL_PRIORITY.approaching);
             preloadModel(MODELS.trunnion.url, MODEL_PRIORITY.approaching);
+            preloadModel(MODELS.f.url, MODEL_PRIORITY.approaching);
+            preloadModel(MODELS.e.url, MODEL_PRIORITY.approaching);
           }}
           fallback={
-            // The same three parts the canvas draws, in the same order, from
+            // The same six parts the canvas draws, in the same order, from
             // the offline renders of the shared rig (§3.6, §5.9). This is what
             // ships in the exported HTML and what a no-WebGL visitor keeps.
             <figure className="absolute inset-0 m-0 flex items-center justify-center gap-[4%] page-x">

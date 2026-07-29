@@ -46,9 +46,17 @@ export type LineSceneProps = {
  * the next is already entering, so the line never empties.
  */
 const TRAVEL = [
-  { url: MODELS.g.url, from: 0.0, to: 0.46, scale: 1 },
-  { url: MODELS.h.url, from: 0.3, to: 0.78, scale: 0.92 },
-  { url: MODELS.trunnion.url, from: 0.62, to: 1.0, scale: 0.95 },
+  // The rod leads because it costs nothing: it is the hero part, already
+  // resident in the geometry cache from the opening act, so it adds six
+  // parts' worth of variety to this beat for the price of two new models.
+  // It also reads as the part the visitor has been following joining the
+  // rest of the catalogue.
+  { url: MODELS.i.url, from: 0.0, to: 0.3, scale: 0.88 },
+  { url: MODELS.g.url, from: 0.145, to: 0.43, scale: 1 },
+  { url: MODELS.h.url, from: 0.29, to: 0.575, scale: 0.92 },
+  { url: MODELS.trunnion.url, from: 0.43, to: 0.72, scale: 0.95 },
+  { url: MODELS.f.url, from: 0.575, to: 0.86, scale: 0.98 },
+  { url: MODELS.e.url, from: 0.72, to: 1.0, scale: 0.9 },
 ] as const;
 
 /** How far off-axis a part starts and ends, in part-radii. */

@@ -7,6 +7,8 @@ import { PerspectiveCamera } from '@react-three/drei';
 import {
   MODELS,
   MODEL_PRIORITY,
+  clamp,
+  damp,
   mapRange,
   useModelGeometry,
   useScenePose,
@@ -81,19 +83,51 @@ const OFFSET_Y = -0.34;
 export default function HeatActScene({ progress }: HeatActSceneProps) {
   const group = useRef<THREE.Group>(null);
   const material = useRef<THREE.MeshStandardMaterial>(null);
+
+  /**
+   * Grab-to-turn. The act is scroll-driven, so this is an OFFSET on top of
+   * the scroll pose rather than a replacement for it — let go and the part
+   * eases back to whatever angle the scroll position says it should be at,
+   * so the choreography is never left stranded somewhere the timeline
+   * doesn't know about.
+   *
+   * `axis` is the reason this doesn't break the page on a phone. A touch
+   * drag that starts mostly vertical is the visitor scrolling, and stealing
+   * it would trap them on a full-viewport section; only a drag whose first
+   * movement is dominantly horizontal takes the pointer. Once an axis is
+   * claimed it stays claimed for that gesture, so a slightly diagonal turn
+   * doesn't flip back and forth.
+   */
+  const drag = useRef({
+    axis: null as null | 'turn' | 'scroll',
+    active: false,
+    x: 0,
+    y: 0,
+    yaw: 0,
+    pitch: 0,
+  });
   const core = useRef<THREE.PointLight>(null);
   const camera = useRef<THREE.PerspectiveCamera>(null);
 
   // `creased` splits hard edges so they catch the strip lights like machined
   // steel. It de-indexes the buffer (~3× GPU memory) — worth it for the one
-  // part the page is built around, wasteful for a thumbnail. 24,578 tris, so
-  // even tripled this is a rounding error against the 900k/frame budget.
+  // part the page is built around, wasteful for a thumbnail. 99,548 tris, so
+  // de-indexed it draws ~299k — a third of the 900k/frame budget on its own,
+  // which is affordable because this slot is the only thing on screen while
+  // the act runs.
   const { geometry } = useModelGeometry(MODELS.i.url, {
     priority: MODEL_PRIORITY.hero,
     shading: 'creased',
+    // 55°, not the 40° default. The rod's beam and both eyes are large
+    // continuous curves, and at 40° the tessellation seams across them
+    // cleared the threshold and split — so the smooth parts of the part
+    // read as faceted while the genuinely machined edges gained nothing.
+    // 55° welds the curvature back together and still splits the shoulders,
+    // the parting line and the eye bores, which are the edges worth having.
+    creaseAngleDeg: 55,
   });
 
-  useScenePose((state) => {
+  useScenePose((state, delta) => {
     const p = progress.current;
 
     // DOLLY — "you are walking up to the part". Once, over beat 1, then it
@@ -133,9 +167,19 @@ export default function HeatActScene({ progress }: HeatActSceneProps) {
       // part; ±48° reads the depth of a forging without ever approaching the
       // 90° that flattens it. Well inside §4.3's 220° ceiling either way.
       const local = p <= BEATS.forgeIn ? 0 : mapRange(p, BEATS.forgeIn, 1, 0, 1);
+
+      // Released drag decays back to zero so the scroll pose reasserts. Held
+      // drag holds. `damp` is frame-rate independent, so the ease home takes
+      // the same wall-clock time at 60 and 144 Hz.
+      const d = drag.current;
+      if (!d.active) {
+        d.yaw = damp(d.yaw, 0, 4, delta);
+        d.pitch = damp(d.pitch, 0, 4, delta);
+      }
+
       g.rotation.set(
-        BASE_PITCH,
-        BASE_YAW + (local - 0.5) * INDEX_SWEEP_RAD,
+        BASE_PITCH + d.pitch,
+        BASE_YAW + (local - 0.5) * INDEX_SWEEP_RAD + d.yaw,
         0,
       );
     }
@@ -178,7 +222,58 @@ export default function HeatActScene({ progress }: HeatActSceneProps) {
           // `dispose={null}`: the geometry is cache-owned and shared with
           // the closing-CTA slot, which shows this same part cold. R3F's
           // unmount cleanup would otherwise free a buffer still in use.
-          <mesh geometry={geometry.geometry} dispose={null}>
+          <mesh
+            geometry={geometry.geometry}
+            dispose={null}
+            onPointerDown={(e) => {
+              const d = drag.current;
+              d.axis = null;
+              d.active = true;
+              d.x = e.clientX;
+              d.y = e.clientY;
+            }}
+            onPointerMove={(e) => {
+              const d = drag.current;
+              if (!d.active) return;
+              const dx = e.clientX - d.x;
+              const dy = e.clientY - d.y;
+
+              // Claim an axis on the first movement past a 6px deadzone, so
+              // a tap or a jitter never counts as either.
+              if (d.axis === null) {
+                if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+                d.axis = Math.abs(dx) > Math.abs(dy) ? 'turn' : 'scroll';
+                if (d.axis === 'turn') {
+                  // Only capture once we know it's a turn — capturing a
+                  // vertical drag would swallow the page scroll.
+                  (e.target as Element).setPointerCapture?.(e.pointerId);
+                }
+              }
+              if (d.axis !== 'turn') return;
+
+              d.x = e.clientX;
+              d.y = e.clientY;
+              // ~0.9 rad across a 1000px drag: enough to feel direct, not so
+              // much that a flick spins the part past the framing the beat
+              // was composed for.
+              d.yaw += dx * 0.0009;
+              // Pitch is deliberately tighter and clamped: the rig's key and
+              // rim are placed for a part standing roughly upright, and
+              // tipping it far puts the saffron rim into a broad face's
+              // mirror direction, which is what made this part read copper.
+              d.pitch = clamp(d.pitch + dy * 0.0005, -0.22, 0.22);
+            }}
+            onPointerUp={(e) => {
+              const d = drag.current;
+              d.active = false;
+              d.axis = null;
+              (e.target as Element).releasePointerCapture?.(e.pointerId);
+            }}
+            onPointerLeave={() => {
+              drag.current.active = false;
+              drag.current.axis = null;
+            }}
+          >
             <meshStandardMaterial ref={material} {...AS_FORGED} />
           </mesh>
         ) : null}
