@@ -70,20 +70,25 @@ const hammerSrcMobile = hammerFrame(640);
 /**
  * The hero still.
  *
- * `public/assets/posters/part-g.*` is an offline render of this exact part
- * through the same `<ForgeStage>` rig the canvas mounts, which is what §3.6
- * asks for: poster and canvas are the same picture, so the hand-off between
- * them is invisible rather than a pop. 6.5 KB WebP / 3.9 KB AVIF.
+ * `public/assets/posters/part-i--as-forged.*` is an offline render of this
+ * exact part through the same `<ForgeStage>` rig the canvas mounts, which is
+ * what §3.6 asks for: poster and canvas are the same picture, so the hand-off
+ * between them is invisible rather than a pop.
+ *
+ * The AS_FORGED variant specifically. The canvas opens on `AS_FORGED` (dark
+ * mill scale) and only reaches machined at the closing act, so the machined
+ * still — which is what this pointed at before — was a brighter, smoother
+ * part than the one that faded in over it.
  *
  * This is not a degraded-path asset. `Scene3DProvider` starts at `probing`
  * on the server and pre-hydration, so the slot's fallback is what ships in
  * the exported HTML: it is what a crawler indexes, what a no-JS visitor
  * reads, and what every visitor sees before hydration.
  */
-const POSTER = '/assets/posters/part-g.webp';
-const POSTER_AVIF = '/assets/posters/part-g.avif';
+const POSTER = '/assets/posters/part-i--as-forged.webp';
+const POSTER_AVIF = '/assets/posters/part-i--as-forged.avif';
 const POSTER_ALT =
-  'The Forged Sprocket — a closed-die forging in dark grey steel, lit from ' +
+  'The Connecting Rod — a closed-die forging in dark grey steel, lit from ' +
   'behind by the forge.';
 
 /**
@@ -139,16 +144,16 @@ const HeatActScene = dynamicScene(() => import('./HeatActScene'));
 function ActHeading() {
   return (
     <h2 className="sr-only">
-      Heat. Strike. Forge. — one forged sprocket goes into the furnace, is
+      Heat. Strike. Forge. — one connecting rod goes into the furnace, is
       struck by a power hammer, and comes back cooling.
     </h2>
   );
 }
 
 const SCENE_DESCRIPTION =
-  'A forged sprocket in dark grey mill scale turns slowly on a dark stage. ' +
-  'It brightens from within as it heats, is struck, and then cools back to ' +
-  'cold steel as it turns to show its teeth.';
+  'A forged connecting rod in dark grey mill scale turns slowly on a dark ' +
+  'stage. It brightens from within as it heats, is struck, and then cools ' +
+  'back to cold steel as it turns to show the beam between its two eyes.';
 
 /**
  * Poster + prose. It is the pre-hydration and no-WebGL state, and it is laid
@@ -325,7 +330,7 @@ function HeatActScrub() {
   const progress = useRef(0);
 
   const { webgl } = useScene3D();
-  const model = useModelProgress([MODELS.g.url]);
+  const model = useModelProgress([MODELS.i.url]);
   const partReady = model.progress >= 1;
 
   // The footage is the single heaviest asset on the route. It stays
@@ -342,7 +347,7 @@ function HeatActScrub() {
   });
 
   const warmPart = useCallback(() => {
-    preloadModel(MODELS.g.url, MODEL_PRIORITY.hero);
+    preloadModel(MODELS.i.url, MODEL_PRIORITY.hero);
   }, []);
 
   /** Everything the act writes per scroll frame. Refs and inline styles
@@ -522,7 +527,7 @@ function HeatActScrub() {
       */}
       <div className="absolute inset-0">
         <SceneSlot
-          accessibleName="Forged sprocket heating, struck and cooling on a dark stage"
+          accessibleName="Forged connecting rod heating, struck and cooling on a dark stage"
           description={SCENE_DESCRIPTION}
           className="h-full w-full"
           onApproach={warmPart}

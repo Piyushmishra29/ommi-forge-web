@@ -57,7 +57,7 @@ const CAM_Z_FAR = 4.2;
  * normalisation (measured 110 × 31 × 32 before scaling), so a three-quarter
  * yaw with a downward tilt shows its depth rather than presenting it as a bar.
  */
-const [BASE_PITCH, BASE_YAW] = poseFor(MODELS.g.url);
+const [BASE_PITCH, BASE_YAW] = poseFor(MODELS.i.url);
 
 /** Module scope: two colours allocated once, not one per frame. */
 const HEAT_COLD = new Color(HEAT_RAMP.cold);
@@ -88,7 +88,7 @@ export default function HeatActScene({ progress }: HeatActSceneProps) {
   // steel. It de-indexes the buffer (~3× GPU memory) — worth it for the one
   // part the page is built around, wasteful for a thumbnail. 24,578 tris, so
   // even tripled this is a rounding error against the 900k/frame budget.
-  const { geometry } = useModelGeometry(MODELS.g.url, {
+  const { geometry } = useModelGeometry(MODELS.i.url, {
     priority: MODEL_PRIORITY.hero,
     shading: 'creased',
   });

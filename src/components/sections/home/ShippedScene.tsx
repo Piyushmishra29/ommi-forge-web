@@ -35,7 +35,7 @@ export type ShippedSceneProps = {
 };
 
 /** The same resting angle the poster for this part was rendered at. */
-const [POSE_PITCH, POSE_YAW] = poseFor(MODELS.g.url);
+const [POSE_PITCH, POSE_YAW] = poseFor(MODELS.i.url);
 
 export default function ShippedScene({ progress }: ShippedSceneProps) {
   const group = useRef<THREE.Group>(null);
@@ -44,7 +44,7 @@ export default function ShippedScene({ progress }: ShippedSceneProps) {
   // shading mode is part of the geometry cache key, so asking for `creased`
   // again here is free while asking for `smooth` would prepare a second
   // copy. Matching the act's options is what makes this beat cost nothing.
-  const { geometry } = useModelGeometry(MODELS.g.url, {
+  const { geometry } = useModelGeometry(MODELS.i.url, {
     priority: MODEL_PRIORITY.approaching,
     shading: 'creased',
   });

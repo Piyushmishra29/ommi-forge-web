@@ -32,9 +32,9 @@ import { CLOSING_CTA } from '@/data/home';
 const ShippedScene = dynamicScene(() => import('./ShippedScene'));
 
 const SHIPPED_DESCRIPTION =
-  'The forged sprocket from the top of the page, turning slowly. Its faces ' +
-  'are machined bright and it carries the faint sheen of the rust-preventive ' +
-  'film parts ship under. There is no heat in it.';
+  'The forged connecting rod from the top of the page, turning slowly. Its ' +
+  'faces are machined bright and it carries the faint sheen of the ' +
+  'rust-preventive film parts ship under. There is no heat in it.';
 
 export default function ClosingCta() {
   const root = useRef<HTMLElement>(null);
@@ -103,7 +103,7 @@ export default function ClosingCta() {
           className="relative aspect-square w-full lg:col-span-5"
         >
           <SceneSlot
-            accessibleName="The forged sprocket from the opening, machined and cold"
+            accessibleName="The forged connecting rod from the opening, machined and cold"
             description={SHIPPED_DESCRIPTION}
             index={3}
             // Sized, not positioned — see the note in ProductsMarquee: the
@@ -112,7 +112,7 @@ export default function ClosingCta() {
             onApproach={() => {
               // Already in cache from the act — this is here for the visitor
               // who deep-links past it, e.g. via the skip link or a hash.
-              preloadModel(MODELS.g.url, MODEL_PRIORITY.approaching);
+              preloadModel(MODELS.i.url, MODEL_PRIORITY.approaching);
             }}
             fallback={
               // The poster is rendered from the machined state, which is
@@ -122,12 +122,12 @@ export default function ClosingCta() {
               <figure className="absolute inset-0 m-0 flex items-center justify-center">
                 <picture>
                   <source
-                    srcSet="/assets/posters/part-g.avif"
+                    srcSet="/assets/posters/part-i.avif"
                     type="image/avif"
                   />
                   <img
-                    src="/assets/posters/part-g.webp"
-                    alt="The Forged Sprocket, machined bright and cold."
+                    src="/assets/posters/part-i.webp"
+                    alt="The Forged Connecting Rod, machined bright and cold."
                     width={1000}
                     height={1000}
                     loading="lazy"
